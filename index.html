@@ -6,6 +6,15 @@
 
   <title>Alberto Marketplace Token | AMT Testnet</title>
 
+  <!-- Pi Network JavaScript SDK -->
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+
+  <script>
+    Pi.init({
+      version: "2.0"
+    });
+  </script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -21,7 +30,7 @@
     }
 
     header {
-      padding: 20px;
+      padding: 22px 15px;
       text-align: center;
       border-bottom: 2px solid #ffd700;
       background: rgba(0, 0, 0, 0.35);
@@ -100,7 +109,7 @@
 
     .status {
       margin-top: 30px;
-      padding: 20px;
+      padding: 25px;
       border-radius: 15px;
       background: rgba(0, 0, 0, 0.35);
       border: 1px solid #ffd700;
@@ -109,7 +118,36 @@
 
     .status h2 {
       color: #ffd700;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .status p {
+      color: #ddd;
+      line-height: 1.6;
+    }
+
+    .button {
+      margin-top: 18px;
+      padding: 13px 22px;
+      border: none;
+      border-radius: 10px;
+      background: #ffd700;
+      color: #17002b;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .coming {
+      margin-top: 25px;
+      text-align: center;
+      color: #ccc;
+      line-height: 1.7;
     }
 
     .warning {
@@ -132,11 +170,10 @@
       font-size: 13px;
     }
 
-    .coming {
-      margin-top: 25px;
-      text-align: center;
-      color: #ccc;
-      line-height: 1.7;
+    #piUser {
+      margin-top: 12px;
+      color: #ffd700;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -155,7 +192,7 @@
 
       <p>
         AMT is the planned utility token for the Alberto ecosystem.
-        This website is dedicated to Testnet development and testing.
+        This website is dedicated to Pi Testnet development and testing.
       </p>
     </section>
 
@@ -183,14 +220,37 @@
 
     </section>
 
+    <!-- Pi Testnet connection -->
     <section class="status">
-      <h2>AMT Testnet Status</h2>
-      <p>
-        Token integration is currently under development.
+
+      <h2>Pi Testnet Connection</h2>
+
+      <p id="piStatus">
+        Connect your Pi Testnet wallet to the Alberto Marketplace Token app.
       </p>
+
+      <div id="piUser"></div>
+
+      <button
+        id="connectPi"
+        class="button"
+        type="button">
+        Connect Pi Wallet
+      </button>
+
+      <!-- Payment will be enabled after backend approval/completion is configured -->
+      <button
+        id="testPayment"
+        class="button"
+        type="button"
+        disabled>
+        AMT Testnet Payment — Coming Soon
+      </button>
+
     </section>
 
     <section class="coming">
+
       <p>
         Planned Testnet functionality:
       </p>
@@ -202,21 +262,89 @@
         • Alberto NFT Marketplace integration<br>
         • NFT purchase testing
       </p>
+
     </section>
 
     <section class="warning">
+
       <strong>TESTNET ONLY</strong><br>
+
       AMT shown on this website is for development and testing.
       It is not a Mainnet token and no Mainnet value is implied.
+
     </section>
 
   </main>
 
   <footer>
+
     Alberto Marketplace Token • AMT • Pi Testnet
     <br>
     Test environment only
+
   </footer>
+
+  <script>
+
+    const connectButton =
+      document.getElementById("connectPi");
+
+    const piStatus =
+      document.getElementById("piStatus");
+
+    const piUser =
+      document.getElementById("piUser");
+
+    connectButton.addEventListener("click", async function () {
+
+      try {
+
+        piStatus.textContent =
+          "Connecting to Pi Testnet...";
+
+        const authResult = await Pi.authenticate(
+          ["username", "payments"],
+          function onIncompletePaymentFound(payment) {
+
+            console.log(
+              "Incomplete payment found:",
+              payment
+            );
+
+          }
+        );
+
+        piUser.textContent =
+          "Connected as @" + authResult.user.username;
+
+        piStatus.textContent =
+          "Pi Testnet wallet connected successfully.";
+
+        connectButton.textContent =
+          "Pi Wallet Connected";
+
+        connectButton.disabled = true;
+
+        console.log(
+          "Pi authentication successful:",
+          authResult.user
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Pi authentication error:",
+          error
+        );
+
+        piStatus.textContent =
+          "Connection failed. Please open the app inside Pi Browser and try again.";
+
+      }
+
+    });
+
+  </script>
 
 </body>
 </html>
