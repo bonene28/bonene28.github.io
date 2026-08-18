@@ -4,8 +4,10 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-
 const PORT = process.env.PORT || 10000;
+
+const PI_API_BASE =
+  process.env.PI_API_BASE || "https://api.testnet.minepi.com";
 
 app.use(cors());
 app.use(express.json());
@@ -45,59 +47,104 @@ app.get("/api/health", (req, res) => {
 
 /*
  * --------------------------------
- * PAYMENT APPROVAL
+ * PI AUTHENTICATION VERIFICATION
  * --------------------------------
  *
- * Placeholder for Pi Testnet payment
- * approval.
+ * Frontend sends the Pi access token.
  *
- * IMPORTANT:
- * Actual Pi API approval will be added
- * after the Pi API credentials are placed
- * securely in Render Environment Variables.
+ * The backend verifies the token against
+ * Pi's /me endpoint.
  */
 
-app.post("/api/payments/approve", async (req, res) => {
+app.post("/api/auth/verify", async (req, res) => {
 
   try {
 
-    const { paymentId } = req.body;
+    const { accessToken } = req.body;
 
-    if (!paymentId) {
+    if (!accessToken) {
       return res.status(400).json({
         success: false,
-        error: "paymentId is required"
+        error: "accessToken is required"
       });
     }
 
-    console.log(
-      "Pi payment approval requested:",
-      paymentId
+    const response = await fetch(
+      `${PI_API_BASE}/v2/me`,
+      {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`
+        }
+      }
     );
 
+    const data = await response.json();
+
+    if (!response.ok) {
+
+      console.error(
+        "Pi authentication verification failed:",
+        data
+      );
+
+      return res.status(401).json({
+        success: false,
+        error: "Invalid Pi access token"
+      });
+    }
+
     /*
-     * Pi API approval logic will be added here.
+     * Only after successful verification
+     * do we trust the returned Pi user identity.
      */
 
     return res.json({
-      success: false,
-      status: "NOT_CONFIGURED",
-      message:
-        "Pi Testnet payment approval backend is not configured yet."
+      success: true,
+      user: {
+        uid: data.uid,
+        username: data.username
+      }
     });
 
   } catch (error) {
 
     console.error(
-      "Payment approval error:",
+      "Pi authentication error:",
       error
     );
 
     return res.status(500).json({
       success: false,
-      error: "Internal server error"
+      error: "Authentication verification failed"
     });
   }
+});
+
+
+/*
+ * --------------------------------
+ * PAYMENT APPROVAL
+ * --------------------------------
+ */
+
+app.post("/api/payments/approve", async (req, res) => {
+
+  const { paymentId } = req.body;
+
+  if (!paymentId) {
+    return res.status(400).json({
+      success: false,
+      error: "paymentId is required"
+    });
+  }
+
+  return res.json({
+    success: false,
+    status: "NOT_CONFIGURED",
+    message:
+      "Pi Testnet payment approval is not configured yet."
+  });
 });
 
 
@@ -109,60 +156,32 @@ app.post("/api/payments/approve", async (req, res) => {
 
 app.post("/api/payments/complete", async (req, res) => {
 
-  try {
+  const {
+    paymentId,
+    txid
+  } = req.body;
 
-    const {
-      paymentId,
-      txid
-    } = req.body;
+  if (!paymentId || !txid) {
 
-    if (!paymentId || !txid) {
-
-      return res.status(400).json({
-        success: false,
-        error:
-          "paymentId and txid are required"
-      });
-
-    }
-
-    console.log(
-      "Pi payment completion requested:",
-      {
-        paymentId,
-        txid
-      }
-    );
-
-    /*
-     * Pi API completion logic will be added here.
-     */
-
-    return res.json({
+    return res.status(400).json({
       success: false,
-      status: "NOT_CONFIGURED",
-      message:
-        "Pi Testnet payment completion backend is not configured yet."
-    });
-
-  } catch (error) {
-
-    console.error(
-      "Payment completion error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      error: "Internal server error"
+      error:
+        "paymentId and txid are required"
     });
   }
+
+  return res.json({
+    success: false,
+    status: "NOT_CONFIGURED",
+    message:
+      "Pi Testnet payment completion is not configured yet."
+  });
 });
 
 
 /*
  * --------------------------------
- * SERVER START
+ * START SERVER
  * --------------------------------
  */
 
@@ -183,6 +202,11 @@ app.listen(PORT, () => {
   console.log(
     "Server running on port:",
     PORT
+  );
+
+  console.log(
+    "Pi API:",
+    PI_API_BASE
   );
 
   console.log(
