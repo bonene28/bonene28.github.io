@@ -1,8 +1,13 @@
+Alberto Marketplace Token — AMT Testnet "index.html"
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
   <title>Alberto Marketplace Token | AMT Testnet</title>
 
@@ -19,7 +24,13 @@
     body {
       font-family: Arial, sans-serif;
       min-height: 100vh;
-      background: linear-gradient(135deg, #17002b, #3b0066, #12001f);
+      background:
+        linear-gradient(
+          135deg,
+          #17002b,
+          #3b0066,
+          #12001f
+        );
       color: #fff;
     }
 
@@ -74,9 +85,47 @@
       margin: auto;
     }
 
+    .dashboard {
+      display: none;
+    }
+
+    .balance-card {
+      margin-top: 25px;
+      padding: 30px 20px;
+      border-radius: 20px;
+      border: 1px solid #ffd700;
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 215, 0, 0.12),
+          rgba(0, 0, 0, 0.30)
+        );
+      text-align: center;
+    }
+
+    .balance-label {
+      color: #ddd;
+      font-size: 14px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .balance {
+      color: #ffd700;
+      font-size: 42px;
+      font-weight: bold;
+    }
+
+    .amt {
+      color: #fff;
+      font-size: 18px;
+      margin-top: 5px;
+    }
+
     .card-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns:
+        repeat(auto-fit, minmax(220px, 1fr));
       gap: 18px;
       margin-top: 25px;
     }
@@ -99,6 +148,26 @@
     .value {
       font-size: 24px;
       font-weight: bold;
+    }
+
+    .mining-box {
+      margin-top: 30px;
+      padding: 28px 20px;
+      border-radius: 18px;
+      border: 1px solid #ffd700;
+      background: rgba(0, 0, 0, 0.30);
+      text-align: center;
+    }
+
+    .mining-box h2 {
+      color: #ffd700;
+      margin-bottom: 10px;
+    }
+
+    .mining-status {
+      color: #ddd;
+      margin: 12px 0 20px;
+      line-height: 1.5;
     }
 
     .payment-box {
@@ -125,16 +194,23 @@
       border: none;
       border-radius: 12px;
       padding: 15px 25px;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: bold;
       cursor: pointer;
       background: #ffd700;
       color: #17002b;
+      margin: 5px;
     }
 
     button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    .secondary-btn {
+      background: transparent;
+      color: #ffd700;
+      border: 1px solid #ffd700;
     }
 
     #status {
@@ -163,97 +239,370 @@
       color: #aaa;
       font-size: 13px;
     }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 
 <body>
 
 <header>
-  <div class="logo">ALBERTO</div>
-  <div class="testnet">PI TESTNET • TESTING ONLY</div>
+
+  <div class="logo">
+    ALBERTO
+  </div>
+
+  <div class="testnet">
+    PI TESTNET • TESTING ONLY
+  </div>
+
 </header>
+
 
 <main>
 
+  <!-- HERO -->
+
   <section class="hero">
-    <h1>Alberto Marketplace <span>Token</span></h1>
+
+    <h1>
+      Alberto Marketplace
+      <span>Token</span>
+    </h1>
 
     <p>
-      AMT is the planned utility token for the Alberto ecosystem.
-      This website is dedicated to Pi Testnet development and testing.
+      AMT is the planned utility token for the
+      Alberto ecosystem. This application is
+      currently operating in the Pi Testnet
+      development environment.
     </p>
+
   </section>
+
+
+  <!-- TOKEN INFORMATION -->
 
   <section class="card-grid">
 
     <div class="card">
-      <h2>Token Name</h2>
-      <div class="value">AMT</div>
+
+      <h2>
+        Token
+      </h2>
+
+      <div class="value">
+        AMT
+      </div>
+
     </div>
 
-    <div class="card">
-      <h2>Full Name</h2>
-      <div class="value">Alberto Marketplace Token</div>
-    </div>
 
     <div class="card">
-      <h2>Total Supply</h2>
-      <div class="value">25,000,000</div>
+
+      <h2>
+        Full Name
+      </h2>
+
+      <div class="value">
+        Alberto Marketplace Token
+      </div>
+
     </div>
 
+
     <div class="card">
-      <h2>Network</h2>
-      <div class="value">Pi Testnet</div>
+
+      <h2>
+        Maximum Supply
+      </h2>
+
+      <div class="value">
+        25,000,000
+      </div>
+
+    </div>
+
+
+    <div class="card">
+
+      <h2>
+        Network
+      </h2>
+
+      <div class="value">
+        Pi Testnet
+      </div>
+
     </div>
 
   </section>
+
+
+  <!-- PI SIGN-IN -->
 
   <section class="payment-box">
 
-    <h2>AMT Testnet Payment</h2>
+    <h2>
+      Pi Sign-In
+    </h2>
 
     <p>
-      Connect your Pi Testnet wallet and make a small
-      User-to-App Pi payment for Developer Portal testing.
+      Sign in with your Pi account to access
+      the Alberto AMT Testnet environment.
     </p>
 
     <button id="connectBtn">
-      Connect Pi Wallet
-    </button>
-
-    <br><br>
-
-    <button id="paymentBtn" disabled>
-      Pay 0.01 Pi Testnet
+      Sign in with Pi
     </button>
 
     <div id="status">
-      Wallet not connected.
+      Pi account not connected.
     </div>
 
   </section>
 
+
+  <!-- AMT DASHBOARD -->
+
+  <section
+    id="dashboard"
+    class="dashboard"
+  >
+
+    <div class="balance-card">
+
+      <div class="balance-label">
+        Available AMT Balance
+      </div>
+
+      <div
+        id="availableBalance"
+        class="balance"
+      >
+        0.000000
+      </div>
+
+      <div class="amt">
+        AMT
+      </div>
+
+    </div>
+
+
+    <section class="card-grid">
+
+      <div class="card">
+
+        <h2>
+          Mining Balance
+        </h2>
+
+        <div
+          id="miningBalance"
+          class="value"
+        >
+          0.000000
+        </div>
+
+        <div>
+          AMT
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <h2>
+          Pending
+        </h2>
+
+        <div
+          id="pendingBalance"
+          class="value"
+        >
+          0.000000
+        </div>
+
+        <div>
+          AMT
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <h2>
+          Wallet
+        </h2>
+
+        <div
+          id="walletBalance"
+          class="value"
+        >
+          0.000000
+        </div>
+
+        <div>
+          AMT
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- MINING -->
+
+    <section class="mining-box">
+
+      <h2>
+        ⛏️ AMT 24-Hour Mining
+      </h2>
+
+      <div
+        id="miningStatus"
+        class="mining-status"
+      >
+        Mining engine is not activated yet.
+      </div>
+
+      <button
+        id="startMiningBtn"
+        disabled
+      >
+        Start 24H Mining
+      </button>
+
+    </section>
+
+
+    <!-- FUTURE ECOSYSTEM -->
+
+    <section class="card-grid">
+
+      <div class="card">
+
+        <h2>
+          👛 AMT Wallet
+        </h2>
+
+        <div class="value">
+          Testnet
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <h2>
+          🔄 AMT Swap
+        </h2>
+
+        <div class="value">
+          Coming
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <h2>
+          📜 Transactions
+        </h2>
+
+        <div class="value">
+          Coming
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <h2>
+          🛒 Alberto Marketplace
+        </h2>
+
+        <div class="value">
+          Coming
+        </div>
+
+      </div>
+
+    </section>
+
+  </section>
+
+
+  <!-- PI PAYMENT TEST -->
+
+  <section class="payment-box">
+
+    <h2>
+      Pi Testnet Payment
+    </h2>
+
+    <p>
+      Developer testing only. This payment
+      section is separate from AMT mining.
+    </p>
+
+    <button
+      id="paymentBtn"
+      disabled
+    >
+      Pay 0.01 Pi Testnet
+    </button>
+
+  </section>
+
+
+  <!-- WARNING -->
+
   <section class="warning">
-    <strong>TESTNET ONLY</strong><br>
-    This application is for Pi Testnet development and testing.
-    Do not treat AMT as a Mainnet asset.
+
+    <strong>
+      TESTNET ONLY
+    </strong>
+
+    <br>
+
+    This application currently operates on
+    Pi Testnet for development and testing.
+
+    <br><br>
+
+    AMT is not being presented as a Mainnet
+    asset at this stage.
+
   </section>
 
 </main>
 
+
 <footer>
+
   Alberto Marketplace Token • AMT • Pi Testnet
+
   <br>
-  Test environment only
+
+  Production-oriented ecosystem development
+
 </footer>
+
 
 <script>
 
   /*
-   * Pi SDK initialization
-   *
-   * The Pi documentation requires Pi.init()
-   * before using authentication or payments.
+   * --------------------------------
+   * PI SDK INITIALIZATION
+   * --------------------------------
    */
 
   Pi.init({
@@ -261,291 +610,559 @@
   });
 
 
-  const connectBtn = document.getElementById("connectBtn");
-  const paymentBtn = document.getElementById("paymentBtn");
-  const statusBox = document.getElementById("status");
+  /*
+   * --------------------------------
+   * CONFIGURATION
+   * --------------------------------
+   */
 
-  let currentUser = null;
+  const AMT_BACKEND =
+    "https://alberto-amt-testnet.onrender.com";
 
 
   /*
-   * Handle incomplete payments.
-   *
-   * Pi checks for incomplete payments when
-   * the user authenticates.
+   * --------------------------------
+   * ELEMENTS
+   * --------------------------------
+   */
+
+  const connectBtn =
+    document.getElementById("connectBtn");
+
+  const paymentBtn =
+    document.getElementById("paymentBtn");
+
+  const statusBox =
+    document.getElementById("status");
+
+  const dashboard =
+    document.getElementById("dashboard");
+
+  const startMiningBtn =
+    document.getElementById("startMiningBtn");
+
+  let currentUser = null;
+
+  let piAuth = null;
+
+
+  /*
+   * --------------------------------
+   * INCOMPLETE PAYMENT
+   * --------------------------------
    */
 
   function onIncompletePaymentFound(payment) {
 
-    console.log("Incomplete payment found:", payment);
+    console.log(
+      "Incomplete Pi payment:",
+      payment
+    );
 
     statusBox.innerText =
-      "May incomplete payment. Kailangan muna itong ma-process ng server.";
+      "May incomplete Pi payment. " +
+      "Kailangan muna itong ma-process ng server.";
   }
 
 
   /*
-   * Connect / authenticate Pi user
+   * --------------------------------
+   * PI SIGN-IN
+   * --------------------------------
    */
 
-  connectBtn.addEventListener("click", async function () {
-
-    statusBox.innerText = "Connecting to Pi Wallet...";
-
-    try {
-
-      const auth = await Pi.authenticate(
-        ["username", "payments"],
-        onIncompletePaymentFound
-      );
-
-      currentUser = auth.user;
+  connectBtn.addEventListener(
+    "click",
+    async function () {
 
       statusBox.innerText =
-        "Connected as Pi user: " +
-        (currentUser.username || "User");
+        "Opening Pi Sign-In...";
 
-      paymentBtn.disabled = false;
+      try {
 
-      connectBtn.disabled = true;
+        const auth =
+          await Pi.authenticate(
+            ["username", "payments"],
+            onIncompletePaymentFound
+          );
 
-    } catch (error) {
 
-      console.error(error);
+        /*
+         * Save authentication result
+         * only for the current session.
+         */
 
-      statusBox.innerText =
-        "Pi connection failed: " + error;
+        piAuth = auth;
+
+        currentUser =
+          auth.user;
+
+
+        statusBox.innerText =
+          "Pi Sign-In successful. " +
+          "Verifying AMT account...";
+
+
+        /*
+         * --------------------------------
+         * BACKEND VERIFICATION
+         * --------------------------------
+         */
+
+        const verifyResponse =
+          await fetch(
+            AMT_BACKEND +
+            "/api/auth/verify",
+            {
+
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+
+                accessToken:
+                  auth.accessToken
+
+              })
+
+            }
+          );
+
+
+        const verifyData =
+          await verifyResponse.json();
+
+
+        console.log(
+          "AMT verification:",
+          verifyData
+        );
+
+
+        if (
+          !verifyResponse.ok ||
+          !verifyData.success
+        ) {
+
+          statusBox.innerText =
+            "Pi Sign-In succeeded, " +
+            "but AMT account verification failed.";
+
+          return;
+        }
+
+
+        /*
+         * --------------------------------
+         * VERIFIED USER
+         * --------------------------------
+         */
+
+        statusBox.innerText =
+          "AMT account verified: @" +
+          (
+            verifyData.user.username ||
+            "Pioneer"
+          );
+
+
+        /*
+         * Show dashboard.
+         */
+
+        dashboard.style.display =
+          "block";
+
+
+        /*
+         * Enable future mining button.
+         * Actual mining engine is NOT active yet.
+         */
+
+        startMiningBtn.disabled =
+          false;
+
+
+        /*
+         * Payment test becomes available.
+         */
+
+        paymentBtn.disabled =
+          false;
+
+
+        connectBtn.disabled =
+          true;
+
+
+      } catch (error) {
+
+        console.error(
+          "Pi Sign-In error:",
+          error
+        );
+
+        statusBox.innerText =
+          "Pi Sign-In failed: " +
+          error;
+      }
 
     }
-
-  });
+  );
 
 
   /*
-   * Start User-to-App payment
+   * --------------------------------
+   * MINING BUTTON
+   * --------------------------------
+   *
+   * IMPORTANT:
+   * The actual AMT mining engine is
+   * intentionally NOT implemented here.
+   *
+   * Mining rewards must be controlled
+   * by the backend and AMT ledger.
    */
 
-  paymentBtn.addEventListener("click", function () {
+  startMiningBtn.addEventListener(
+    "click",
+    function () {
 
-    if (!currentUser) {
+      miningStatus.textContent =
+        "AMT mining engine is being prepared. " +
+        "No AMT reward has been issued.";
+
+      console.log(
+        "AMT mining engine is not active yet."
+      );
+
+    }
+  );
+
+
+  /*
+   * --------------------------------
+   * PI TESTNET PAYMENT
+   * --------------------------------
+   */
+
+  paymentBtn.addEventListener(
+    "click",
+    function () {
+
+      if (!currentUser || !piAuth) {
+
+        statusBox.innerText =
+          "Sign in with Pi first.";
+
+        return;
+      }
+
 
       statusBox.innerText =
-        "Connect your Pi Wallet first.";
+        "Opening Pi Testnet payment...";
 
-      return;
+
+      const paymentData = {
+
+        amount: 0.01,
+
+        memo:
+          "Alberto Marketplace Token Testnet Payment",
+
+        metadata: {
+
+          app:
+            "Alberto Marketplace Token",
+
+          token:
+            "AMT",
+
+          purpose:
+            "Developer Portal Step 10 Test",
+
+          network:
+            "Pi Testnet"
+
+        }
+
+      };
+
+
+      const callbacks = {
+
+
+        /*
+         * PAYMENT APPROVAL
+         */
+
+        onReadyForServerApproval:
+          function (paymentId) {
+
+            console.log(
+              "Payment ready for approval:",
+              paymentId
+            );
+
+
+            statusBox.innerText =
+              "Payment created. " +
+              "Waiting for server approval...";
+
+
+            fetch(
+              AMT_BACKEND +
+              "/api/payments/approve",
+              {
+
+                method: "POST",
+
+                headers: {
+
+                  "Content-Type":
+                    "application/json"
+
+                },
+
+                body: JSON.stringify({
+
+                  paymentId:
+                    paymentId
+
+                })
+
+              }
+            )
+            .then(
+              response =>
+                response.json()
+            )
+            .then(
+              data => {
+
+                console.log(
+                  "Approval response:",
+                  data
+                );
+
+
+                if (data.success) {
+
+                  statusBox.innerText =
+                    "Payment approved. " +
+                    "Continue in Pi Wallet.";
+
+                } else {
+
+                  statusBox.innerText =
+                    "Payment approval backend " +
+                    "is not configured yet.";
+
+                }
+
+              }
+            )
+            .catch(
+              error => {
+
+                console.error(
+                  error
+                );
+
+                statusBox.innerText =
+                  "Server approval error.";
+
+              }
+            );
+
+          },
+
+
+        /*
+         * PAYMENT COMPLETION
+         */
+
+        onReadyForServerCompletion:
+          function (
+            paymentId,
+            txid
+          ) {
+
+            console.log(
+              "Payment completion:",
+              paymentId,
+              txid
+            );
+
+
+            statusBox.innerText =
+              "Transaction submitted. " +
+              "Completing payment...";
+
+
+            fetch(
+              AMT_BACKEND +
+              "/api/payments/complete",
+              {
+
+                method: "POST",
+
+                headers: {
+
+                  "Content-Type":
+                    "application/json"
+
+                },
+
+                body: JSON.stringify({
+
+                  paymentId:
+                    paymentId,
+
+                  txid:
+                    txid
+
+                })
+
+              }
+            )
+            .then(
+              response =>
+                response.json()
+            )
+            .then(
+              data => {
+
+                console.log(
+                  "Completion response:",
+                  data
+                );
+
+
+                if (data.success) {
+
+                  statusBox.innerText =
+                    "SUCCESS! Pi Testnet " +
+                    "payment completed.";
+
+                } else {
+
+                  statusBox.innerText =
+                    "Payment completion backend " +
+                    "is not configured yet.";
+
+                }
+
+              }
+            )
+            .catch(
+              error => {
+
+                console.error(
+                  error
+                );
+
+                statusBox.innerText =
+                  "Server completion error.";
+
+              }
+            );
+
+          },
+
+
+        /*
+         * PAYMENT CANCELLED
+         */
+
+        onCancel:
+          function (paymentId) {
+
+            console.log(
+              "Payment cancelled:",
+              paymentId
+            );
+
+
+            statusBox.innerText =
+              "Payment cancelled.";
+
+          },
+
+
+        /*
+         * PAYMENT ERROR
+         */
+
+        onError:
+          function (
+            error,
+            payment
+          ) {
+
+            console.error(
+              "Pi payment error:",
+              error,
+              payment
+            );
+
+
+            statusBox.innerText =
+              "Payment error: " +
+              error;
+
+          }
+
+      };
+
+
+      Pi.createPayment(
+        paymentData,
+        callbacks
+      );
+
     }
-
-
-    statusBox.innerText =
-      "Opening Pi payment confirmation...";
-
-
-    const paymentData = {
-
-      amount: 0.01,
-
-      memo: "Alberto Marketplace Token Testnet Payment",
-
-      metadata: {
-
-        app: "Alberto Marketplace Token",
-
-        token: "AMT",
-
-        purpose: "Developer Portal Step 10 Test",
-
-        network: "Pi Testnet"
-
-      }
-
-    };
-
-
-    const callbacks = {
-
-      /*
-       * Payment created.
-       * The backend must approve it.
-       */
-
-      onReadyForServerApproval: function (paymentId) {
-
-        console.log(
-          "Payment ready for approval:",
-          paymentId
-        );
-
-        statusBox.innerText =
-          "Payment created. Waiting for server approval...";
-
-
-        fetch(
-          "https://YOUR-RENDER-SERVICE.onrender.com/api/payments/approve",
-          {
-
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-              paymentId: paymentId
-            })
-
-          }
-        )
-        .then(response => response.json())
-        .then(data => {
-
-          console.log("Approval response:", data);
-
-          if (data.success) {
-
-            statusBox.innerText =
-              "Payment approved. Continue in Pi Wallet.";
-
-          } else {
-
-            statusBox.innerText =
-              "Payment approval failed.";
-
-          }
-
-        })
-        .catch(error => {
-
-          console.error(error);
-
-          statusBox.innerText =
-            "Server approval error.";
-
-        });
-
-      },
-
-
-      /*
-       * Blockchain transaction submitted.
-       * The backend must complete the payment.
-       */
-
-      onReadyForServerCompletion: function (
-        paymentId,
-        txid
-      ) {
-
-        console.log(
-          "Payment completion:",
-          paymentId,
-          txid
-        );
-
-        statusBox.innerText =
-          "Transaction submitted. Completing payment...";
-
-
-        fetch(
-          "https://YOUR-RENDER-SERVICE.onrender.com/api/payments/complete",
-          {
-
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-
-              paymentId: paymentId,
-
-              txid: txid
-
-            })
-
-          }
-        )
-        .then(response => response.json())
-        .then(data => {
-
-          console.log(
-            "Completion response:",
-            data
-          );
-
-          if (data.success) {
-
-            statusBox.innerText =
-              "SUCCESS! Pi Testnet payment completed.";
-
-          } else {
-
-            statusBox.innerText =
-              "Payment completion failed.";
-
-          }
-
-        })
-        .catch(error => {
-
-          console.error(error);
-
-          statusBox.innerText =
-            "Server completion error.";
-
-        });
-
-      },
-
-
-      /*
-       * User cancelled payment
-       */
-
-      onCancel: function (paymentId) {
-
-        console.log(
-          "Payment cancelled:",
-          paymentId
-        );
-
-        statusBox.innerText =
-          "Payment cancelled.";
-
-      },
-
-
-      /*
-       * Payment error
-       */
-
-      onError: function (
-        error,
-        payment
-      ) {
-
-        console.error(
-          "Payment error:",
-          error,
-          payment
-        );
-
-        statusBox.innerText =
-          "Payment error: " + error;
-
-      }
-
-    };
-
-
-    Pi.createPayment(
-      paymentData,
-      callbacks
-    );
-
-  });
+  );
+
+
+  /*
+   * --------------------------------
+   * INITIAL STATUS
+   * --------------------------------
+   */
+
+  console.log(
+    "================================="
+  );
+
+  console.log(
+    "Alberto Marketplace Token (AMT)"
+  );
+
+  console.log(
+    "Pi Testnet"
+  );
+
+  console.log(
+    "Backend:",
+    AMT_BACKEND
+  );
+
+  console.log(
+    "================================="
+  );
 
 </script>
 
 </body>
 </html>
+
+Commit message:
+
+"Connect Pi Sign-In to AMT backend"
+
+Pagkatapos ng commit, hintayin ang GitHub Pages update. Huwag muna nating i-test ang mining button bilang tunay na mining—ang button ay intentionally placeholder hanggang ma-build natin ang backend ledger. Ang susunod na tunay na component ay ang AMT database/account system, bago natin payagan ang anumang AMT reward.
