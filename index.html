@@ -6,14 +6,8 @@
 
   <title>Alberto Marketplace Token | AMT Testnet</title>
 
-  <!-- Pi Network JavaScript SDK -->
+  <!-- Pi Network SDK -->
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-
-  <script>
-    Pi.init({
-      version: "2.0"
-    });
-  </script>
 
   <style>
     * {
@@ -30,7 +24,7 @@
     }
 
     header {
-      padding: 22px 15px;
+      padding: 20px;
       text-align: center;
       border-bottom: 2px solid #ffd700;
       background: rgba(0, 0, 0, 0.35);
@@ -107,47 +101,47 @@
       font-weight: bold;
     }
 
-    .status {
-      margin-top: 30px;
-      padding: 25px;
-      border-radius: 15px;
-      background: rgba(0, 0, 0, 0.35);
+    .payment-box {
+      margin-top: 35px;
+      padding: 28px 20px;
+      border-radius: 18px;
       border: 1px solid #ffd700;
+      background: rgba(0, 0, 0, 0.30);
       text-align: center;
     }
 
-    .status h2 {
+    .payment-box h2 {
       color: #ffd700;
       margin-bottom: 12px;
     }
 
-    .status p {
+    .payment-box p {
       color: #ddd;
-      line-height: 1.6;
+      line-height: 1.5;
+      margin-bottom: 20px;
     }
 
-    .button {
-      margin-top: 18px;
-      padding: 13px 22px;
+    button {
       border: none;
-      border-radius: 10px;
-      background: #ffd700;
-      color: #17002b;
-      font-size: 16px;
+      border-radius: 12px;
+      padding: 15px 25px;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
+      background: #ffd700;
+      color: #17002b;
     }
 
-    .button:disabled {
+    button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
-    .coming {
-      margin-top: 25px;
-      text-align: center;
-      color: #ccc;
-      line-height: 1.7;
+    #status {
+      margin-top: 18px;
+      color: #fff;
+      line-height: 1.5;
+      word-break: break-word;
     }
 
     .warning {
@@ -169,182 +163,389 @@
       color: #aaa;
       font-size: 13px;
     }
-
-    #piUser {
-      margin-top: 12px;
-      color: #ffd700;
-      font-weight: bold;
-    }
   </style>
 </head>
 
 <body>
 
-  <header>
-    <div class="logo">ALBERTO</div>
-    <div class="testnet">PI TESTNET • TESTING ONLY</div>
-  </header>
+<header>
+  <div class="logo">ALBERTO</div>
+  <div class="testnet">PI TESTNET • TESTING ONLY</div>
+</header>
 
-  <main>
+<main>
 
-    <section class="hero">
-      <h1>Alberto Marketplace <span>Token</span></h1>
+  <section class="hero">
+    <h1>Alberto Marketplace <span>Token</span></h1>
 
-      <p>
-        AMT is the planned utility token for the Alberto ecosystem.
-        This website is dedicated to Pi Testnet development and testing.
-      </p>
-    </section>
+    <p>
+      AMT is the planned utility token for the Alberto ecosystem.
+      This website is dedicated to Pi Testnet development and testing.
+    </p>
+  </section>
 
-    <section class="card-grid">
+  <section class="card-grid">
 
-      <div class="card">
-        <h2>Token Name</h2>
-        <div class="value">AMT</div>
-      </div>
+    <div class="card">
+      <h2>Token Name</h2>
+      <div class="value">AMT</div>
+    </div>
 
-      <div class="card">
-        <h2>Full Name</h2>
-        <div class="value">Alberto Marketplace Token</div>
-      </div>
+    <div class="card">
+      <h2>Full Name</h2>
+      <div class="value">Alberto Marketplace Token</div>
+    </div>
 
-      <div class="card">
-        <h2>Total Supply</h2>
-        <div class="value">25,000,000</div>
-      </div>
+    <div class="card">
+      <h2>Total Supply</h2>
+      <div class="value">25,000,000</div>
+    </div>
 
-      <div class="card">
-        <h2>Network</h2>
-        <div class="value">Pi Testnet</div>
-      </div>
+    <div class="card">
+      <h2>Network</h2>
+      <div class="value">Pi Testnet</div>
+    </div>
 
-    </section>
+  </section>
 
-    <!-- Pi Testnet connection -->
-    <section class="status">
+  <section class="payment-box">
 
-      <h2>Pi Testnet Connection</h2>
+    <h2>AMT Testnet Payment</h2>
 
-      <p id="piStatus">
-        Connect your Pi Testnet wallet to the Alberto Marketplace Token app.
-      </p>
+    <p>
+      Connect your Pi Testnet wallet and make a small
+      User-to-App Pi payment for Developer Portal testing.
+    </p>
 
-      <div id="piUser"></div>
+    <button id="connectBtn">
+      Connect Pi Wallet
+    </button>
 
-      <button
-        id="connectPi"
-        class="button"
-        type="button">
-        Connect Pi Wallet
-      </button>
+    <br><br>
 
-      <!-- Payment will be enabled after backend approval/completion is configured -->
-      <button
-        id="testPayment"
-        class="button"
-        type="button"
-        disabled>
-        AMT Testnet Payment — Coming Soon
-      </button>
+    <button id="paymentBtn" disabled>
+      Pay 0.01 Pi Testnet
+    </button>
 
-    </section>
+    <div id="status">
+      Wallet not connected.
+    </div>
 
-    <section class="coming">
+  </section>
 
-      <p>
-        Planned Testnet functionality:
-      </p>
+  <section class="warning">
+    <strong>TESTNET ONLY</strong><br>
+    This application is for Pi Testnet development and testing.
+    Do not treat AMT as a Mainnet asset.
+  </section>
 
-      <p>
-        • AMT Testnet Token<br>
-        • Pi Testnet / AMT liquidity testing<br>
-        • Test-Pi ↔ AMT swap testing<br>
-        • Alberto NFT Marketplace integration<br>
-        • NFT purchase testing
-      </p>
+</main>
 
-    </section>
+<footer>
+  Alberto Marketplace Token • AMT • Pi Testnet
+  <br>
+  Test environment only
+</footer>
 
-    <section class="warning">
+<script>
 
-      <strong>TESTNET ONLY</strong><br>
+  /*
+   * Pi SDK initialization
+   *
+   * The Pi documentation requires Pi.init()
+   * before using authentication or payments.
+   */
 
-      AMT shown on this website is for development and testing.
-      It is not a Mainnet token and no Mainnet value is implied.
+  Pi.init({
+    version: "2.0"
+  });
 
-    </section>
 
-  </main>
+  const connectBtn = document.getElementById("connectBtn");
+  const paymentBtn = document.getElementById("paymentBtn");
+  const statusBox = document.getElementById("status");
 
-  <footer>
+  let currentUser = null;
 
-    Alberto Marketplace Token • AMT • Pi Testnet
-    <br>
-    Test environment only
 
-  </footer>
+  /*
+   * Handle incomplete payments.
+   *
+   * Pi checks for incomplete payments when
+   * the user authenticates.
+   */
 
-  <script>
+  function onIncompletePaymentFound(payment) {
 
-    const connectButton =
-      document.getElementById("connectPi");
+    console.log("Incomplete payment found:", payment);
 
-    const piStatus =
-      document.getElementById("piStatus");
+    statusBox.innerText =
+      "May incomplete payment. Kailangan muna itong ma-process ng server.";
+  }
 
-    const piUser =
-      document.getElementById("piUser");
 
-    connectButton.addEventListener("click", async function () {
+  /*
+   * Connect / authenticate Pi user
+   */
 
-      try {
+  connectBtn.addEventListener("click", async function () {
 
-        piStatus.textContent =
-          "Connecting to Pi Testnet...";
+    statusBox.innerText = "Connecting to Pi Wallet...";
 
-        const authResult = await Pi.authenticate(
-          ["username", "payments"],
-          function onIncompletePaymentFound(payment) {
+    try {
 
-            console.log(
-              "Incomplete payment found:",
-              payment
-            );
+      const auth = await Pi.authenticate(
+        ["username", "payments"],
+        onIncompletePaymentFound
+      );
 
-          }
-        );
+      currentUser = auth.user;
 
-        piUser.textContent =
-          "Connected as @" + authResult.user.username;
+      statusBox.innerText =
+        "Connected as Pi user: " +
+        (currentUser.username || "User");
 
-        piStatus.textContent =
-          "Pi Testnet wallet connected successfully.";
+      paymentBtn.disabled = false;
 
-        connectButton.textContent =
-          "Pi Wallet Connected";
+      connectBtn.disabled = true;
 
-        connectButton.disabled = true;
+    } catch (error) {
 
-        console.log(
-          "Pi authentication successful:",
-          authResult.user
-        );
+      console.error(error);
 
-      } catch (error) {
+      statusBox.innerText =
+        "Pi connection failed: " + error;
 
-        console.error(
-          "Pi authentication error:",
-          error
-        );
+    }
 
-        piStatus.textContent =
-          "Connection failed. Please open the app inside Pi Browser and try again.";
+  });
+
+
+  /*
+   * Start User-to-App payment
+   */
+
+  paymentBtn.addEventListener("click", function () {
+
+    if (!currentUser) {
+
+      statusBox.innerText =
+        "Connect your Pi Wallet first.";
+
+      return;
+    }
+
+
+    statusBox.innerText =
+      "Opening Pi payment confirmation...";
+
+
+    const paymentData = {
+
+      amount: 0.01,
+
+      memo: "Alberto Marketplace Token Testnet Payment",
+
+      metadata: {
+
+        app: "Alberto Marketplace Token",
+
+        token: "AMT",
+
+        purpose: "Developer Portal Step 10 Test",
+
+        network: "Pi Testnet"
 
       }
 
-    });
+    };
 
-  </script>
+
+    const callbacks = {
+
+      /*
+       * Payment created.
+       * The backend must approve it.
+       */
+
+      onReadyForServerApproval: function (paymentId) {
+
+        console.log(
+          "Payment ready for approval:",
+          paymentId
+        );
+
+        statusBox.innerText =
+          "Payment created. Waiting for server approval...";
+
+
+        fetch(
+          "https://YOUR-RENDER-SERVICE.onrender.com/api/payments/approve",
+          {
+
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              paymentId: paymentId
+            })
+
+          }
+        )
+        .then(response => response.json())
+        .then(data => {
+
+          console.log("Approval response:", data);
+
+          if (data.success) {
+
+            statusBox.innerText =
+              "Payment approved. Continue in Pi Wallet.";
+
+          } else {
+
+            statusBox.innerText =
+              "Payment approval failed.";
+
+          }
+
+        })
+        .catch(error => {
+
+          console.error(error);
+
+          statusBox.innerText =
+            "Server approval error.";
+
+        });
+
+      },
+
+
+      /*
+       * Blockchain transaction submitted.
+       * The backend must complete the payment.
+       */
+
+      onReadyForServerCompletion: function (
+        paymentId,
+        txid
+      ) {
+
+        console.log(
+          "Payment completion:",
+          paymentId,
+          txid
+        );
+
+        statusBox.innerText =
+          "Transaction submitted. Completing payment...";
+
+
+        fetch(
+          "https://YOUR-RENDER-SERVICE.onrender.com/api/payments/complete",
+          {
+
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+
+              paymentId: paymentId,
+
+              txid: txid
+
+            })
+
+          }
+        )
+        .then(response => response.json())
+        .then(data => {
+
+          console.log(
+            "Completion response:",
+            data
+          );
+
+          if (data.success) {
+
+            statusBox.innerText =
+              "SUCCESS! Pi Testnet payment completed.";
+
+          } else {
+
+            statusBox.innerText =
+              "Payment completion failed.";
+
+          }
+
+        })
+        .catch(error => {
+
+          console.error(error);
+
+          statusBox.innerText =
+            "Server completion error.";
+
+        });
+
+      },
+
+
+      /*
+       * User cancelled payment
+       */
+
+      onCancel: function (paymentId) {
+
+        console.log(
+          "Payment cancelled:",
+          paymentId
+        );
+
+        statusBox.innerText =
+          "Payment cancelled.";
+
+      },
+
+
+      /*
+       * Payment error
+       */
+
+      onError: function (
+        error,
+        payment
+      ) {
+
+        console.error(
+          "Payment error:",
+          error,
+          payment
+        );
+
+        statusBox.innerText =
+          "Payment error: " + error;
+
+      }
+
+    };
+
+
+    Pi.createPayment(
+      paymentData,
+      callbacks
+    );
+
+  });
+
+</script>
 
 </body>
 </html>
