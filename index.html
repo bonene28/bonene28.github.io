@@ -1,3 +1,5 @@
+AMT Testnet — Updated index.html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,12 +20,7 @@
     body {
       font-family: Arial, Helvetica, sans-serif;
       background:
-        radial-gradient(
-          circle at top,
-          #30205f 0%,
-          #100d1c 45%,
-          #08070d 100%
-        );
+        radial-gradient(circle at top, #30205f 0%, #100d1c 45%, #08070d 100%);
       color: #fff;
       min-height: 100vh;
       padding-bottom: 90px;
@@ -42,23 +39,25 @@
     }
 
     .logo {
-      width: 74px;
-      height: 74px;
+      width: 82px;
+      height: 82px;
       margin: auto;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 27px;
+      font-size: 29px;
       font-weight: 900;
       background: linear-gradient(145deg, #f8d66d, #9c65ff);
       color: #160d2c;
-      box-shadow: 0 0 30px rgba(182,116,255,.35);
+      box-shadow:
+        0 0 20px rgba(248,214,109,.25),
+        0 0 40px rgba(182,116,255,.30);
       border: 2px solid rgba(255,255,255,.35);
     }
 
     h1 {
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 23px;
       letter-spacing: 1px;
     }
@@ -72,23 +71,26 @@
     .testnet {
       display: inline-block;
       margin-top: 10px;
-      padding: 6px 12px;
+      padding: 7px 14px;
       border-radius: 20px;
       background: rgba(255,190,70,.12);
       border: 1px solid rgba(255,190,70,.35);
       color: #ffd86b;
       font-size: 11px;
       font-weight: bold;
+      letter-spacing: .7px;
     }
 
     .message {
       margin: 12px 16px;
-      padding: 12px;
-      border-radius: 12px;
+      padding: 13px;
+      border-radius: 14px;
       background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.08);
       color: #d9d1e4;
       font-size: 12px;
       text-align: center;
+      line-height: 1.5;
     }
 
     .card {
@@ -113,12 +115,15 @@
       font-weight: 900;
       margin-top: 5px;
       word-break: break-word;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(255,255,255,.08);
     }
 
     .amt {
       color: #e5c46b;
       font-size: 14px;
       font-weight: bold;
+      margin-top: 3px;
     }
 
     .kyc-box,
@@ -151,42 +156,98 @@
     .status.off {
       background: rgba(255,80,80,.13);
       color: #ff8d8d;
+      border: 1px solid rgba(255,80,80,.15);
     }
 
     .status.on {
       background: rgba(70,220,130,.13);
       color: #79e6a1;
+      border: 1px solid rgba(70,220,130,.15);
     }
 
+    /* ================= PREMIUM MINING UI ================= */
+
     .mining-circle {
-      width: 190px;
-      height: 190px;
-      margin: 22px auto;
+      width: 220px;
+      height: 220px;
+      margin: 24px auto;
       border-radius: 50%;
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      border: 5px solid rgba(210,160,255,.35);
+      overflow: hidden;
+      background:
+        radial-gradient(
+          circle at 50% 35%,
+          rgba(90,65,130,.30),
+          rgba(18,15,30,.96) 70%
+        );
+      border: 4px solid rgba(210,160,255,.45);
       box-shadow:
-        0 0 35px rgba(160,100,255,.25),
-        inset 0 0 35px rgba(160,100,255,.08);
+        0 0 20px rgba(160,100,255,.18),
+        0 0 55px rgba(160,100,255,.16),
+        inset 0 0 35px rgba(160,100,255,.10);
+    }
+
+    .mining-circle::before {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      border: 2px solid rgba(246,211,108,.13);
+      box-shadow: inset 0 0 25px rgba(176,108,255,.08);
+      pointer-events: none;
+    }
+
+    .mining-circle::after {
+      content: "";
+      position: absolute;
+      width: 115%;
+      height: 115%;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      border-top-color: rgba(246,211,108,.90);
+      border-right-color: rgba(176,108,255,.90);
+      opacity: .8;
+      animation: miningGlow 4s linear infinite;
+      pointer-events: none;
     }
 
     .mining-icon {
-      font-size: 40px;
+      position: relative;
+      z-index: 2;
+      font-size: 48px;
+      filter: drop-shadow(0 0 12px rgba(246,211,108,.28));
     }
 
     .timer {
-      font-size: 24px;
+      position: relative;
+      z-index: 2;
+      font-size: 31px;
       font-weight: 900;
-      margin-top: 7px;
+      margin-top: 9px;
+      letter-spacing: 1px;
+      text-shadow: 0 0 18px rgba(255,255,255,.12);
     }
 
     .rate {
-      color: #bdb5c8;
-      font-size: 12px;
-      margin-top: 5px;
+      position: relative;
+      z-index: 2;
+      color: #c7bfd2;
+      font-size: 13px;
+      margin-top: 7px;
+    }
+
+    @keyframes miningGlow {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     button {
@@ -198,11 +259,7 @@
       font-weight: 900;
       cursor: pointer;
       color: #160d2c;
-      background: linear-gradient(
-        135deg,
-        #f6d36c,
-        #b06cff
-      );
+      background: linear-gradient(135deg, #f6d36c, #b06cff);
       box-shadow: 0 8px 22px rgba(168,100,255,.25);
     }
 
@@ -216,6 +273,7 @@
       color: white;
       box-shadow: none;
       margin-top: 10px;
+      border: 1px solid rgba(255,255,255,.08);
     }
 
     .kyc-button {
@@ -322,17 +380,10 @@
 
 <div class="app">
 
-  <!-- ================= HEADER ================= -->
-
   <header>
+    <div class="logo">AMT</div>
 
-    <div class="logo">
-      AMT
-    </div>
-
-    <h1>
-      ALBERTO MARKETPLACE TOKEN
-    </h1>
+    <h1>ALBERTO MARKETPLACE TOKEN</h1>
 
     <div class="subtitle">
       Alberto Ecosystem Mining
@@ -341,22 +392,15 @@
     <div class="testnet">
       PI TESTNET
     </div>
-
   </header>
 
   <div id="message" class="message">
     AMT Testnet — connecting to Pi...
   </div>
 
-
-  <!-- ================= MINING ================= -->
-
   <section id="mining" class="section active">
 
-    <!-- BALANCE -->
-
     <div class="card">
-
       <div class="balance-label">
         Available AMT
       </div>
@@ -368,18 +412,11 @@
       <div class="amt">
         AMT Testnet
       </div>
-
     </div>
 
-
-    <!-- KYC STATUS -->
-
     <div class="card">
-
       <div class="kyc-box">
-
         <div>
-
           <div class="kyc-title">
             KYC Verification
           </div>
@@ -387,38 +424,27 @@
           <div id="kycText" class="kyc-text">
             Checking Pi KYC status...
           </div>
-
         </div>
 
-        <div id="kycStatus"
-             class="status off">
+        <div id="kycStatus" class="status off">
           UNVERIFIED
         </div>
-
       </div>
 
       <button
         id="kycButton"
         class="secondary kyc-button hidden"
         onclick="openKycInfo()">
-
         🛡️ CHECK PI KYC
-
       </button>
-
     </div>
-
-
-    <!-- MINING -->
 
     <div class="card">
 
       <div style="text-align:center;">
-
         <div class="balance-label">
           Mining Session
         </div>
-
       </div>
 
       <div class="mining-circle">
@@ -427,85 +453,55 @@
           ⛏️
         </div>
 
-        <div id="timer"
-             class="timer">
+        <div id="timer" class="timer">
           00:00:00
         </div>
 
         <div class="rate">
-
-          <span id="rate">
-            0.01
-          </span>
-
+          <span id="rate">0.01</span>
           AMT / hour
-
         </div>
 
       </div>
 
-
-      <!-- KYC NO LONGER REQUIRED FOR TESTNET MINING -->
-
       <button
         id="mineButton"
         onclick="startMining()">
-
         ⛏️ START AMT MINING
-
       </button>
-
 
       <button
         id="claimButton"
         class="secondary hidden"
         onclick="claimMining()">
-
         CLAIM AMT REWARD
-
       </button>
 
     </div>
 
-
-    <!-- MINING INFORMATION -->
-
     <div class="card">
 
       <div class="row">
-
         <div class="muted">
           Current Earned
         </div>
 
-        <div id="earned"
-             class="value">
-
+        <div id="earned" class="value">
           0.00000000 AMT
-
         </div>
-
       </div>
 
-
       <div class="row">
-
         <div class="muted">
           Mining Status
         </div>
 
-        <div id="miningStatus"
-             class="value danger">
-
+        <div id="miningStatus" class="value danger">
           NOT MINING
-
         </div>
-
       </div>
 
-
       <div class="row">
-
         <div class="muted">
           Network
         </div>
@@ -513,218 +509,113 @@
         <div class="value">
           Pi Testnet
         </div>
-
       </div>
 
     </div>
 
-
-    <!-- TESTNET RULE -->
-
     <div class="card">
-
       <div class="info">
 
         ⛏️ <strong>AMT Testnet Mining</strong><br><br>
 
-        KYC is not required to participate in
-        AMT Testnet mining.
+        KYC is not required to participate in AMT Testnet mining.
 
         <br><br>
 
-        KYC verification will be required for
-        eligible Mainnet migration, wallet
-        transfer, and supported ecosystem
-        transactions.
+        KYC verification will be required for eligible Mainnet migration, wallet transfer, and supported ecosystem transactions.
 
       </div>
-
     </div>
 
   </section>
 
-
-  <!-- ================= WALLET ================= -->
-
-  <section id="wallet"
-           class="section">
+  <section id="wallet" class="section">
 
     <div class="card">
-
       <div class="balance-label">
         AMT Wallet
       </div>
 
-      <div id="walletBalance"
-           class="balance">
-
+      <div id="walletBalance" class="balance">
         0.00000000
-
       </div>
 
       <div class="amt">
         AMT Testnet
       </div>
-
     </div>
-
 
     <div class="card">
 
       <div class="row">
-
-        <div class="muted">
-          Network
-        </div>
-
-        <div class="value">
-          Pi Testnet
-        </div>
-
+        <div class="muted">Network</div>
+        <div class="value">Pi Testnet</div>
       </div>
 
-
       <div class="row">
-
-        <div class="muted">
-          Ledger
-        </div>
-
-        <div class="value success">
-          Backend Controlled
-        </div>
-
+        <div class="muted">Ledger</div>
+        <div class="value success">Backend Controlled</div>
       </div>
 
-
       <div class="row">
-
-        <div class="muted">
-          On-chain AMT
-        </div>
-
-        <div class="value">
-          Not connected
-        </div>
-
+        <div class="muted">On-chain AMT</div>
+        <div class="value">Not connected</div>
       </div>
 
     </div>
 
-
     <div class="card">
-
       <div class="warning">
-
-        Testnet wallet balances shown here
-        come from the AMT backend ledger.
-
+        Testnet wallet balances shown here come from the AMT backend ledger.
         <br><br>
-
         No fake on-chain balance is displayed.
-
       </div>
-
     </div>
 
   </section>
 
-
-  <!-- ================= PROFILE ================= -->
-
-  <section id="profile"
-           class="section">
+  <section id="profile" class="section">
 
     <div class="card">
 
       <div class="user-row">
-
         <div>
+          <div class="balance-label">Pioneer</div>
 
-          <div class="balance-label">
-            Pioneer
-          </div>
-
-          <div id="username"
-               style="
-                 font-size:22px;
-                 font-weight:900;
-                 margin-top:5px;
-               ">
-
+          <div id="username" style="font-size:22px;font-weight:900;margin-top:5px;">
             Not signed in
-
           </div>
-
         </div>
 
-        <div id="profileStatus"
-             class="status off">
-
+        <div id="profileStatus" class="status off">
           OFFLINE
-
         </div>
-
       </div>
 
     </div>
 
-
     <div class="card">
 
       <div class="row">
-
-        <div class="muted">
-          Pi UID
-        </div>
-
-        <div id="uid"
-             class="value">
-
-          —
-
-        </div>
-
+        <div class="muted">Pi UID</div>
+        <div id="uid" class="value">—</div>
       </div>
 
-
       <div class="row">
-
-        <div class="muted">
-          KYC
-        </div>
-
-        <div id="profileKyc"
-             class="value">
-
-          UNVERIFIED
-
-        </div>
-
+        <div class="muted">KYC</div>
+        <div id="profileKyc" class="value">UNVERIFIED</div>
       </div>
 
-
       <div class="row">
-
-        <div class="muted">
-          Network
-        </div>
-
-        <div class="value">
-          Pi Testnet
-        </div>
-
+        <div class="muted">Network</div>
+        <div class="value">Pi Testnet</div>
       </div>
 
     </div>
 
   </section>
 
-
-  <!-- ================= KYC ================= -->
-
-  <section id="kyc"
-           class="section">
+  <section id="kyc" class="section">
 
     <div class="card">
 
@@ -733,64 +624,39 @@
       </div>
 
       <p class="kyc-text">
-
-        AMT Testnet mining does not require
-        verified KYC.
-
+        AMT Testnet mining does not require verified KYC.
       </p>
 
     </div>
 
-
     <div class="card">
 
-      <div id="kycLargeStatus"
-           style="
-             font-size:22px;
-             font-weight:900;
-           ">
-
+      <div id="kycLargeStatus" style="font-size:22px;font-weight:900;">
         UNVERIFIED
-
       </div>
 
-
-      <p id="kycLargeText"
-         class="kyc-text">
-
+      <p id="kycLargeText" class="kyc-text">
         Checking Pi KYC status...
-
       </p>
-
 
       <button
         id="kycInfoButton"
         class="secondary"
         onclick="openKycInfo()">
-
         🛡️ PI KYC INFORMATION
-
       </button>
 
+      <p class="warning" style="margin-top:14px;">
 
-      <p class="warning"
-         style="margin-top:14px;">
-
-        AMT does not collect passports,
-        National IDs, driver's licenses,
-        or other identity documents directly.
+        AMT does not collect passports, National IDs, driver's licenses, or other identity documents directly.
 
         <br><br>
 
-        Complete identity verification only
-        through the approved Pi verification
-        process.
+        Complete identity verification only through the approved Pi verification process.
 
         <br><br>
 
-        KYC will be required for applicable
-        Mainnet migration, wallet transfer,
-        and supported ecosystem swap functions.
+        KYC will be required for applicable Mainnet migration, wallet transfer, and supported ecosystem swap functions.
 
       </p>
 
@@ -798,79 +664,43 @@
 
   </section>
 
-
-  <!-- ================= SWAP ================= -->
-
-  <section id="swap"
-           class="section">
+  <section id="swap" class="section">
 
     <div class="card">
 
-      <div style="
-        font-size:24px;
-        font-weight:900;
-      ">
-
+      <div style="font-size:24px;font-weight:900;">
         🔄 AMT Swap
-
       </div>
 
       <p class="kyc-text">
-
         Pi Testnet swap interface
-
       </p>
 
     </div>
 
-
     <div class="card">
 
       <div class="row">
-
-        <div class="muted">
-          From
-        </div>
-
-        <div class="value">
-          AMT
-        </div>
-
+        <div class="muted">From</div>
+        <div class="value">AMT</div>
       </div>
-
 
       <div class="row">
-
-        <div class="muted">
-          To
-        </div>
-
-        <div class="value">
-          Pi Testnet
-        </div>
-
+        <div class="muted">To</div>
+        <div class="value">Pi Testnet</div>
       </div>
 
-
       <button disabled>
-
         SWAP NOT AVAILABLE YET
-
       </button>
 
+      <div class="warning" style="margin-top:14px;">
 
-      <div class="warning"
-           style="margin-top:14px;">
-
-        Swap execution will only be enabled
-        when a real supported Testnet liquidity
-        pair and transaction flow are configured.
+        Swap execution will only be enabled when a real supported Testnet liquidity pair and transaction flow are configured.
 
         <br><br>
 
-        Mainnet swap functions will require
-        the applicable Pi KYC and ecosystem
-        requirements.
+        Mainnet swap functions will require the applicable Pi KYC and ecosystem requirements.
 
       </div>
 
@@ -880,104 +710,49 @@
 
 </div>
 
-
-<!-- ================= NAVIGATION ================= -->
-
 <nav>
 
   <div class="nav-inner">
 
-    <button
-      class="active"
-      onclick="showSection('mining',this)">
-
+    <button class="active" onclick="showSection('mining',this)">
       <span>⛏️</span>
       Mining
-
     </button>
 
-
-    <button
-      onclick="
-        showSection('wallet',this);
-        loadWallet();
-      ">
-
+    <button onclick="showSection('wallet',this);loadWallet()">
       <span>👛</span>
       Wallet
-
     </button>
 
-
-    <button
-      onclick="
-        showSection('profile',this);
-        loadProfile();
-      ">
-
+    <button onclick="showSection('profile',this);loadProfile()">
       <span>👤</span>
       Profile
-
     </button>
 
-
-    <button
-      onclick="
-        showSection('kyc',this);
-        loadKyc();
-      ">
-
+    <button onclick="showSection('kyc',this);loadKyc()">
       <span>🛡️</span>
       KYC
-
     </button>
 
-
-    <button
-      onclick="
-        showSection('swap',this);
-      ">
-
+    <button onclick="showSection('swap',this)">
       <span>🔄</span>
       Swap
-
     </button>
 
   </div>
 
 </nav>
 
-
 <script>
-
-/*
-==================================================
-AMT CONFIGURATION
-==================================================
-*/
 
 const BACKEND_URL =
   "https://alberto-amt-testnet.onrender.com";
-
-
-/*
-==================================================
-APP STATE
-==================================================
-*/
 
 let accessToken = null;
 let piUser = null;
 
 let miningInterval = null;
 let currentMiningEndsAt = null;
-
-
-/*
-==================================================
-MESSAGE
-==================================================
-*/
 
 function message(text) {
 
@@ -990,58 +765,32 @@ function message(text) {
 
 }
 
-
-/*
-==================================================
-NAVIGATION
-==================================================
-*/
-
 function showSection(id, button) {
 
   document
     .querySelectorAll(".section")
     .forEach(section => {
-
       section.classList.remove("active");
-
     });
-
 
   const target =
     document.getElementById(id);
 
-
   if (target) {
-
     target.classList.add("active");
-
   }
-
 
   document
     .querySelectorAll("nav button")
     .forEach(btn => {
-
       btn.classList.remove("active");
-
     });
 
-
   if (button) {
-
     button.classList.add("active");
-
   }
 
 }
-
-
-/*
-==================================================
-KYC INFORMATION
-==================================================
-*/
 
 function openKycInfo() {
 
@@ -1050,19 +799,11 @@ function openKycInfo() {
     document.querySelectorAll("nav button")[3]
   );
 
-
   message(
     "Use the official Pi KYC verification process. AMT does not collect identity documents."
   );
 
 }
-
-
-/*
-==================================================
-PI AUTHENTICATION
-==================================================
-*/
 
 async function authenticatePi() {
 
@@ -1078,39 +819,29 @@ async function authenticatePi() {
 
     }
 
-
     Pi.init({
       version: "2.0"
     });
 
-
     const authResult =
       await Pi.authenticate(
-
         [
           "username",
           "payments"
         ],
-
         function onIncompletePaymentFound(payment) {
-
           console.log(
             "Incomplete payment found:",
             payment.identifier
           );
-
         }
-
       );
-
 
     accessToken =
       authResult.accessToken;
 
-
     piUser =
       authResult.user;
-
 
     await verifyWithBackend();
 
@@ -1123,7 +854,6 @@ async function authenticatePi() {
       error
     );
 
-
     message(
       "Pi Sign-In was not completed."
     );
@@ -1132,45 +862,28 @@ async function authenticatePi() {
 
 }
 
-
-/*
-==================================================
-BACKEND AUTHENTICATION
-==================================================
-*/
-
 async function verifyWithBackend() {
 
   try {
 
     const response =
       await fetch(
-
         `${BACKEND_URL}/api/auth/verify`,
-
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json"
           },
-
           body: JSON.stringify({
             accessToken
           })
-
         }
-
       );
-
 
     const data =
       await response.json();
 
-
-    if (!response.ok ||
-        !data.success) {
+    if (!response.ok || !data.success) {
 
       message(
         "Pi Sign-In succeeded, but AMT account verification failed."
@@ -1180,13 +893,11 @@ async function verifyWithBackend() {
 
     }
 
-
     document
       .getElementById("username")
       .textContent =
       data.user?.username ||
       "Pi Pioneer";
-
 
     document
       .getElementById("uid")
@@ -1194,23 +905,19 @@ async function verifyWithBackend() {
       data.user?.uid ||
       "—";
 
-
     document
       .getElementById("profileStatus")
       .textContent =
       "ONLINE";
-
 
     document
       .getElementById("profileStatus")
       .className =
       "status on";
 
-
     message(
       "Pi account connected to AMT Testnet."
     );
-
 
     await loadKyc();
     await loadWallet();
@@ -1225,7 +932,6 @@ async function verifyWithBackend() {
       error
     );
 
-
     message(
       "Unable to connect to AMT backend."
     );
@@ -1234,56 +940,32 @@ async function verifyWithBackend() {
 
 }
 
-
-/*
-==================================================
-KYC STATUS
-
-IMPORTANT:
-KYC DOES NOT BLOCK TESTNET MINING.
-
-KYC will be used for Mainnet-related
-requirements later.
-==================================================
-*/
-
 async function loadKyc() {
 
   if (!accessToken) {
     return;
   }
 
-
   try {
 
     const response =
       await fetch(
-
         `${BACKEND_URL}/api/kyc/status`,
-
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json"
           },
-
           body: JSON.stringify({
             accessToken
           })
-
         }
-
       );
-
 
     const data =
       await response.json();
 
-
-    if (!response.ok ||
-        !data.success) {
+    if (!response.ok || !data.success) {
 
       console.error(
         "KYC response:",
@@ -1294,49 +976,32 @@ async function loadKyc() {
 
     }
 
-
     const status =
       String(
         data.kyc?.status ||
         "UNVERIFIED"
       ).toUpperCase();
 
-
     document
       .getElementById("kycStatus")
       .textContent =
       status;
-
 
     document
       .getElementById("profileKyc")
       .textContent =
       status;
 
-
     document
       .getElementById("kycLargeStatus")
       .textContent =
       status;
 
-
     const kycButton =
-      document.getElementById(
-        "kycButton"
-      );
-
+      document.getElementById("kycButton");
 
     const mineButton =
-      document.getElementById(
-        "mineButton"
-      );
-
-
-    /*
-    ==============================================
-    VERIFIED
-    ==============================================
-    */
+      document.getElementById("mineButton");
 
     if (status === "VERIFIED") {
 
@@ -1345,52 +1010,29 @@ async function loadKyc() {
         .className =
         "status on";
 
-
       document
         .getElementById("kycText")
         .textContent =
         "Pi identity verification is completed. You can mine AMT Testnet.";
-
 
       document
         .getElementById("kycLargeText")
         .textContent =
         "Your Pi KYC status is VERIFIED. AMT Testnet mining is available.";
 
-
       document
         .getElementById("kycLargeStatus")
         .className =
         "success";
 
+      kycButton.classList.add("hidden");
 
-      kycButton.classList.add(
-        "hidden"
-      );
-
-
-      /*
-      IMPORTANT:
-      VERIFIED users can mine.
-      */
-
-      mineButton.disabled =
-        false;
-
+      mineButton.disabled = false;
 
       mineButton.textContent =
         "⛏️ START AMT MINING";
 
     }
-
-
-    /*
-    ==============================================
-    UNVERIFIED / OTHER STATUS
-
-    TESTNET MINING IS STILL ALLOWED.
-    ==============================================
-    */
 
     else {
 
@@ -1399,40 +1041,24 @@ async function loadKyc() {
         .className =
         "status off";
 
-
       document
         .getElementById("kycText")
         .textContent =
         "Pi KYC is not required for AMT Testnet mining. KYC will be required for applicable Mainnet functions.";
-
 
       document
         .getElementById("kycLargeText")
         .textContent =
         "You can mine AMT on Testnet without KYC. Complete the official Pi KYC process before applicable Mainnet migration, wallet transfer, and ecosystem swap functions.";
 
-
       document
         .getElementById("kycLargeStatus")
         .className =
         "danger";
 
+      kycButton.classList.remove("hidden");
 
-      kycButton.classList.remove(
-        "hidden"
-      );
-
-
-      /*
-      ============================================
-      IMPORTANT CHANGE:
-      UNVERIFIED USERS CAN MINE TESTNET AMT.
-      ============================================
-      */
-
-      mineButton.disabled =
-        false;
-
+      mineButton.disabled = false;
 
       mineButton.textContent =
         "⛏️ START AMT MINING";
@@ -1448,22 +1074,10 @@ async function loadKyc() {
       error
     );
 
-
-    /*
-    Even if KYC status cannot be loaded,
-    Testnet mining button remains available
-    after Pi authentication.
-    */
-
     const mineButton =
-      document.getElementById(
-        "mineButton"
-      );
+      document.getElementById("mineButton");
 
-
-    mineButton.disabled =
-      false;
-
+    mineButton.disabled = false;
 
     mineButton.textContent =
       "⛏️ START AMT MINING";
@@ -1471,13 +1085,6 @@ async function loadKyc() {
   }
 
 }
-
-
-/*
-==================================================
-START MINING
-==================================================
-*/
 
 async function startMining() {
 
@@ -1491,47 +1098,31 @@ async function startMining() {
 
   }
 
-
   const button =
-    document.getElementById(
-      "mineButton"
-    );
+    document.getElementById("mineButton");
 
-
-  button.disabled =
-    true;
-
+  button.disabled = true;
 
   try {
 
     const response =
       await fetch(
-
         `${BACKEND_URL}/api/mining/start`,
-
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json"
           },
-
           body: JSON.stringify({
             accessToken
           })
-
         }
-
       );
-
 
     const data =
       await response.json();
 
-
-    if (!response.ok ||
-        !data.success) {
+    if (!response.ok || !data.success) {
 
       message(
         data.message ||
@@ -1539,20 +1130,15 @@ async function startMining() {
         "Mining could not start."
       );
 
-
-      button.disabled =
-        false;
-
+      button.disabled = false;
 
       return;
 
     }
 
-
     message(
       "AMT Testnet mining session is active."
     );
-
 
     await loadMiningStatus();
 
@@ -1565,25 +1151,15 @@ async function startMining() {
       error
     );
 
-
     message(
       "Unable to contact AMT backend."
     );
 
-
-    button.disabled =
-      false;
+    button.disabled = false;
 
   }
 
 }
-
-
-/*
-==================================================
-MINING STATUS
-==================================================
-*/
 
 async function loadMiningStatus() {
 
@@ -1591,48 +1167,28 @@ async function loadMiningStatus() {
     return;
   }
 
-
   try {
 
     const response =
       await fetch(
-
         `${BACKEND_URL}/api/mining/status`,
-
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json"
           },
-
           body: JSON.stringify({
             accessToken
           })
-
         }
-
       );
-
 
     const data =
       await response.json();
 
-
-    if (!response.ok ||
-        !data.success) {
-
+    if (!response.ok || !data.success) {
       return;
-
     }
-
-
-    /*
-    ==============================================
-    NO ACTIVE MINING
-    ==============================================
-    */
 
     if (!data.mining) {
 
@@ -1641,74 +1197,54 @@ async function loadMiningStatus() {
         .textContent =
         "NOT MINING";
 
-
       document
         .getElementById("miningStatus")
         .className =
         "value danger";
-
 
       document
         .getElementById("timer")
         .textContent =
         "00:00:00";
 
-
       document
         .getElementById("claimButton")
-        .classList.add(
-          "hidden"
-        );
-
+        .classList.add("hidden");
 
       document
         .getElementById("mineButton")
         .textContent =
         "⛏️ START AMT MINING";
 
-
       document
         .getElementById("mineButton")
         .disabled =
         false;
 
-
       return;
 
     }
 
-
-    /*
-    ==============================================
-    ACTIVE MINING
-    ==============================================
-    */
-
     const session =
       data.session;
 
-
     currentMiningEndsAt =
       session.endsAt;
-
 
     document
       .getElementById("miningStatus")
       .textContent =
       "MINING ACTIVE";
 
-
     document
       .getElementById("miningStatus")
       .className =
       "value success";
 
-
     document
       .getElementById("rate")
       .textContent =
       session.rate;
-
 
     document
       .getElementById("earned")
@@ -1718,30 +1254,23 @@ async function loadMiningStatus() {
       ).toFixed(8) +
       " AMT";
 
-
     updateTimer(
       currentMiningEndsAt
     );
 
-
     document
       .getElementById("claimButton")
-      .classList.remove(
-        "hidden"
-      );
-
+      .classList.remove("hidden");
 
     document
       .getElementById("mineButton")
       .textContent =
       "⛏️ MINING ACTIVE";
 
-
     document
       .getElementById("mineButton")
       .disabled =
       true;
-
 
     startTimer();
 
@@ -1758,33 +1287,19 @@ async function loadMiningStatus() {
 
 }
 
-
-/*
-==================================================
-MINING TIMER
-==================================================
-*/
-
 function startTimer() {
 
   if (miningInterval) {
-
-    clearInterval(
-      miningInterval
-    );
-
+    clearInterval(miningInterval);
   }
-
 
   miningInterval =
     setInterval(
-
       async () => {
 
         if (!currentMiningEndsAt) {
           return;
         }
-
 
         const remaining =
           Math.max(
@@ -1795,11 +1310,9 @@ function startTimer() {
             Date.now()
           );
 
-
         updateTimer(
           currentMiningEndsAt
         );
-
 
         if (remaining <= 0) {
 
@@ -1807,28 +1320,22 @@ function startTimer() {
             miningInterval
           );
 
-
-          miningInterval =
-            null;
-
+          miningInterval = null;
 
           document
             .getElementById("timer")
             .textContent =
             "00:00:00";
 
-
           document
             .getElementById("mineButton")
             .textContent =
             "⛏️ MINING COMPLETE";
 
-
           document
             .getElementById("mineButton")
             .disabled =
             true;
-
 
           message(
             "Mining session completed. You can claim your AMT reward."
@@ -1837,20 +1344,16 @@ function startTimer() {
         }
 
       },
-
       1000
-
     );
 
 }
-
 
 function updateTimer(endTime) {
 
   if (!endTime) {
     return;
   }
-
 
   const remaining =
     Math.max(
@@ -1859,47 +1362,34 @@ function updateTimer(endTime) {
       Date.now()
     );
 
-
   const totalSeconds =
     Math.floor(
       remaining / 1000
     );
-
 
   const hours =
     Math.floor(
       totalSeconds / 3600
     );
 
-
   const minutes =
     Math.floor(
       (totalSeconds % 3600) / 60
     );
 
-
   const seconds =
     totalSeconds % 60;
-
 
   document
     .getElementById("timer")
     .textContent =
-
-      String(hours).padStart(2, "0") +
-      ":" +
-      String(minutes).padStart(2, "0") +
-      ":" +
-      String(seconds).padStart(2, "0");
+    String(hours).padStart(2, "0") +
+    ":" +
+    String(minutes).padStart(2, "0") +
+    ":" +
+    String(seconds).padStart(2, "0");
 
 }
-
-
-/*
-==================================================
-CLAIM MINING
-==================================================
-*/
 
 async function claimMining() {
 
@@ -1913,47 +1403,31 @@ async function claimMining() {
 
   }
 
-
   const button =
-    document.getElementById(
-      "claimButton"
-    );
+    document.getElementById("claimButton");
 
-
-  button.disabled =
-    true;
-
+  button.disabled = true;
 
   try {
 
     const response =
       await fetch(
-
         `${BACKEND_URL}/api/mining/claim`,
-
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json"
           },
-
           body: JSON.stringify({
             accessToken
           })
-
         }
-
       );
-
 
     const data =
       await response.json();
 
-
-    if (!response.ok ||
-        !data.success) {
+    if (!response.ok || !data.success) {
 
       message(
         data.error ||
@@ -1961,15 +1435,11 @@ async function claimMining() {
         "Reward claim failed."
       );
 
-
-      button.disabled =
-        false;
-
+      button.disabled = false;
 
       return;
 
     }
-
 
     message(
       `Claimed ${Number(
@@ -1977,10 +1447,7 @@ async function claimMining() {
       ).toFixed(8)} AMT Testnet.`
     );
 
-
-    button.disabled =
-      false;
-
+    button.disabled = false;
 
     await loadWallet();
     await loadMiningStatus();
@@ -1994,25 +1461,15 @@ async function claimMining() {
       error
     );
 
-
     message(
       "Unable to claim AMT reward."
     );
 
-
-    button.disabled =
-      false;
+    button.disabled = false;
 
   }
 
 }
-
-
-/*
-==================================================
-WALLET
-==================================================
-*/
 
 async function loadWallet() {
 
@@ -2020,54 +1477,38 @@ async function loadWallet() {
     return;
   }
 
-
   try {
 
     const response =
       await fetch(
-
         `${BACKEND_URL}/api/wallet`,
-
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json"
           },
-
           body: JSON.stringify({
             accessToken
           })
-
         }
-
       );
-
 
     const data =
       await response.json();
 
-
-    if (!response.ok ||
-        !data.success) {
-
+    if (!response.ok || !data.success) {
       return;
-
     }
-
 
     const balance =
       Number(
         data.wallet?.amt || 0
       ).toFixed(8);
 
-
     document
       .getElementById("amtBalance")
       .textContent =
       balance;
-
 
     document
       .getElementById("walletBalance")
@@ -2087,55 +1528,34 @@ async function loadWallet() {
 
 }
 
-
-/*
-==================================================
-PROFILE
-==================================================
-*/
-
 async function loadProfile() {
 
   if (!accessToken) {
     return;
   }
 
-
   try {
 
     const response =
       await fetch(
-
         `${BACKEND_URL}/api/profile`,
-
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json"
+            "Content-Type": "application/json"
           },
-
           body: JSON.stringify({
             accessToken
           })
-
         }
-
       );
-
 
     const data =
       await response.json();
 
-
-    if (!response.ok ||
-        !data.success) {
-
+    if (!response.ok || !data.success) {
       return;
-
     }
-
 
     document
       .getElementById("username")
@@ -2143,13 +1563,11 @@ async function loadProfile() {
       data.profile?.username ||
       "Pi Pioneer";
 
-
     document
       .getElementById("uid")
       .textContent =
       data.profile?.uid ||
       "—";
-
 
     document
       .getElementById("profileKyc")
@@ -2170,37 +1588,19 @@ async function loadProfile() {
 
 }
 
-
-/*
-==================================================
-AUTO REFRESH
-==================================================
-*/
-
 setInterval(
-
   async () => {
 
     if (!accessToken) {
       return;
     }
 
-
     await loadWallet();
     await loadMiningStatus();
 
   },
-
   15000
-
 );
-
-
-/*
-==================================================
-START APP
-==================================================
-*/
 
 window.addEventListener(
   "load",
@@ -2209,7 +1609,6 @@ window.addEventListener(
     message(
       "AMT Testnet — connecting to Pi..."
     );
-
 
     authenticatePi();
 
