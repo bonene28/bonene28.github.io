@@ -414,7 +414,42 @@
   </header>
 
   <div id="message" class="message">
-    AMT Testnet — connecting to Pi...
+    AMT Testnet — please sign in with Pi.
+  </div>
+
+  <!-- PI LOGIN / LOGOUT -->
+  <div class="card" id="authCard">
+
+    <div class="user-row">
+
+      <div>
+        <div class="balance-label">Pi Account</div>
+
+        <div id="authUsername"
+             style="font-size:18px;font-weight:900;margin-top:5px;">
+          Not signed in
+        </div>
+      </div>
+
+      <div id="authStatus" class="status off">
+        OFFLINE
+      </div>
+
+    </div>
+
+    <button
+      id="loginButton"
+      onclick="authenticatePi()">
+      🔐 LOG IN WITH PI
+    </button>
+
+    <button
+      id="logoutButton"
+      class="secondary hidden"
+      onclick="logoutPi()">
+      🚪 LOG OUT
+    </button>
+
   </div>
 
   <section id="mining" class="section active">
@@ -430,7 +465,7 @@
         <div>
           <div class="kyc-title">KYC Verification</div>
           <div id="kycText" class="kyc-text">
-            Checking Pi KYC status...
+            Sign in with Pi to check your Pi KYC status.
           </div>
         </div>
         <div id="kycStatus" class="status off">UNVERIFIED</div>
@@ -461,8 +496,8 @@
         </div>
       </div>
 
-      <button id="mineButton" onclick="startMining()">
-        ⛏️ START AMT MINING
+      <button id="mineButton" onclick="startMining()" disabled>
+        ⛏️ SIGN IN WITH PI FIRST
       </button>
 
       <button
@@ -705,7 +740,7 @@
       </div>
 
       <p id="kycLargeText" class="kyc-text">
-        Checking Pi KYC status...
+        Sign in with Pi to check your Pi KYC status.
       </p>
 
       <button
@@ -823,27 +858,56 @@ let piUser = null;
 let miningInterval = null;
 let currentMiningEndsAt = null;
 
+
+/* =========================
+   MESSAGE
+========================= */
+
 function message(text) {
-  const element = document.getElementById("message");
-  if (element) element.textContent = text;
+  const element =
+    document.getElementById("message");
+
+  if (element) {
+    element.textContent = text;
+  }
 }
+
+
+/* =========================
+   NAVIGATION
+========================= */
 
 function showSection(id, button) {
-  document.querySelectorAll(".section").forEach(section => {
-    section.classList.remove("active");
-  });
 
-  const target = document.getElementById(id);
-  if (target) target.classList.add("active");
+  document.querySelectorAll(".section")
+    .forEach(section => {
+      section.classList.remove("active");
+    });
 
-  document.querySelectorAll("nav button").forEach(btn => {
-    btn.classList.remove("active");
-  });
+  const target =
+    document.getElementById(id);
 
-  if (button) button.classList.add("active");
+  if (target) {
+    target.classList.add("active");
+  }
+
+  document.querySelectorAll("nav button")
+    .forEach(btn => {
+      btn.classList.remove("active");
+    });
+
+  if (button) {
+    button.classList.add("active");
+  }
 }
 
+
+/* =========================
+   KYC INFO
+========================= */
+
 function openKycInfo() {
+
   showSection(
     "kyc",
     document.querySelectorAll("nav button")[5]
@@ -854,100 +918,504 @@ function openKycInfo() {
   );
 }
 
+
+/* =========================
+   REFERRAL URL
+========================= */
+
 function getReferralFromUrl() {
+
   try {
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const ref =
+      params.get("ref");
 
     if (!ref) return null;
 
-    const clean = ref.trim();
+    const clean =
+      ref.trim();
 
     if (!clean) return null;
 
     return clean.slice(0, 100);
+
   } catch {
+
     return null;
+
   }
 }
 
+
+/* =========================
+   AUTH UI
+========================= */
+
+function updateAuthUI(isLoggedIn) {
+
+  const loginButton =
+    document.getElementById("loginButton");
+
+  const logoutButton =
+    document.getElementById("logoutButton");
+
+  const authStatus =
+    document.getElementById("authStatus");
+
+  const authUsername =
+    document.getElementById("authUsername");
+
+  const profileStatus =
+    document.getElementById("profileStatus");
+
+  if (isLoggedIn && piUser) {
+
+    authUsername.textContent =
+      piUser.username || "Pi Pioneer";
+
+    authStatus.textContent =
+      "ONLINE";
+
+    authStatus.className =
+      "status on";
+
+    loginButton.classList.add(
+      "hidden"
+    );
+
+    logoutButton.classList.remove(
+      "hidden"
+    );
+
+    if (profileStatus) {
+
+      profileStatus.textContent =
+        "ONLINE";
+
+      profileStatus.className =
+        "status on";
+    }
+
+  } else {
+
+    authUsername.textContent =
+      "Not signed in";
+
+    authStatus.textContent =
+      "OFFLINE";
+
+    authStatus.className =
+      "status off";
+
+    loginButton.classList.remove(
+      "hidden"
+    );
+
+    loginButton.disabled = false;
+
+    loginButton.textContent =
+      "🔐 LOG IN WITH PI";
+
+    logoutButton.classList.add(
+      "hidden"
+    );
+
+    if (profileStatus) {
+
+      profileStatus.textContent =
+        "OFFLINE";
+
+      profileStatus.className =
+        "status off";
+    }
+  }
+}
+
+
+/* =========================
+   PI LOGIN
+========================= */
+
 async function authenticatePi() {
+
   try {
+
     if (!window.Pi) {
+
       message(
         "Pi SDK is not available. Open AMT inside the supported Pi environment."
       );
+
       return;
     }
 
-    Pi.init({ version: "2.0" });
+    const loginButton =
+      document.getElementById(
+        "loginButton"
+      );
 
-    const authResult = await Pi.authenticate(
-      ["username", "payments"],
-      function onIncompletePaymentFound(payment) {
-        console.log(
-          "Incomplete payment found:",
-          payment.identifier
-        );
-      }
+    loginButton.disabled = true;
+
+    loginButton.textContent =
+      "🔄 CONNECTING TO PI...";
+
+    Pi.init({
+      version: "2.0"
+    });
+
+    const authResult =
+      await Pi.authenticate(
+        ["username", "payments"],
+
+        function onIncompletePaymentFound(
+          payment
+        ) {
+
+          console.log(
+            "Incomplete payment found:",
+            payment.identifier
+          );
+
+        }
+      );
+
+    accessToken =
+      authResult.accessToken;
+
+    piUser =
+      authResult.user;
+
+    updateAuthUI(true);
+
+    message(
+      "Pi account connected. Verifying AMT account..."
     );
-
-    accessToken = authResult.accessToken;
-    piUser = authResult.user;
 
     await verifyWithBackend();
 
   } catch (error) {
-    console.error("Pi authentication error:", error);
-    message("Pi Sign-In was not completed.");
+
+    console.error(
+      "Pi authentication error:",
+      error
+    );
+
+    accessToken = null;
+    piUser = null;
+
+    updateAuthUI(false);
+
+    message(
+      "Pi Sign-In was not completed."
+    );
+
+  } finally {
+
+    const loginButton =
+      document.getElementById(
+        "loginButton"
+      );
+
+    if (
+      loginButton &&
+      !accessToken
+    ) {
+
+      loginButton.disabled =
+        false;
+
+      loginButton.textContent =
+        "🔐 LOG IN WITH PI";
+    }
   }
 }
 
-async function verifyWithBackend() {
-  try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/auth/verify`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
+
+/* =========================
+   LOGOUT
+========================= */
+
+function logoutPi() {
+
+  /*
+   * AMT app logout.
+   *
+   * The Pi SDK does not expose a documented
+   * Pi.logout() method. This clears the AMT
+   * application's authenticated session.
+   */
+
+  accessToken = null;
+  piUser = null;
+
+  if (miningInterval) {
+
+    clearInterval(
+      miningInterval
     );
 
-    const data = await response.json();
+    miningInterval = null;
+  }
 
-    if (!response.ok || !data.success) {
+  currentMiningEndsAt = null;
+
+  updateAuthUI(false);
+
+
+  /* PROFILE */
+
+  document.getElementById(
+    "username"
+  ).textContent =
+    "Not signed in";
+
+  document.getElementById(
+    "uid"
+  ).textContent =
+    "—";
+
+  document.getElementById(
+    "profileKyc"
+  ).textContent =
+    "UNVERIFIED";
+
+
+  /* KYC */
+
+  document.getElementById(
+    "kycStatus"
+  ).textContent =
+    "UNVERIFIED";
+
+  document.getElementById(
+    "kycStatus"
+  ).className =
+    "status off";
+
+  document.getElementById(
+    "kycText"
+  ).textContent =
+    "Sign in with Pi to check your Pi KYC status.";
+
+  document.getElementById(
+    "kycLargeStatus"
+  ).textContent =
+    "UNVERIFIED";
+
+  document.getElementById(
+    "kycLargeStatus"
+  ).className =
+    "danger";
+
+  document.getElementById(
+    "kycLargeText"
+  ).textContent =
+    "Sign in with Pi to check your Pi KYC status.";
+
+
+  /* WALLET */
+
+  document.getElementById(
+    "amtBalance"
+  ).textContent =
+    "0.00000000";
+
+  document.getElementById(
+    "walletBalance"
+  ).textContent =
+    "0.00000000";
+
+
+  /* MINING */
+
+  document.getElementById(
+    "earned"
+  ).textContent =
+    "0.00000000 AMT";
+
+  document.getElementById(
+    "timer"
+  ).textContent =
+    "00:00:00";
+
+  document.getElementById(
+    "miningStatus"
+  ).textContent =
+    "NOT MINING";
+
+  document.getElementById(
+    "miningStatus"
+  ).className =
+    "value danger";
+
+  document.getElementById(
+    "mineButton"
+  ).disabled =
+    true;
+
+  document.getElementById(
+    "mineButton"
+  ).textContent =
+    "⛏️ SIGN IN WITH PI FIRST";
+
+  document.getElementById(
+    "claimButton"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  /* REFERRAL */
+
+  document.getElementById(
+    "myReferralUsername"
+  ).textContent =
+    "—";
+
+  document.getElementById(
+    "referralLink"
+  ).textContent =
+    "Sign in to generate your referral link.";
+
+  document.getElementById(
+    "referralCount"
+  ).textContent =
+    "0 / 5";
+
+  document.getElementById(
+    "activeReferralCount"
+  ).textContent =
+    "0";
+
+  document.getElementById(
+    "referralMembers"
+  ).textContent =
+    "No referrals yet.";
+
+
+  /* SECURITY CIRCLE */
+
+  document.getElementById(
+    "securityCount"
+  ).textContent =
+    "0 / 5";
+
+  document.getElementById(
+    "securityMembers"
+  ).textContent =
+    "No Security Circle members yet.";
+
+
+  message(
+    "You have been logged out of AMT Testnet."
+  );
+
+  showSection(
+    "profile",
+    document.querySelectorAll(
+      "nav button"
+    )[2]
+  );
+}
+
+
+/* =========================
+   BACKEND VERIFICATION
+========================= */
+
+async function verifyWithBackend() {
+
+  try {
+
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/auth/verify`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
       message(
         "Pi Sign-In succeeded, but AMT account verification failed."
       );
+
       return;
     }
 
-    document.getElementById("username").textContent =
-      data.user?.username || "Pi Pioneer";
+    const backendUsername =
+      data.user?.username ||
+      piUser?.username ||
+      "Pi Pioneer";
 
-    document.getElementById("uid").textContent =
-      data.user?.uid || "—";
+    document.getElementById(
+      "username"
+    ).textContent =
+      backendUsername;
 
-    document.getElementById("profileStatus").textContent =
+    document.getElementById(
+      "authUsername"
+    ).textContent =
+      backendUsername;
+
+    document.getElementById(
+      "uid"
+    ).textContent =
+      data.user?.uid ||
+      "—";
+
+    document.getElementById(
+      "profileStatus"
+    ).textContent =
       "ONLINE";
 
-    document.getElementById("profileStatus").className =
+    document.getElementById(
+      "profileStatus"
+    ).className =
       "status on";
 
-    message("Pi account connected to AMT Testnet.");
+    updateAuthUI(true);
+
+    message(
+      "Pi account connected to AMT Testnet."
+    );
+
 
     /*
      * Automatically process ?ref=PiUsername.
-     * The backend verifies the actual signed-in Pioneer.
      */
-    const referralUsername = getReferralFromUrl();
+
+    const referralUsername =
+      getReferralFromUrl();
 
     if (referralUsername) {
-      await autoLinkReferral(referralUsername);
+
+      await autoLinkReferral(
+        referralUsername
+      );
     }
+
 
     await loadKyc();
     await loadWallet();
@@ -956,166 +1424,311 @@ async function verifyWithBackend() {
     await loadSecurityCircle();
 
   } catch (error) {
-    console.error("Backend authentication error:", error);
-    message("Unable to connect to AMT backend.");
+
+    console.error(
+      "Backend authentication error:",
+      error
+    );
+
+    message(
+      "Unable to connect to AMT backend."
+    );
   }
 }
 
-async function autoLinkReferral(referralUsername) {
-  if (!accessToken || !referralUsername) return;
+
+/* =========================
+   REFERRAL AUTO LINK
+========================= */
+
+async function autoLinkReferral(
+  referralUsername
+) {
+
+  if (
+    !accessToken ||
+    !referralUsername
+  ) {
+    return;
+  }
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/referral/auto-link`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          accessToken,
-          referralUsername
-        })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/referral/auto-link`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) {
-      console.warn("Referral link:", data);
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            accessToken,
+            referralUsername
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      console.warn(
+        "Referral link:",
+        data
+      );
+
       return;
     }
 
     if (data.linked) {
+
       message(
         `Referral linked to ${data.referrer?.username || referralUsername}.`
       );
-    } else if (data.status === "REFERRER_LIMIT_REACHED") {
+
+    } else if (
+      data.status ===
+      "REFERRER_LIMIT_REACHED"
+    ) {
+
       message(
         "The referral Pioneer has reached the 5 direct-referral limit."
       );
     }
 
   } catch (error) {
-    console.error("Referral auto-link error:", error);
+
+    console.error(
+      "Referral auto-link error:",
+      error
+    );
   }
 }
 
+
+/* =========================
+   KYC
+========================= */
+
 async function loadKyc() {
+
   if (!accessToken) return;
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/kyc/status`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/kyc/status`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) return;
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-    const status = String(
-      data.kyc?.status || "UNVERIFIED"
-    ).toUpperCase();
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
 
-    document.getElementById("kycStatus").textContent = status;
-    document.getElementById("profileKyc").textContent = status;
-    document.getElementById("kycLargeStatus").textContent = status;
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      return;
+    }
+
+    const status =
+      String(
+        data.kyc?.status ||
+        "UNVERIFIED"
+      ).toUpperCase();
+
+    document.getElementById(
+      "kycStatus"
+    ).textContent =
+      status;
+
+    document.getElementById(
+      "profileKyc"
+    ).textContent =
+      status;
+
+    document.getElementById(
+      "kycLargeStatus"
+    ).textContent =
+      status;
 
     const kycButton =
-      document.getElementById("kycButton");
+      document.getElementById(
+        "kycButton"
+      );
 
     const mineButton =
-      document.getElementById("mineButton");
+      document.getElementById(
+        "mineButton"
+      );
 
     if (status === "VERIFIED") {
-      document.getElementById("kycStatus").className =
+
+      document.getElementById(
+        "kycStatus"
+      ).className =
         "status on";
 
-      document.getElementById("kycText").textContent =
+      document.getElementById(
+        "kycText"
+      ).textContent =
         "Pi identity verification is completed. You can mine AMT Testnet.";
 
-      document.getElementById("kycLargeText").textContent =
+      document.getElementById(
+        "kycLargeText"
+      ).textContent =
         "Your Pi KYC status is VERIFIED. AMT Testnet mining is available.";
 
-      document.getElementById("kycLargeStatus").className =
+      document.getElementById(
+        "kycLargeStatus"
+      ).className =
         "success";
 
-      kycButton.classList.add("hidden");
-      mineButton.disabled = false;
+      kycButton.classList.add(
+        "hidden"
+      );
+
+      mineButton.disabled =
+        false;
+
       mineButton.textContent =
         "⛏️ START AMT MINING";
 
     } else {
-      document.getElementById("kycStatus").className =
+
+      document.getElementById(
+        "kycStatus"
+      ).className =
         "status off";
 
-      document.getElementById("kycText").textContent =
+      document.getElementById(
+        "kycText"
+      ).textContent =
         "Pi KYC is not required for AMT Testnet mining. KYC will be required for applicable Mainnet functions.";
 
-      document.getElementById("kycLargeText").textContent =
+      document.getElementById(
+        "kycLargeText"
+      ).textContent =
         "You can mine AMT on Testnet without KYC. Complete the official Pi KYC process before applicable Mainnet migration, wallet transfer, and ecosystem swap functions.";
 
-      document.getElementById("kycLargeStatus").className =
+      document.getElementById(
+        "kycLargeStatus"
+      ).className =
         "danger";
 
-      kycButton.classList.remove("hidden");
-      mineButton.disabled = false;
+      kycButton.classList.remove(
+        "hidden"
+      );
+
+      mineButton.disabled =
+        false;
+
       mineButton.textContent =
         "⛏️ START AMT MINING";
     }
 
   } catch (error) {
-    console.error("KYC error:", error);
+
+    console.error(
+      "KYC error:",
+      error
+    );
 
     const mineButton =
-      document.getElementById("mineButton");
+      document.getElementById(
+        "mineButton"
+      );
 
-    mineButton.disabled = false;
-    mineButton.textContent =
-      "⛏️ START AMT MINING";
+    if (accessToken) {
+
+      mineButton.disabled =
+        false;
+
+      mineButton.textContent =
+        "⛏️ START AMT MINING";
+    }
   }
 }
 
+
+/* =========================
+   START MINING
+========================= */
+
 async function startMining() {
+
   if (!accessToken) {
-    message("Sign in with Pi first.");
+
+    message(
+      "Sign in with Pi first."
+    );
+
     return;
   }
 
   const button =
-    document.getElementById("mineButton");
+    document.getElementById(
+      "mineButton"
+    );
 
   button.disabled = true;
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/mining/start`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/mining/start`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) {
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
       message(
         data.message ||
         data.error ||
         "Mining could not start."
       );
 
-      button.disabled = false;
+      button.disabled =
+        false;
+
       return;
     }
 
@@ -1126,155 +1739,266 @@ async function startMining() {
     await loadMiningStatus();
 
   } catch (error) {
-    console.error("Mining start error:", error);
-    message("Unable to contact AMT backend.");
-    button.disabled = false;
+
+    console.error(
+      "Mining start error:",
+      error
+    );
+
+    message(
+      "Unable to contact AMT backend."
+    );
+
+    button.disabled =
+      false;
   }
 }
 
+
+/* =========================
+   MINING STATUS
+========================= */
+
 async function loadMiningStatus() {
+
   if (!accessToken) return;
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/mining/status`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/mining/status`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) return;
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      return;
+    }
 
     if (!data.mining) {
-      document.getElementById("miningStatus").textContent =
+
+      document.getElementById(
+        "miningStatus"
+      ).textContent =
         "NOT MINING";
 
-      document.getElementById("miningStatus").className =
+      document.getElementById(
+        "miningStatus"
+      ).className =
         "value danger";
 
-      document.getElementById("timer").textContent =
+      document.getElementById(
+        "timer"
+      ).textContent =
         "00:00:00";
 
-      document.getElementById("claimButton").classList.add(
+      document.getElementById(
+        "claimButton"
+      ).classList.add(
         "hidden"
       );
 
-      document.getElementById("mineButton").textContent =
+      document.getElementById(
+        "mineButton"
+      ).textContent =
         "⛏️ START AMT MINING";
 
-      document.getElementById("mineButton").disabled =
+      document.getElementById(
+        "mineButton"
+      ).disabled =
         false;
 
       return;
     }
 
-    const session = data.session;
+    const session =
+      data.session;
 
-    currentMiningEndsAt = session.endsAt;
+    currentMiningEndsAt =
+      session.endsAt;
 
-    document.getElementById("miningStatus").textContent =
-      data.completed ? "MINING COMPLETE" : "MINING ACTIVE";
+    document.getElementById(
+      "miningStatus"
+    ).textContent =
+      data.completed
+        ? "MINING COMPLETE"
+        : "MINING ACTIVE";
 
-    document.getElementById("miningStatus").className =
-      data.completed ? "value success" : "value success";
+    document.getElementById(
+      "miningStatus"
+    ).className =
+      "value success";
 
-    document.getElementById("rate").textContent =
+    document.getElementById(
+      "rate"
+    ).textContent =
       session.rate;
 
-    document.getElementById("earned").textContent =
-      Number(session.earned || 0).toFixed(8) +
+    document.getElementById(
+      "earned"
+    ).textContent =
+      Number(
+        session.earned || 0
+      ).toFixed(8) +
       " AMT";
 
-    updateTimer(currentMiningEndsAt);
+    updateTimer(
+      currentMiningEndsAt
+    );
 
-    document.getElementById("claimButton").classList.remove(
+    document.getElementById(
+      "claimButton"
+    ).classList.remove(
       "hidden"
     );
 
-    document.getElementById("mineButton").textContent =
+    document.getElementById(
+      "mineButton"
+    ).textContent =
       data.completed
         ? "⛏️ MINING COMPLETE"
         : "⛏️ MINING ACTIVE";
 
-    document.getElementById("mineButton").disabled = true;
+    document.getElementById(
+      "mineButton"
+    ).disabled =
+      true;
 
     if (!data.completed) {
       startTimer();
     }
 
   } catch (error) {
-    console.error("Mining status error:", error);
+
+    console.error(
+      "Mining status error:",
+      error
+    );
   }
 }
 
+
+/* =========================
+   MINING TIMER
+========================= */
+
 function startTimer() {
-  if (miningInterval) clearInterval(miningInterval);
 
-  miningInterval = setInterval(async () => {
-    if (!currentMiningEndsAt) return;
+  if (miningInterval) {
 
-    const remaining = Math.max(
+    clearInterval(
+      miningInterval
+    );
+  }
+
+  miningInterval =
+    setInterval(
+      async () => {
+
+        if (!currentMiningEndsAt) {
+          return;
+        }
+
+        const remaining =
+          Math.max(
+            0,
+            new Date(
+              currentMiningEndsAt
+            ).getTime() -
+            Date.now()
+          );
+
+        updateTimer(
+          currentMiningEndsAt
+        );
+
+        if (remaining <= 0) {
+
+          clearInterval(
+            miningInterval
+          );
+
+          miningInterval = null;
+
+          document.getElementById(
+            "timer"
+          ).textContent =
+            "00:00:00";
+
+          document.getElementById(
+            "mineButton"
+          ).textContent =
+            "⛏️ MINING COMPLETE";
+
+          document.getElementById(
+            "mineButton"
+          ).disabled =
+            true;
+
+          message(
+            "Mining session completed. You can claim your AMT reward."
+          );
+
+          await loadMiningStatus();
+          await loadReferral();
+          await loadSecurityCircle();
+        }
+
+      },
+      1000
+    );
+}
+
+
+function updateTimer(endTime) {
+
+  if (!endTime) return;
+
+  const remaining =
+    Math.max(
       0,
-      new Date(currentMiningEndsAt).getTime() -
+      new Date(endTime).getTime() -
       Date.now()
     );
 
-    updateTimer(currentMiningEndsAt);
+  const totalSeconds =
+    Math.floor(
+      remaining / 1000
+    );
 
-    if (remaining <= 0) {
-      clearInterval(miningInterval);
-      miningInterval = null;
+  const hours =
+    Math.floor(
+      totalSeconds / 3600
+    );
 
-      document.getElementById("timer").textContent =
-        "00:00:00";
+  const minutes =
+    Math.floor(
+      (totalSeconds % 3600) / 60
+    );
 
-      document.getElementById("mineButton").textContent =
-        "⛏️ MINING COMPLETE";
+  const seconds =
+    totalSeconds % 60;
 
-      document.getElementById("mineButton").disabled =
-        true;
-
-      message(
-        "Mining session completed. You can claim your AMT reward."
-      );
-
-      await loadMiningStatus();
-      await loadReferral();
-      await loadSecurityCircle();
-    }
-  }, 1000);
-}
-
-function updateTimer(endTime) {
-  if (!endTime) return;
-
-  const remaining = Math.max(
-    0,
-    new Date(endTime).getTime() -
-    Date.now()
-  );
-
-  const totalSeconds = Math.floor(
-    remaining / 1000
-  );
-
-  const hours = Math.floor(
-    totalSeconds / 3600
-  );
-
-  const minutes = Math.floor(
-    (totalSeconds % 3600) / 60
-  );
-
-  const seconds = totalSeconds % 60;
-
-  document.getElementById("timer").textContent =
+  document.getElementById(
+    "timer"
+  ).textContent =
     String(hours).padStart(2, "0") +
     ":" +
     String(minutes).padStart(2, "0") +
@@ -1282,39 +2006,65 @@ function updateTimer(endTime) {
     String(seconds).padStart(2, "0");
 }
 
+
+/* =========================
+   CLAIM
+========================= */
+
 async function claimMining() {
+
   if (!accessToken) {
-    message("Sign in with Pi first.");
+
+    message(
+      "Sign in with Pi first."
+    );
+
     return;
   }
 
   const button =
-    document.getElementById("claimButton");
+    document.getElementById(
+      "claimButton"
+    );
 
   button.disabled = true;
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/mining/claim`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/mining/claim`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) {
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
       message(
         data.error ||
         data.message ||
         "Reward claim failed."
       );
 
-      button.disabled = false;
+      button.disabled =
+        false;
+
       return;
     }
 
@@ -1324,7 +2074,8 @@ async function claimMining() {
       ).toFixed(8)} AMT Testnet.`
     );
 
-    button.disabled = false;
+    button.disabled =
+      false;
 
     await loadWallet();
     await loadMiningStatus();
@@ -1332,85 +2083,171 @@ async function claimMining() {
     await loadSecurityCircle();
 
   } catch (error) {
-    console.error("Claim error:", error);
-    message("Unable to claim AMT reward.");
-    button.disabled = false;
+
+    console.error(
+      "Claim error:",
+      error
+    );
+
+    message(
+      "Unable to claim AMT reward."
+    );
+
+    button.disabled =
+      false;
   }
 }
+
+
+/* =========================
+   WALLET
+========================= */
 
 async function loadWallet() {
+
   if (!accessToken) return;
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/wallet`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/wallet`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) return;
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-    const balance = Number(
-      data.wallet?.amt || 0
-    ).toFixed(8);
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
 
-    document.getElementById("amtBalance").textContent =
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      return;
+    }
+
+    const balance =
+      Number(
+        data.wallet?.amt || 0
+      ).toFixed(8);
+
+    document.getElementById(
+      "amtBalance"
+    ).textContent =
       balance;
 
-    document.getElementById("walletBalance").textContent =
+    document.getElementById(
+      "walletBalance"
+    ).textContent =
       balance;
 
   } catch (error) {
-    console.error("Wallet error:", error);
+
+    console.error(
+      "Wallet error:",
+      error
+    );
   }
 }
+
+
+/* =========================
+   PROFILE
+========================= */
 
 async function loadProfile() {
+
   if (!accessToken) return;
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/profile`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/profile`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) return;
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-    document.getElementById("username").textContent =
-      data.profile?.username || "Pi Pioneer";
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
 
-    document.getElementById("uid").textContent =
-      data.profile?.uid || "—";
+    const data =
+      await response.json();
 
-    document.getElementById("profileKyc").textContent =
-      data.profile?.kycStatus || "UNVERIFIED";
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      return;
+    }
+
+    const username =
+      data.profile?.username ||
+      "Pi Pioneer";
+
+    document.getElementById(
+      "username"
+    ).textContent =
+      username;
+
+    document.getElementById(
+      "authUsername"
+    ).textContent =
+      username;
+
+    document.getElementById(
+      "uid"
+    ).textContent =
+      data.profile?.uid ||
+      "—";
+
+    document.getElementById(
+      "profileKyc"
+    ).textContent =
+      data.profile?.kycStatus ||
+      "UNVERIFIED";
 
   } catch (error) {
-    console.error("Profile error:", error);
+
+    console.error(
+      "Profile error:",
+      error
+    );
   }
 }
 
-function buildReferralLink(username) {
+
+/* =========================
+   REFERRAL LINK
+========================= */
+
+function buildReferralLink(
+  username
+) {
+
   if (!username) return "";
 
-  const url = new URL(
-    window.location.href
-  );
+  const url =
+    new URL(
+      window.location.href
+    );
 
   url.search = "";
   url.hash = "";
@@ -1423,38 +2260,65 @@ function buildReferralLink(username) {
   return url.toString();
 }
 
+
+/* =========================
+   REFERRAL
+========================= */
+
 async function loadReferral() {
+
   if (!accessToken) return;
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/referral/status`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/referral/status`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) return;
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-    const referral = data.referral || {};
-    const username = referral.username || "";
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      return;
+    }
+
+    const referral =
+      data.referral || {};
+
+    const username =
+      referral.username || "";
 
     document.getElementById(
       "myReferralUsername"
-    ).textContent = username || "—";
+    ).textContent =
+      username || "—";
 
-    const link = buildReferralLink(username);
+    const link =
+      buildReferralLink(
+        username
+      );
 
     document.getElementById(
       "referralLink"
     ).textContent =
-      link || "Sign in to generate your referral link.";
+      link ||
+      "Sign in to generate your referral link.";
 
     document.getElementById(
       "referralCount"
@@ -1464,58 +2328,103 @@ async function loadReferral() {
     document.getElementById(
       "activeReferralCount"
     ).textContent =
-      String(referral.activeMiners || 0);
+      String(
+        referral.activeMiners || 0
+      );
 
     const container =
-      document.getElementById("referralMembers");
+      document.getElementById(
+        "referralMembers"
+      );
 
-    if (!referral.referrals || referral.referrals.length === 0) {
-      container.textContent = "No referrals yet.";
+    if (
+      !referral.referrals ||
+      referral.referrals.length === 0
+    ) {
+
+      container.textContent =
+        "No referrals yet.";
+
       return;
     }
 
     container.innerHTML =
-      referral.referrals.map(item => `
-        <div class="member">
-          <div class="member-top">
-            <div class="member-name">
-              👤 ${escapeHtml(item.username)}
-            </div>
-            <div class="member-status ${
-              item.mining ? "success" : "muted"
-            }">
-              ${item.mining ? "🟢 MINING" : "⚪ NOT MINING"}
+      referral.referrals
+        .map(item => `
+          <div class="member">
+            <div class="member-top">
+              <div class="member-name">
+                👤 ${escapeHtml(item.username)}
+              </div>
+
+              <div class="member-status ${
+                item.mining
+                  ? "success"
+                  : "muted"
+              }">
+                ${
+                  item.mining
+                    ? "🟢 MINING"
+                    : "⚪ NOT MINING"
+                }
+              </div>
             </div>
           </div>
-        </div>
-      `).join("");
+        `)
+        .join("");
 
   } catch (error) {
-    console.error("Referral status error:", error);
+
+    console.error(
+      "Referral status error:",
+      error
+    );
   }
 }
 
+
+/* =========================
+   SECURITY CIRCLE
+========================= */
+
 async function loadSecurityCircle() {
+
   if (!accessToken) return;
 
   try {
-    const response = await fetch(
-      `${BACKEND_URL}/api/security-circle/status`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ accessToken })
-      }
-    );
 
-    const data = await response.json();
+    const response =
+      await fetch(
+        `${BACKEND_URL}/api/security-circle/status`,
+        {
+          method: "POST",
 
-    if (!response.ok || !data.success) return;
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-    const circle = data.securityCircle || {};
-    const members = circle.members || [];
+          body: JSON.stringify({
+            accessToken
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      return;
+    }
+
+    const circle =
+      data.securityCircle || {};
+
+    const members =
+      circle.members || [];
 
     document.getElementById(
       "securityCount"
@@ -1523,47 +2432,99 @@ async function loadSecurityCircle() {
       `${members.length} / ${circle.limit || 5}`;
 
     const container =
-      document.getElementById("securityMembers");
+      document.getElementById(
+        "securityMembers"
+      );
 
     if (members.length === 0) {
+
       container.textContent =
         "No Security Circle members yet.";
+
       return;
     }
 
     container.innerHTML =
-      members.map(item => `
-        <div class="member">
-          <div class="member-top">
-            <div class="member-name">
-              👤 ${escapeHtml(item.username)}
-            </div>
-            <div class="member-status ${
-              item.mining ? "success" : "muted"
-            }">
-              ${item.mining ? "🟢 MINING" : "⚪ NOT MINING"}
+      members
+        .map(item => `
+          <div class="member">
+            <div class="member-top">
+
+              <div class="member-name">
+                👤 ${escapeHtml(item.username)}
+              </div>
+
+              <div class="member-status ${
+                item.mining
+                  ? "success"
+                  : "muted"
+              }">
+                ${
+                  item.mining
+                    ? "🟢 MINING"
+                    : "⚪ NOT MINING"
+                }
+              </div>
+
             </div>
           </div>
-        </div>
-      `).join("");
+        `)
+        .join("");
 
   } catch (error) {
-    console.error("Security Circle error:", error);
+
+    console.error(
+      "Security Circle error:",
+      error
+    );
   }
 }
 
+
+/* =========================
+   HTML ESCAPE
+========================= */
+
 function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+
+  return String(
+    value ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 }
 
+
+/* =========================
+   COPY REFERRAL
+========================= */
+
 async function copyReferralLink() {
+
   if (!accessToken) {
-    message("Sign in with Pi first.");
+
+    message(
+      "Sign in with Pi first."
+    );
+
     return;
   }
 
@@ -1572,37 +2533,88 @@ async function copyReferralLink() {
       "myReferralUsername"
     ).textContent.trim();
 
-  const link = buildReferralLink(username);
+  const link =
+    buildReferralLink(
+      username
+    );
 
   if (!link) {
-    message("Referral link is not available yet.");
+
+    message(
+      "Referral link is not available yet."
+    );
+
     return;
   }
 
   try {
-    await navigator.clipboard.writeText(link);
-    message("Referral link copied.");
+
+    await navigator.clipboard
+      .writeText(link);
+
+    message(
+      "Referral link copied."
+    );
+
   } catch {
+
     message(
       "Copy failed. Long-press the referral link to copy it."
     );
   }
 }
 
-setInterval(async () => {
-  if (!accessToken) return;
 
-  await loadWallet();
-  await loadMiningStatus();
-  await loadReferral();
-  await loadSecurityCircle();
+/* =========================
+   BACKGROUND REFRESH
+========================= */
 
-}, 15000);
+setInterval(
+  async () => {
 
-window.addEventListener("load", () => {
-  message("AMT Testnet — connecting to Pi...");
-  authenticatePi();
-});
+    if (!accessToken) return;
+
+    await loadWallet();
+    await loadMiningStatus();
+    await loadReferral();
+    await loadSecurityCircle();
+
+  },
+  15000
+);
+
+
+/* =========================
+   APP START
+========================= */
+
+window.addEventListener(
+  "load",
+  () => {
+
+    if (window.Pi) {
+
+      Pi.init({
+        version: "2.0"
+      });
+    }
+
+    updateAuthUI(false);
+
+    document.getElementById(
+      "mineButton"
+    ).disabled = true;
+
+    document.getElementById(
+      "mineButton"
+    ).textContent =
+      "⛏️ SIGN IN WITH PI FIRST";
+
+    message(
+      "AMT Testnet — please sign in with Pi."
+    );
+  }
+);
 
 </script>
 
