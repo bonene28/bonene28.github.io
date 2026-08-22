@@ -2699,7 +2699,151 @@ app.post(
   }
 );
 
+/*
+ * ============================================================
+ * REFERRAL STATUS
+ * ============================================================
+ *
+ * Uses the authenticated Pi username as the AMT
+ * referral identifier.
+ *
+ * IMPORTANT:
+ * - Does NOT modify AMT ledger.
+ * - Does NOT modify mining sessions.
+ * - Does NOT modify claimed rewards.
+ * - Existing referral relationships remain unchanged.
+ * ============================================================
+ */
 
+app.post(
+  "/api/referral/status",
+  async (req, res) => {
+
+    try {
+
+      const {
+        accessToken
+      } = req.body || {};
+
+      const member =
+        await getAuthenticatedMember(
+          accessToken
+        );
+
+      /*
+       * The authenticated Pi username is the
+       * canonical AMT referral identifier.
+       */
+      const username =
+        member.username || null;
+
+      /*
+       * Load existing direct referrals.
+       */
+      const result =
+        await pool.query(
+          `
+          SELECT
+            r.id,
+            r.status,
+            m.id AS member_id,
+            m.username,
+
+            EXISTS (
+              SELECT 1
+
+              FROM mining_sessions ms
+
+              WHERE ms.member_id = m.id
+
+              AND ms.status = 'ACTIVE'
+
+              AND NOW() < ms.ends_at
+            ) AS mining
+
+          FROM referrals r
+
+          JOIN members m
+            ON m.id = r.referred_member_id
+
+          WHERE r.referrer_member_id = $1
+
+          AND r.status = 'ACTIVE'
+
+          ORDER BY r.id ASC
+          `,
+          [
+            member.id
+          ]
+        );
+
+      const referrals =
+        result.rows.map(
+          row => ({
+            id:
+              row.member_id,
+
+            username:
+              row.username,
+
+            mining:
+              Boolean(row.mining),
+
+            status:
+              row.status
+          })
+        );
+
+      /*
+       * Count active miners among direct referrals.
+       */
+      const activeMiners =
+        referrals.filter(
+          item => item.mining
+        ).length;
+
+      return res.json({
+
+        success: true,
+
+        referral: {
+
+          /*
+           * Pi username = AMT referral identifier
+           */
+          username,
+
+          count:
+            referrals.length,
+
+          activeMiners,
+
+          maxDirectReferrals:
+            MAX_DIRECT_REFERRALS,
+
+          referrals
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Referral status error:",
+        error.message
+      );
+
+      return sendError(
+        res,
+        error.statusCode || 401,
+        "Could not load referral status."
+      );
+
+    }
+
+  }
+);
 /*
  * ============================================================
  * SECURITY CIRCLE ADD
