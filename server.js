@@ -41,7 +41,7 @@ const MAXIMUM_BASE_REWARD = Number(
   (AMT_MINING_RATE * 24).toFixed(8)
 );
 
-const MAX_DIRECT_REFERRALS = 5;
+const MAX_DIRECT_REFERRALS = Number.MAX_SAFE_INTEGER;
 
 if (!Number.isFinite(AMT_MINING_RATE) || AMT_MINING_RATE < 0) {
   console.error("AMT_MINING_RATE must be a valid non-negative number.");
