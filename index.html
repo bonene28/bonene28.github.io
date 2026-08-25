@@ -1013,7 +1013,22 @@ nav span{
 
 <!-- ================= WALLET ================= -->
 <section id="wallet" class="section">
+<div class="card">
+  <div class="balance-label">Pi Testnet Payment</div>
 
+  <div class="row">
+    <div class="muted">Required Payment</div>
+    <div class="value">2 PI TESTNET</div>
+  </div>
+
+  <button class="action" onclick="payPiTestnet()">
+    💰 PAY 2 PI TESTNET
+  </button>
+
+  <button class="action secondary">🔄 SWAP (COMING SOON)</button>
+  <button class="action secondary">📤 SEND (COMING SOON)</button>
+  <button class="action secondary">📥 WITHDRAW (COMING SOON)</button>
+</div>
   <div class="card balance-card">
     <div class="balance-label">AMT Wallet</div>
     <div id="walletBalance" class="balance">0.00000000</div>
@@ -2479,7 +2494,21 @@ function escapeHtml(v){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
+async function payPiTestnet(){
 
+  if(!window.Pi){
+    message("Open inside Pi Browser.");
+    return;
+  }
+
+  if(!piUser){
+    message("Sign in with Pi first.");
+    return;
+  }
+
+  message("2 PI Testnet payment feature is ready.");
+
+}
 /* ================= AUTO REFRESH ================= */
 
 setInterval(async()=>{
