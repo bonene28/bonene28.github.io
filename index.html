@@ -1013,7 +1013,22 @@
 ‎
 ‎<!-- ================= WALLET ================= -->
 ‎<section id="wallet" class="section">
+‎<div class="card">
+‎  <div class="balance-label">Pi Testnet Payment</div>
 ‎
+‎  <div class="row">
+‎    <div class="muted">Required Payment</div>
+‎    <div class="value">2 PI TESTNET</div>
+‎  </div>
+‎
+‎  <button class="action" onclick="payPiTestnet()">
+‎    💰 PAY 2 PI TESTNET
+‎  </button>
+‎
+‎  <button class="action secondary">🔄 SWAP (COMING SOON)</button>
+‎  <button class="action secondary">📤 SEND (COMING SOON)</button>
+‎  <button class="action secondary">📥 WITHDRAW (COMING SOON)</button>
+‎</div>
 ‎  <div class="card balance-card">
 ‎    <div class="balance-label">AMT Wallet</div>
 ‎    <div id="walletBalance" class="balance">0.00000000</div>
@@ -1133,6 +1148,10 @@
 ‎    <div id="myReferralUsername" style="font-size:24px;font-weight:1000;margin-top:6px">
 ‎      —
 ‎    </div>
+‎
+‎
+‎
+‎
 ‎
 ‎    <div class="kyc-text">
 ‎      Your Pi username is your AMT referral identifier.
@@ -1272,7 +1291,231 @@
 ‎  <div class="card">
 ‎    <div class="warning">
 ‎      Community chat is in Testnet preview mode. Do not share passwords,
-‎      passphrases, private 
+‎      passphrases, private keys, wallet secrets, or personal identity documents.
+‎    </div>
+‎  </div>
+‎</section>
+‎
+‎<!-- ================= MARKETPLACE ================= -->
+‎<section id="marketplace" class="section">
+‎
+‎  <div class="card">
+‎    <div class="coming-soon">
+‎      <div class="market-icon">🛒</div>
+‎      <div class="coming-title">COMING SOON</div>
+‎      <div class="coming-sub">
+‎        Alberto NFT Marketplace integration is being prepared.
+‎        Future marketplace features will be released after the required
+‎        application and ecosystem testing steps are completed.
+‎      </div>
+‎    </div>
+‎  </div>
+‎
+‎  <div class="card">
+‎    <div class="row">
+‎      <div class="muted">NFT Marketplace</div>
+‎      <div class="value">COMING SOON</div>
+‎    </div>
+‎    <div class="row">
+‎      <div class="muted">AMT Utility</div>
+‎      <div class="value">TESTING</div>
+‎    </div>
+‎    <div class="row">
+‎      <div class="muted">Network</div>
+‎      <div class="value success">PI TESTNET</div>
+‎    </div>
+‎  </div>
+‎</section>
+‎
+‎<!-- ================= AIRDROP ================= -->
+‎<section id="airdrop" class="section">
+‎
+‎  <div class="card airdrop-hero">
+‎    <div class="airdrop-icon">🎁</div>
+‎    <div style="font-size:24px;font-weight:1000;margin-top:8px">
+‎      AMT TESTNET AIRDROP
+‎    </div>
+‎
+‎    <p class="kyc-text">
+‎      Countdown for the current AMT Testnet airdrop testing phase.
+‎    </p>
+‎
+‎    <div class="countdown-grid">
+‎      <div class="count-box">
+‎        <b id="airDays">00</b>
+‎        <span>DAYS</span>
+‎      </div>
+‎      <div class="count-box">
+‎        <b id="airHours">00</b>
+‎        <span>HOURS</span>
+‎      </div>
+‎      <div class="count-box">
+‎        <b id="airMinutes">00</b>
+‎        <span>MINUTES</span>
+‎      </div>
+‎      <div class="count-box">
+‎        <b id="airSeconds">00</b>
+‎        <span>SECONDS</span>
+‎      </div>
+‎    </div>
+‎
+‎    <div id="airdropStatus" class="airdrop-status">
+‎      TESTNET COUNTDOWN ACTIVE
+‎    </div>
+‎  </div>
+‎
+‎  <div class="card">
+‎    <div class="balance-label">Testing Requirements</div>
+‎
+‎    <div class="row">
+‎      <div class="muted">AMT Pioneer Account</div>
+‎      <div class="value">Required</div>
+‎    </div>
+‎
+‎    <div class="row">
+‎      <div class="muted">Test Mining Activity</div>
+‎      <div class="value">Testing</div>
+‎    </div>
+‎
+‎    <div class="row">
+‎      <div class="muted">Referral Activity</div>
+‎      <div class="value">Optional Testing</div>
+‎    </div>
+‎  </div>
+‎
+‎  <div class="card">
+‎    <div class="warning">
+‎      This is an AMT Testnet airdrop countdown for testing and community preparation.
+‎      Testnet participation does not automatically guarantee any future Mainnet
+‎      distribution or reward.
+‎    </div>
+‎  </div>
+‎</section>
+‎
+‎</div>
+‎
+‎<!-- ================= NAVIGATION ================= -->
+‎
+‎<nav>
+‎  <div class="nav-inner">
+‎
+‎    <button class="active" onclick="showSection('mining',this)">
+‎      <span>🤖</span>Mining
+‎    </button>
+‎
+‎    <button onclick="showSection('wallet',this);loadWallet()">
+‎      <span>👛</span>Wallet
+‎    </button>
+‎
+‎    <button onclick="showSection('profile',this);loadProfile()">
+‎      <span>👤</span>Profile
+‎    </button>
+‎
+‎    <button onclick="showSection('referral',this);loadReferral()">
+‎      <span>👥</span>Referral
+‎    </button>
+‎
+‎    <button onclick="showSection('security',this);loadSecurityCircle()">
+‎      <span>🛡️</span>Circle
+‎    </button>
+‎
+‎    <button onclick="showSection('chat',this);loadChat()">
+‎      <span>💬</span>Chat
+‎    </button>
+‎
+‎    <button onclick="showSection('marketplace',this)">
+‎      <span>🛒</span>Market
+‎    </button>
+‎
+‎    <button onclick="showSection('airdrop',this)">
+‎      <span>🎁</span>Airdrop
+‎    </button>
+‎
+‎    <button onclick="showSection('kyc',this);loadKyc()">
+‎      <span>✓</span>KYC
+‎    </button>
+‎
+‎  </div>
+‎</nav>
+‎
+‎<script>
+‎const BACKEND_URL="https://alberto-amt-testnet.onrender.com";
+‎
+‎let accessToken=null;
+‎let piUser=null;
+‎let miningInterval=null;
+‎let currentMiningEndsAt=null;
+‎
+‎/* =========================
+‎   AIRDROP DATE
+‎   Change this later when ready
+‎========================= */
+‎const AIRDROP_END_DATE=new Date("2026-09-30T20:00:00+08:00").getTime();
+‎
+‎function message(text){
+‎  const e=document.getElementById("message");
+‎  if(e)e.textContent=text;
+‎}
+‎
+‎function showSection(id,button){
+‎  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+‎
+‎  const t=document.getElementById(id);
+‎  if(t)t.classList.add("active");
+‎
+‎  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+‎
+‎  if(button)button.classList.add("active");
+‎}
+‎
+‎function openKycInfo(){
+‎  showSection("kyc",document.querySelectorAll("nav button")[8]);
+‎  message("Use the official Pi KYC verification process. AMT does not collect identity documents.");
+‎}
+‎
+‎function getReferralFromUrl(){
+‎  try{
+‎    const ref=new URLSearchParams(location.search).get("ref");
+‎    return ref?ref.trim().slice(0,100):null;
+‎  }catch{
+‎    return null;
+‎  }
+‎}
+‎
+‎function updateMachine(active,completed=false){
+‎
+‎  const machine=document.getElementById("miningMachine");
+‎  const left=document.getElementById("fanLeft");
+‎  const right=document.getElementById("fanRight");
+‎  const display=document.getElementById("machineDisplay");
+‎
+‎  if(active){
+‎    machine.classList.add("active");
+‎    left.classList.add("active");
+‎    right.classList.add("active");
+‎    display.textContent="MINING";
+‎  }else{
+‎    machine.classList.remove("active");
+‎    left.classList.remove("active");
+‎    right.classList.remove("active");
+‎    display.textContent=completed?"DONE":"READY";
+‎  }
+‎}
+‎
+‎function updateAuthUI(ok){
+‎
+‎  const lb=document.getElementById("loginButton");
+‎  const lo=document.getElementById("logoutButton");
+‎  const as=document.getElementById("authStatus");
+‎  const un=document.getElementById("authUsername");
+‎  const ps=document.getElementById("profileStatus");
+‎  const dot=document.getElementById("onlineDot");
+‎
+‎  if(ok&&piUser){
+‎
+‎    un.textContent=piUser.username||"Pi Pioneer";
+‎
+‎    as.textContent="ONLINE";
 ‎    as.className="status on";
 ‎
 ‎    lb.classList.add("hidden");
@@ -1860,6 +2103,10 @@
 ‎  }
 ‎}
 ‎
+‎
+‎
+‎
+‎
 ‎/* ================= PROFILE ================= */
 ‎
 ‎async function loadProfile(){
@@ -1897,7 +2144,8 @@
 ‎    console.error("Profile:",e);
 ‎  }
 ‎}
-‎‎/* ================= REFERRAL ================= */
+‎
+‎/* ================= REFERRAL ================= */
 ‎
 ‎function buildReferralLink(username){
 ‎
@@ -2254,7 +2502,21 @@
 ‎    .replaceAll('"',"&quot;")
 ‎    .replaceAll("'","&#039;");
 ‎}
+‎async function payPiTestnet(){
 ‎
+‎  if(!window.Pi){
+‎    message("Open inside Pi Browser.");
+‎    return;
+‎  }
+‎
+‎  if(!piUser){
+‎    message("Sign in with Pi first.");
+‎    return;
+‎  }
+‎
+‎  message("2 PI Testnet payment feature is ready.");
+‎
+‎}
 ‎/* ================= AUTO REFRESH ================= */
 ‎
 ‎setInterval(async()=>{
