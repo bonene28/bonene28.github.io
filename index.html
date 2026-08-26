@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AMT Test-Net | Alberto Marketplace Token</title>
+<title>Alberto NFT Marketplace • AMT Test‑Net</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,Arial,sans-serif}
 :root{
   --prim:#6C5CE7; --sec:#00CEC9; --gold:#FDCB6E;
   --dark:#2D3436; --grad:linear-gradient(135deg,var(--prim),var(--sec));
-  --pi:#74C04D; --test:#FF7043; --reward:#FFD700
+  --pi:#74C04D; --test:#FF7043; --reward:#FFD700;
+  --tier1:#B0BEC5;--tier2:#4FC3F7;--tier3:#81C784;--tier4:#BA68C8;--tier5:#FFB300
 }
 body{
   min-height:100vh;background:linear-gradient(180deg,#1A1A2E,#16213E);
@@ -73,7 +74,7 @@ button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 }
 .core-inner strong{font-size:1.2rem;color:var(--gold)}
 .core-inner span{font-size:.68rem;color:#aaa;margin-top:.1rem}
-.stat-row{display:flex;justify-content:space-between;padding:.75rem 0;border-bottom:1px dashed rgba(255,255,255,.12)}
+.stat-row{display:flex;justify-content:space-between;padding:.75rem 0;border-bottom:1px dashed rgba(255,255,255,.12);gap:.5rem;flex-wrap:wrap}
 .stat-row:last-child{border:none}
 .stat-label{color:#B2B2C1;font-size:.85rem}
 .stat-value{font-weight:700;font-size:.92rem;color:#fff}
@@ -88,11 +89,11 @@ button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 .btn:hover:not(:disabled){transform:translateY(-2px)}
 .btn-small{width:auto;padding:.55rem 1rem;font-size:.88rem;margin-top:.4rem}
 .btn-pi{background:linear-gradient(135deg,#74C04D,#5FAF3E);color:#fff}
-.cooldown-bar{width:100%;height:7px;background:rgba(255,255,255,.1);border-radius:3.5px;margin-top:.7rem;overflow:hidden}
-.cooldown-fill{height:100%;background:var(--grad);border-radius:3.5px;transition:width 1s linear}
+.cooldown-bar,.prog-bar{width:100%;height:7px;background:rgba(255,255,255,.1);border-radius:3.5px;margin-top:.7rem;overflow:hidden}
+.cooldown-fill,.prog-fill{height:100%;background:var(--grad);border-radius:3.5px;transition:width 1s linear}
 .user-bar{
   background:rgba(116,192,77,.1);border-radius:.8rem;padding:.8rem;margin-bottom:1.2rem;
-  display:flex;align-items:center;gap:.9rem
+  display:flex;align-items:center;gap:.9rem;flex-wrap:wrap
 }
 .avatar{
   width:56px;height:56px;border-radius:50%;overflow:hidden;position:relative;
@@ -109,13 +110,53 @@ button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 }
 .user-info{flex:1;min-width:0}
 .user-bar .uname{font-weight:600;color:var(--pi);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.user-bar .role{font-size:.78rem;color:#B2B2C1;margin-top:.1rem}
-.user-bar .amt{font-weight:700;color:var(--gold);font-size:.98rem;text-align:right;white-space:nowrap}
-.ref-box,.sc-box{background:rgba(255,255,255,.04);border-radius:.8rem;padding:.9rem;margin-top:.9rem;border:1px solid rgba(255,255,255,.06)}
+.user-bar .role,.user-bar .lvl{font-size:.78rem;color:#B2B2C1;margin-top:.1rem}
+.user-bar .amt{font-weight:700;color:var(--gold);font-size:.98rem;text-align:right;white-space:nowrap;margin-left:auto}
+.ref-box,.sc-box,.pet-grid,.airdrop-box{background:rgba(255,255,255,.04);border-radius:.8rem;padding:.9rem;margin-top:.9rem;border:1px solid rgba(255,255,255,.06)}
 .ref-code{font-family:monospace;background:rgba(0,0,0,.25);border-radius:.5rem;padding:.5rem .7rem;margin:.5rem 0;word-break:break-all;color:var(--sec);font-weight:600}
 .circle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.7rem}
 .circle-slot{aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px dashed rgba(255,255,255,.15)}
 .circle-slot.active{background:rgba(116,192,77,.18);border-style:solid;border-color:rgba(116,192,77,.55)}
+.pet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-top:.5rem;padding:.7rem}
+.pet-card{
+  background:rgba(255,255,255,.05);border-radius:1rem;padding:.9rem;text-align:center;cursor:pointer;
+  border:2px solid transparent;transition:.25s ease
+}
+.pet-card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 6px 18px rgba(253,203,110,.2)}
+.pet-icon{font-size:2.8rem;margin-bottom:.4rem}
+.pet-name{font-weight:700;font-size:.9rem;color:#fff;margin-bottom:.2rem}
+.pet-rarity{font-size:.7rem;font-weight:600;padding:.15rem .5rem;border-radius:1rem;display:inline-block;margin-bottom:.35rem}
+.rarity-common{background:#718096;color:#E2E8F0}
+.rarity-rare{background:#2B6CB0;color:#BEE3F8}
+.rarity-epic{background:#6B46C1;color:#E9D8FF}
+.rarity-legendary{background:#B7791F;color:#FEEBC8}
+.pet-price{font-weight:bold;color:var(--gold);font-size:.9rem}
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;padding:1.2rem;z-index:999;opacity:0;
+  visibility:hidden;transition:.25s ease
+}
+.modal-overlay.active{opacity:1;visibility:visible}
+.modal-box{
+  background:linear-gradient(180deg,#2A2A47,#1E2A47);border-radius:1.5rem;padding:1.6rem;
+  max-width:380px;width:100%;border:1px solid rgba(255,255,255,.1);transform:translateY(12px);
+  transition:.25s ease
+}
+.modal-overlay.active .modal-box{transform:translateY(0)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.modal-title{font-size:1.3rem;font-weight:800}
+.modal-close{
+  width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.08);
+  color:#fff;font-size:1.1rem;cursor:pointer;transition:.2s ease
+}
+.modal-close:hover{background:rgba(255,82,82,.35);transform:rotate(90deg)}
+.modal-pet-icon{font-size:4rem;text-align:center;margin:.4rem 0 .8rem}
+.modal-rarity{text-align:center;margin-bottom:.9rem}
+.stats-block{background:rgba(255,255,255,.04);border-radius:.9rem;padding:.95rem;margin-bottom:.9rem}
+.stats-title{font-weight:700;font-size:.9rem;color:var(--gold);margin-bottom:.6rem}
+.ability-block{background:rgba(0,206,201,.06);border:1px solid rgba(0,206,201,.2);border-radius:.9rem;padding:.95rem}
+.ability-title{font-weight:700;font-size:.9rem;color:var(--sec);margin-bottom:.4rem}
+.ability-desc{font-size:.85rem;line-height:1.6;color:#ddd}
 .coming-soon{text-align:center;padding:2.2rem 1rem;color:#B2B2C1}
 .hidden{display:none !important}
 .debug{background:rgba(255,0,0,.1);border-radius:.6rem;padding:.7rem;margin-bottom:1rem;font-size:.8rem;border:1px solid rgba(255,0,0,.3)}
@@ -124,6 +165,12 @@ button:disabled{opacity:.55;cursor:not-allowed;transform:none}
   border-radius:.7rem;padding:.7rem .9rem;margin-bottom:1rem;color:#FFE066;
   font-size:.9rem;line-height:1.5;animation:fadeIn .5s ease
 }
+.tier-badge{display:inline-flex;align-items:center;gap:.3rem;border-radius:.6rem;padding:.2rem .6rem;font-size:.75rem;font-weight:700;margin-left:.4rem}
+.tier‑1{background:var(--tier1);color:#263238}
+.tier‑2{background:var(--tier2);color:#01579B}
+.tier‑3{background:var(--tier3);color:#1B5E20}
+.tier‑4{background:var(--tier4);color:#4A148C}
+.tier‑5{background:var(--tier5);color:#5D4037}
 @keyframes fadeIn{0%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:none}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{from{box-shadow:inset 0 0 16px rgba(108,92,231,.32)}to{box-shadow:inset 0 0 24px rgba(0,206,201,.5)}}
@@ -137,9 +184,9 @@ input{
 <body>
 <header class="header">
   <div class="logo">AMT</div>
-  <h1>Alberto Marketplace Token</h1>
-  <p class="sub">Ecosystem Mining • amt-mining-core-v3.5</p>
-  <span class="testnet-badge">TEST-NET MODE</span>
+  <h1>Alberto NFT Marketplace</h1>
+  <p class="sub">AMT Token • Test‑Net v1.1</p>
+  <span class="testnet-badge">TEST‑NET MODE</span>
 </header>
 
 <div class="card" id="loginScreen">
@@ -154,147 +201,218 @@ input{
     Use Pi Browser only for real login<br>
     Still fixing? Press Demo Login
   </p>
-  <button class="pi-btn" id="btnPiLogin">Sign-in with Pi Network</button>
+  <button class="pi-btn" id="btnPiLogin">Sign‑in with Pi Network</button>
   <button class="demo-btn" id="btnDemoLogin">Try Demo / Manual Login</button>
   <div style="margin-top:1.2rem;text-align:left">
-    <label style="font-size:.85rem;color:#B2B2C1">Have Referral Code? (Pi-username)</label>
-    <input id="refInput" placeholder="@alberto_pi or abc-xyz-123">
+    <label style="font‑size:.85rem;color:#B2B2C1">Have Referral Code? (Pi‑username)</label>
+    <input id="refInput" placeholder="@alberto_pi or abc‑xyz‑123">
   </div>
 </div>
 
-<div class="main-app" id="mainApp">
-  <div id="rewardBanner" class="reward-note hidden">
+<div class="main‑app" id="mainApp">
+  <div id="rewardBanner" class="reward‑note hidden">
     Daily Login Reward!<br>
     +<span id="rewardAmt">10.0000</span> AMT added to wallet
   </div>
 
-  <div class="user-bar">
+  <div class="user‑bar">
     <div class="avatar" id="avatarWrap" title="Click upload profile">
       <div class="placeholder" id="avatarPlaceholder">👤</div>
       <img id="avatarImg" alt="Profile" style="display:none">
-      <div class="avatar-hint">✏️</div>
+      <div class="avatar‑hint">✏️</div>
     </div>
     <input type="file" accept="image/*" id="avatarInput">
-    <div class="user-info">
+    <div class="user‑info">
       <span class="uname" id="dispUser">@pioneer</span>
+      <div class="lvl">Tier <span id="tierNum">1</span> <span id="tierBadge" class="tier‑badge tier‑1">Novice</span></div>
       <span class="role" id="connStatus">Connected</span>
     </div>
     <div class="amt" id="dispBal">0.0000 AMT</div>
   </div>
 
-  <div class="nav-tabs">
-    <div class="nav-tab active" data-tab="mining"><div class="icon">⛏️</div><div>Mine</div></div>
-    <div class="nav-tab" data-tab="referral"><div class="icon">👥</div><div>Referrals</div></div>
-    <div class="nav-tab" data-tab="circle"><div class="icon">🛡️</div><div>Circle</div></div>
-    <div class="nav-tab" data-tab="wallet"><div class="icon">👛</div><div>Wallet</div></div>
-    <div class="nav-tab disabled" data-tab="swap"><div class="icon">🔄</div><div>Swap</div><span class="badge">Soon</span></div>
-    <div class="nav-tab disabled" data-tab="market"><div class="icon">🏪</div><div>Shop</div><span class="badge">Soon</span></div>
+  <div class="nav‑tabs">
+    <div class="nav‑tab active" data‑tab="mining"><div class="icon">⛏️</div><div>Mine</div></div>
+    <div class="nav‑tab" data‑tab="airdrop"><div class="icon">🎁</div><div>Airdrop</div></div>
+    <div class="nav‑tab" data‑tab="referral"><div class="icon">👥</div><div>Referrals</div></div>
+    <div class="nav‑tab" data‑tab="circle"><div class="icon">🛡️</div><div>Circle</div></div>
+    <div class="nav‑tab" data‑tab="market"><div class="icon">🏪</div><div>Shop</div></div>
+    <div class="nav‑tab" data‑tab="wallet"><div class="icon">👛</div><div>Wallet</div></div>
   </div>
 
-  <div class="tab-content" id="tabMining">
+  <!-- ===== MINING TAB – PERMANENT SAVE FIXED ===== -->
+  <div class="tab‑content" id="tabMining">
     <div class="card">
-      <div class="core-wrap">
-        <div class="mining-core" id="spinCore">
-          <div class="core-inner">
+      <div class="core‑wrap">
+        <div class="mining‑core" id="spinCore">
+          <div class="core‑inner">
             <strong id="dispMine">0.0000</strong>
-            <span>AMT EARNED</span>
+            <span>PENDING AMT</span>
           </div>
         </div>
       </div>
       <div class="stats">
-        <div class="stat-row"><span class="stat-label">Total Supply</span><span class="stat-value">25000000 AMT</span></div>
-        <div class="stat-row"><span class="stat-label">Base Hash-Rate</span><span class="stat-value hash">1250-1500 H/s</span></div>
-        <div class="stat-row"><span class="stat-label">Daily Mining</span><span class="stat-value highlight">+0.08 AMT / 24hr</span></div>
-        <div class="stat-row"><span class="stat-label">Referral Bonus</span><span class="stat-value highlight" id="dispRefBonus">+0 %</span></div>
-        <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" id="dispStat">Ready</span></div>
+        <div class="stat‑row"><span class="stat‑label">Total Supply</span><span class="stat‑value">25 000 000 AMT</span></div>
+        <div class="stat‑row"><span class="stat‑label">Your Tier Bonus</span><span class="stat‑value highlight" id="tierBonus">+0 %</span></div>
+        <div class="stat‑row"><span class="stat‑label">Base Daily Mine</span><span class="stat‑value">0.08 AMT / 24h</span></div>
+        <div class="stat‑row"><span class="stat‑label">Referral Bonus</span><span class="stat‑value highlight" id="dispRefBonus">+0 %</span></div>
+        <div class="stat‑row"><span class="stat‑label">Status</span><span class="stat‑value" id="dispStat">Ready</span></div>
       </div>
       <div id="cdWrap" class="hidden">
-        <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-top:.9rem">
+        <div style="display:flex;justify‑content:space‑between;font‑size:.8rem;margin‑top:.9rem">
           <span style="color:#B2B2C1">Next Mining In</span>
           <span style="color:var(--gold)" id="dispCdTime">23:59:59</span>
         </div>
-        <div class="cooldown-bar"><div class="cooldown-fill" id="dispCdBar" style="width:100%"></div></div>
+        <div class="cooldown‑bar"><div class="cooldown‑fill" id="dispCdBar" style="width:100%"></div></div>
       </div>
-      <button class="btn btn-primary" id="btnMine">Start Mining</button>
-      <button class="btn btn-pi hidden" id="btnClaim">Claim & Mine Again</button>
+      <button class="btn btn‑primary" id="btnMine">Start Mining</button>
+      <button class="btn btn‑pi hidden" id="btnClaim">✅ Claim & Restart</button>
     </div>
   </div>
 
-  <div class="tab-content hidden" id="tabReferral">
+  <!-- ===== NEW: 1‑MONTH TIMED AIRDROP TAB ===== -->
+  <div class="tab‑content hidden" id="tabAirdrop">
     <div class="card">
-      <h3 style="text-align:center;margin-bottom:.3rem">Referral Hub</h3>
-      <p style="color:#B2B2C1;text-align:center;font-size:.85rem;margin-bottom:1rem">Same Pi username identity</p>
-      <div class="stat-row"><span class="stat-label">Your Referral Code</span><div class="ref-code" id="myRefCode">—</div></div>
-      <button class="btn btn-small btn-pi" style="width:100%" id="btnCopyRef">Copy Referral Code</button>
-      <div class="stat-row" style="margin-top:.6rem"><span class="stat-label">Total Invited</span><span class="stat-value highlight" id="refCount">0 Pioneers</span></div>
-      <div class="ref-box">
+      <h3 style="text‑align:center;margin‑bottom:.3rem">🎁 Monthly Airdrop Event</h3>
+      <p style="color:#B2B2C1;text‑align:center;font‑size:.85rem;margin‑bottom:1rem">Starts Sep 1 → Oct 1 • 30‑Day Campaign</p>
+      <div class="airdrop‑box">
+        <div class="stat‑row"><span class="stat‑label">⏳ Event Countdown</span><span class="stat‑value highlight" id="airdropCd">—</span></div>
+        <div class="stat‑row"><span class="stat‑label">Phase</span><span class="stat‑value" id="airdropPhase">Loading…</span></div>
+        <div class="stat‑row"><span class="stat‑label">🎯 Eligibility</span><span class="stat‑value" id="airdropElig">Check…</span></div>
+        <div class="stat‑row"><span class="stat‑label">📦 Allocation</span><span class="stat‑value">500 000 AMT Pool</span></div>
+        <div style="margin‑top:.8rem">
+          <div style="display:flex;justify‑content:space‑between;font‑size:.8rem;margin‑bottom:.3rem">
+            <span>Progress</span><span id="airdropPct">0 %</span>
+          </div>
+          <div class="prog‑bar"><div class="prog‑fill" id="airdropProg" style="width:0%"></div></div>
+        </div>
+      </div>
+      <button class="btn btn‑primary" id="btnClaimDrop" disabled style="margin‑top:1.2rem">🔒 Claim Reward Soon</button>
+    </div>
+  </div>
+
+  <div class="tab‑content hidden" id="tabReferral">
+    <div class="card">
+      <h3 style="text‑align:center;margin‑bottom:.3rem">Referral Hub</h3>
+      <p style="color:#B2B2C1;text‑align:center;font‑size:.85rem;margin‑bottom:1rem">Same Pi username identity</p>
+      <div class="stat‑row"><span class="stat‑label">Your Referral Code</span><div class="ref‑code" id="myRefCode">—</div></div>
+      <button class="btn btn‑small btn‑pi" style="width:100%" id="btnCopyRef">Copy Referral Code</button>
+      <div class="stat‑row" style="margin‑top:.6rem"><span class="stat‑label">Total Invited</span><span class="stat‑value highlight" id="refCount">0 Pioneers</span></div>
+      <div class="ref‑box">
         <strong>Enter Referral</strong>
-        <p style="font-size:.8rem;color:#aaa;margin:.3rem 0 .6rem">If invited enter their Pi username/code</p>
-        <input id="inviterRef" placeholder="@username or referral-code-here">
-        <button class="btn btn-small btn-primary" style="width:100%;margin-top:.5rem" id="btnSetInviter">Save Inviter</button>
+        <p style="font‑size:.8rem;color:#aaa;margin:.3rem 0 .6rem">If invited enter their Pi username/code</p>
+        <input id="inviterRef" placeholder="@username or referral‑code‑here">
+        <button class="btn btn‑small btn‑primary" style="width:100%;margin‑top:.5rem" id="btnSetInviter">Save Inviter</button>
       </div>
     </div>
   </div>
 
-  <div class="tab-content hidden" id="tabCircle">
+  <div class="tab‑content hidden" id="tabCircle">
     <div class="card">
-      <h3 style="text-align:center;margin-bottom:.3rem">Security Circle</h3>
-      <p style="color:#B2B2C1;text-align:center;font-size:.85rem;margin-bottom:1rem">Up to 3 trusted Pioneers</p>
-      <div class="stat-row"><span class="stat-label">Circle Strength</span><span class="stat-value highlight" id="circlePct">0 / 3 Slots</span></div>
-      <div class="stat-row"><span class="stat-label">Circle Bonus</span><span class="stat-value highlight" id="circleBonus">+0 % Mining Boost</span></div>
-      <div class="circle-grid" id="circleSlots">
-        <div class="circle-slot">+</div><div class="circle-slot">+</div><div class="circle-slot">+</div>
+      <h3 style="text‑align:center;margin‑bottom:.3rem">Security Circle</h3>
+      <p style="color:#B2B2C1;text‑align:center;font‑size:.85rem;margin‑bottom:1rem">Up to 3 trusted Pioneers</p>
+      <div class="stat‑row"><span class="stat‑label">Circle Strength</span><span class="stat‑value highlight" id="circlePct">0 / 3 Slots</span></div>
+      <div class="stat‑row"><span class="stat‑label">Circle Bonus</span><span class="stat‑value highlight" id="circleBonus">+0 % Mining Boost</span></div>
+      <div class="circle‑grid" id="circleSlots">
+        <div class="circle‑slot">+</div><div class="circle‑slot">+</div><div class="circle‑slot">+</div>
       </div>
-      <div class="sc-box">
+      <div class="sc‑box">
         <strong>Add Trusted Contact</strong>
-        <p style="font-size:.8rem;color:#aaa;margin:.3rem 0 .6rem">Pi username / referral code</p>
+        <p style="font‑size:.8rem;color:#aaa;margin:.3rem 0 .6rem">Pi username / referral code</p>
         <input id="newCircleMember" placeholder="@trusted_person">
-        <button class="btn btn-small btn-pi" style="width:100%;margin-top:.5rem" id="btnAddCircle">Add to Circle</button>
+        <button class="btn btn‑small btn‑pi" style="width:100%;margin‑top:.5rem" id="btnAddCircle">Add to Circle</button>
       </div>
     </div>
   </div>
 
-  <div class="tab-content hidden" id="tabWallet">
+  <div class="tab‑content hidden" id="tabWallet">
     <div class="card">
-      <h3 style="text-align:center;margin-bottom:1.2rem">AMT Wallet</h3>
-      <div class="stat-row"><span class="stat-label">Total Balance</span><span class="stat-value highlight" id="wallBal">0.0000 AMT</span></div>
-      <div class="stat-row"><span class="stat-label">Claimed / Available</span><span class="stat-value" id="wallClaimed">0.0000 AMT</span></div>
-      <div class="stat-row"><span class="stat-label">Login-Rewards Earned</span><span class="stat-value" id="wallRewards">0.0000 AMT</span></div>
-      <div class="stat-row"><span class="stat-label">Network</span><span class="stat-value" style="color:var(--test)">Alberto Test-Net v1</span></div>
-      <p style="text-align:center;color:#777;margin-top:1rem;font-size:.8rem">Reset before Main-Net launch</p>
+      <h3 style="text‑align:center;margin‑bottom:1.2rem">AMT Wallet</h3>
+      <div class="stat‑row"><span class="stat‑label">Total Balance</span><span class="stat‑value highlight" id="wallBal">0.0000 AMT</span></div>
+      <div class="stat‑row"><span class="stat‑label">Claimed / Available</span><span class="stat‑value" id="wallClaimed">0.0000 AMT</span></div>
+      <div class="stat‑row"><span class="stat‑label">Pending Mine</span><span class="stat‑value highlight" id="wallPending">0.0000 AMT</span></div>
+      <div class="stat‑row"><span class="stat‑label">Login‑Rewards Earned</span><span class="stat‑value" id="wallRewards">0.0000 AMT</span></div>
+      <div class="stat‑row"><span class="stat‑label">Network</span><span class="stat‑value" style="color:var(--test)">Alberto Test‑Net v1.1</span></div>
+      <p style="text‑align:center;color:#777;margin‑top:1rem;font‑size:.8rem">Data saved locally; resets before Main‑Net launch</p>
     </div>
   </div>
 
-  <div class="tab-content hidden" id="tabSwap"><div class="card"><div class="coming-soon"><div class="icon">🔄</div><h3>Swap Coming Soon</h3></div></div></div>
-  <div class="tab-content hidden" id="tabMarket"><div class="card"><div class="coming-soon"><div class="icon">🏪</div><h3>Marketplace Coming Soon</h3></div></div></div>
+  <div class="tab‑content hidden" id="tabMarket">
+    <div class="card">
+      <h3 style="text‑align:center;margin‑bottom:.3rem">🏪 Pet Marketplace</h3>
+      <p style="color:#B2B2C1;text‑align:center;font‑size:.85rem;margin‑bottom:.5rem">Tap any pet → view Stats & Abilities</p>
+      <div class="pet‑grid" id="petGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal‑overlay" id="petModal">
+  <div class="modal‑box">
+    <div class="modal‑head">
+      <h2 class="modal‑title" id="modalPetName">Pet Name</h2>
+      <button class="modal‑close" id="modalCloseBtn">✕</button>
+    </div>
+    <div class="modal‑pet‑icon" id="modalPetIcon">🐉</div>
+    <div class="modal‑rarity"><span class="pet‑rarity" id="modalPetRarity">Rarity</span></div>
+    <div class="stats‑block">
+      <h4 class="stats‑title">📊 Base Stats</h4>
+      <div class="stat‑row"><span class="stat‑label">⚔️ Attack</span><span class="stat‑value" id="statAtk">—</span></div>
+      <div class="stat‑row"><span class="stat‑label">🛡️ Defense</span><span class="stat‑value" id="statDef">—</span></div>
+      <div class="stat‑row"><span class="stat‑label">❤️ Health</span><span class="stat‑value" id="statHp">—</span></div>
+      <div class="stat‑row"><span class="stat‑label">⚡ Speed</span><span class="stat‑value" id="statSpd">—</span></div>
+      <div class="stat‑row"><span class="stat‑label">✨ Mining Boost</span><span class="stat‑value highlight" id="statBoost">—</span></div>
+    </div>
+    <div class="ability‑block">
+      <h4 class="ability‑title">🌟 Special Ability</h4>
+      <p class="ability‑desc" id="petAbilityDesc">—</p>
+    </div>
+    <button class="btn btn‑primary" style="margin‑top:1.2rem" id="btnBuyPet">🛒 Buy / Mint — <span id="petPriceTag">??? AMT</span></button>
+  </div>
 </div>
 
 <script>
-const YOUR_APP_ID = "alberto-marketplace-token";
-const DAY_MS = 24*60*60*1000;
-const BASE_RATE = 0.08;
-const REF_BONUS = 0.05;
-const CIRCLE_BONUS = 0.04;
-const DAILY_LOGIN_REWARD = 10;
+// ========== DATA ==========
+const PETS = [
+  {id:'dragon‑fire',icon:'🐲',name:'Flare Wyrm',rarity:'legendary',price:500,stats:{atk:28,def:22,hp:160,spd:14,boost:0.08},ability:{name:'Infernal Heart',desc:'+8 % Mining yield; chance for double rewards; burn damage effect'}},
+  {id:'wolf‑shadow',icon:'🐺',name:'Shadow Howler',rarity:'epic',price:280,stats:{atk:22,def:14,hp:110,spd:22,boost:0.05},ability:{name:'Lunar Bond',desc:'+5 % base; referrals you invited also gain +3 % boost'}},
+  {id:'spirit‑fox',icon:'🦊',name:'Spirit Vulpine',rarity:'rare',price:120,stats:{atk:14,def:10,hp:95,spd:26,boost:0.035},ability:{name:'Fortune Sight',desc:'Better rare drops; constant +3.5 % Mining speed boost'}},
+  {id:'turtle‑stone',icon:'🐢',name:'Stone Sheller',rarity:'common',price:25,stats:{atk:6,def:28,hp:200,spd:6,boost:0.01},ability:{name:'Stability',desc:'Never earn below base Mining rate; protects all rewards'}},
+];
+const TIERS = [
+  {lvl:1,name:'Novice',minBal:0,bonusPct:0,color:'tier‑1'},
+  {lvl:2,name:'Pioneer',minBal:25,bonusPct:2,color:'tier‑2'},
+  {lvl:3,name:'Explorer',minBal:250,bonusPct:5,color:'tier‑3'},
+  {lvl:4,name:'Guardian',minBal:2500,bonusPct:10,color:'tier‑4'},
+  {lvl:5,name:'Founder',minBal:25000,bonusPct:20,color:'tier‑5'},
+];
+const CONFIG = {
+  APP_ID:'alberto‑marketplace‑token', DAY_MS:86400000,
+  BASE_RATE:0.08, REF_BONUS:0.05, CIRCLE_BONUS:0.04, DAILY_LOGIN:10,
+  AIRDROP_START:new Date('2026‑09‑01T00:00:00'),
+  AIRDROP_END:new Date('2026‑10‑01T23:59:59'),
+  AIRDROP_REWARD:50, AIRDROP_MIN_BAL:5
+};
 
+// ========== STATE – EVERYTHING SAVED ==========
 let state = {
-  me:null,myRef:'',inviter:'',referrals:[],circle:[],
-  mined:0,claimed:0,loginRewards:0,lastLoginRewardDate:null,
-  lastMineAt:null,nextMine:null,isMining:false,avatarDataUrl:''
+  me:null, myRef:'', inviter:'', referrals:[], circle:[],
+  mined:0, claimed:0, loginRewards:0, lastLoginRewardDate:null,
+  lastMineAt:null, nextMine:null, isMining:false, avatarDataUrl:'',
+  airdropClaimed:false
 };
 const $=id=>document.getElementById(id);
-let isPiReady=false;
+let isPiReady=false, airdropTimer=null;
 
+// ========== HELPERS & DEBUG ==========
 function updDebug(){
   const isPiBrowser=/PiBrowser/.test(navigator.userAgent);
-  $('dbgBrowser').textContent=`Browser: ${isPiBrowser?'Pi Browser':'NOT Pi Browser - Demo only'}`;
-  $('dbgSdk').textContent=`SDK: ${window.Pi?'Loaded':'Missing - open in Pi Browser'}`;
+  $('dbgBrowser').textContent=`Browser: ${isPiBrowser?'✅ Pi Browser':'⚠️ NOT Pi Browser — Demo mode only'}`;
+  $('dbgSdk').textContent=`SDK: ${window.Pi?'✅ Loaded':'❌ Missing — open inside Pi Browser'}`;
 }
 updDebug();
 
 $('avatarWrap').addEventListener('click',()=>$('avatarInput').click());
 $('avatarInput').addEventListener('change',e=>{
-  const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith('image/'))return alert('Images only!');
+  const f=e.target.files?.[0];if(!f||!f.type.startsWith('image/'))return alert('Upload images only please!');
   const r=new FileReader();r.onload=ev=>{state.avatarDataUrl=ev.target.result;applyAvatar();saveUserData();};r.readAsDataURL(f);
 });
 function applyAvatar(){
@@ -302,12 +420,28 @@ function applyAvatar(){
   $('avatarImg').src=state.avatarDataUrl;$('avatarImg').style.display='block';$('avatarPlaceholder').style.display='none';
 }
 
+// ========== TIER SYSTEM LOGIC ==========
+function getCurrentTier(){
+  const total=state.claimed;
+  let tier=TIERS[0];
+  for(let t of TIERS)if(total>=t.minBal)tier=t;
+  return tier;
+}
+function refreshTierUI(){
+  const tier=getCurrentTier();
+  $('tierNum').textContent=tier.lvl;
+  $('tierBadge').textContent=tier.name;
+  $('tierBadge').className=`tier‑badge ${tier.color}`;
+  $('tierBonus').textContent=`+${tier.bonusPct} %`;
+}
+
+// ========== LOGIN REWARD ==========
 function checkAndGiveLoginReward(){
   const today=new Date().toDateString();
   if(state.lastLoginRewardDate!==today){
-    state.claimed+=DAILY_LOGIN_REWARD;state.loginRewards+=DAILY_LOGIN_REWARD;
+    state.claimed+=CONFIG.DAILY_LOGIN;state.loginRewards+=CONFIG.DAILY_LOGIN;
     state.lastLoginRewardDate=today;saveUserData();
-    $('rewardAmt').textContent=DAILY_LOGIN_REWARD.toFixed(4);
+    $('rewardAmt').textContent=CONFIG.DAILY_LOGIN.toFixed(4);
     $('rewardBanner').classList.remove('hidden');
     setTimeout(()=>$('rewardBanner').classList.add('hidden'),8000);
     return true;
@@ -315,127 +449,158 @@ function checkAndGiveLoginReward(){
   return false;
 }
 
+// ========== PET SYSTEM ==========
+function renderPetList(){
+  $('petGrid').innerHTML=PETS.map(p=>`<div class="pet‑card" data‑pet‑id="${p.id}"><div class="pet‑icon">${p.icon}</div><div class="pet‑name">${p.name}</div><div class="pet‑rarity rarity‑${p.rarity}">${p.rarity.toUpperCase()}</div><div class="pet‑price">${p.price} AMT</div></div>`).join('');
+  document.querySelectorAll('.pet‑card').forEach(c=>c.addEventListener('click',()=>openPetModal(c.dataset.petId)));
+}
+function openPetModal(petId){
+  const pet=PETS.find(x=>x.id===petId);if(!pet)return;
+  $('modalPetName').textContent=pet.name;$('modalPetIcon').textContent=pet.icon;
+  $('modalPetRarity').textContent=pet.rarity.toUpperCase();$('modalPetRarity').className=`pet‑rarity rarity‑${pet.rarity}`;
+  $('statAtk').textContent=pet.stats.atk;$('statDef').textContent=pet.stats.def;
+  $('statHp').textContent=pet.stats.hp;$('statSpd').textContent=pet.stats.spd;
+  $('statBoost').textContent=`+${(pet.stats.boost*100).toFixed(1)} %`;
+  $('petAbilityDesc').textContent=pet.ability.desc;
+  $('petPriceTag').textContent=`${pet.price} AMT`;$('petModal').classList.add('active');
+}
+$('modalCloseBtn').onclick=()=>$('petModal').classList.remove('active');
+$('petModal').addEventListener('click',e=>{if(e.target===e.currentTarget)$('petModal').classList.remove('active');});
+
+// ========== AIRDROP SYSTEM – 30‑DAY SCHEDULED ==========
+function updateAirdropUI(){
+  const now=Date.now(), start=CONFIG.AIRDROP_START.getTime(), end=CONFIG.AIRDROP_END.getTime();
+  let phase, cdTxt, eligible=false, prog=0;
+  if(now<start){
+    phase='⏳ Countdown';const left=start‑now;
+    cdTxt=fmtTimeShort(left);prog=Math.max(0,Math.min(99,((now‑(start‑30*86400000))/(start‑(start‑30*86400000)))*100));
+  }else if(now>=start&&now<=end){
+    phase='🔥 LIVE!';const left=end‑now;cdTxt=fmtTimeShort(left);prog=Math.max(0,Math.min(100,((now‑start)/(end‑start))*100));
+    eligible=state.claimed>=CONFIG.AIRDROP_MIN_BAL&&!state.airdropClaimed;
+  }else{
+    phase='✅ Ended';cdTxt='Campaign Finished';prog=100;eligible=!state.airdropClaimed&&state.claimed>=CONFIG.AIRDROP_MIN_BAL;
+  }
+  $('airdropPhase').textContent=phase;$('airdropCd').textContent=cdTxt;
+  $('airdropPct').textContent=prog.toFixed(1)+' %';$('airdropProg').style.width=prog+'%';
+  if(now>=start&&now<=end){
+    if(eligible){
+      $('airdropElig').textContent='✅ Qualified';$('airdropElig').style.color='#4ADE80';
+      $('btnClaimDrop').disabled=false;$('btnClaimDrop').textContent='🎁 Claim +'+CONFIG.AIRDROP_REWARD+' AMT';
+    }else if(state.airdropClaimed){
+      $('airdropElig').textContent='✔️ Already Claimed';$('airdropElig').style.color='#FDCB6E';
+      $('btnClaimDrop').disabled=true;$('btnClaimDrop').textContent='✅ Claimed';
+    }else{
+      $('airdropElig').innerHTML='🔒 Min '+CONFIG.AIRDROP_MIN_BAL+' AMT';$('airdropElig').style.color='#FF7875';
+      $('btnClaimDrop').disabled=true;$('btnClaimDrop').textContent='🔒 Not Eligible Yet';
+    }
+  }else {
+    $('airdropElig').textContent='Opens Sep 1';$('airdropElig').style.color='#94A3B8';
+    $('btnClaimDrop').disabled=true;
+  }
+}
+$('btnClaimDrop').addEventListener('click',()=>{
+  if(state.airdropClaimed)return alert('Already claimed—one‑time reward only!');
+  if(state.claimed<CONFIG.AIRDROP_MIN_BAL)return alert(`Need ≥${CONFIG.AIRDROP_MIN_BAL} AMT balance first!`);
+  state.claimed+=CONFIG.AIRDROP_REWARD;state.airdropClaimed=true;
+  alert(`🎉 SUCCESS! +${CONFIG.AIRDROP_REWARD} AMT added — Thank you Pioneer!`);
+  saveUserData();refreshAllUI();updateAirdropUI();
+});
+
+// ========== PI SDK & NAVIGATION ==========
 async function initPiSDK(){
-  if(!window.Pi){console.log('Demo mode only');return false;}
-  try{await Pi.init({version:'2.0',appId:YOUR_APP_ID,sandbox:true});isPiReady=true;$('connStatus').textContent='Pi SDK Ready';return true;}
-  catch(err){console.error('SDK Error:',err);return false;}
+  if(!window.Pi){console.log('Running in Demo‑only mode');return false;}
+  try{await Pi.init({version:'2.0',appId:CONFIG.APP_ID,sandbox:true});isPiReady=true;$('connStatus').textContent='✅ SDK Ready';return true;}
+  catch(err){console.error('Pi Init Error:',err);return false;}
 }
 initPiSDK();
 
-document.querySelectorAll('.nav-tab').forEach(tab=>{
+document.querySelectorAll('.nav‑tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
+    document.querySelectorAll('.nav‑tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab‑content').forEach(c=>c.classList.add('hidden'));
     tab.classList.add('active');
     $(`tab${tab.dataset.tab[0].toUpperCase()+tab.dataset.tab.slice(1)}`).classList.remove('hidden');
+    if(tab.dataset.tab==='market')renderPetList();
+    if(tab.dataset.tab==='airdrop')updateAirdropUI();
   });
 });
 
+// ========== LOGIN FLOW ==========
 $('btnPiLogin').addEventListener('click',async ()=>{
-  updDebug();if(!window.Pi)return alert('Open INSIDE Pi Browser!');
-  if(!isPiReady)return alert('Waiting SDK...');
-  $('btnPiLogin').disabled=true;$('btnPiLogin').textContent='Authenticating...';
+  updDebug();if(!window.Pi)return alert('⚠️ Please open inside Pi Browser app!');
+  if(!isPiReady)return alert('Still connecting SDK—retry in seconds please…');
+  $('btnPiLogin').disabled=true;$('btnPiLogin').textContent='Authenticating…';
   try{
     const auth=await Pi.authenticate(['username','wallet_address']);
-    if(!auth?.user)throw new Error('No user info - allow username');
+    if(!auth?.user)throw new Error('Permission needed—allow “See your username” please');
     state.me={uid:auth.user.uid,username:'@'+auth.user.username,wallet:auth.user.wallet_address};
     state.myRef=state.me.username;const ref=$('refInput').value.trim();if(ref&&ref!==state.myRef)state.inviter=ref;
     enterApp();
-  }catch(err){console.error(err);alert(`Login failed: ${err.message}`);}
-  finally{$('btnPiLogin').disabled=false;$('btnPiLogin').textContent='Sign-in with Pi Network';}
+  }catch(err){alert(`❌ Login failed: ${err.message}`);console.error(err);}
+  finally{$('btnPiLogin').disabled=false;$('btnPiLogin').textContent='Sign‑in with Pi Network';}
 });
-
 $('btnDemoLogin').addEventListener('click',()=>{
-  const name='pioneer_'+Math.random().toString(36).slice(2,8);
-  state.me={uid:'demo_'+Date.now(),username:'@'+name,wallet:'demo_wallet_addr'};
+  const handle='pioneer_'+Math.random().toString(36).slice(2,8);
+  state.me={uid:'demo_'+Date.now(),username:'@'+handle,wallet:'demo_wallet_addr'};
   state.myRef=state.me.username;const ref=$('refInput').value.trim();if(ref)state.inviter=ref;
   enterApp();
 });
-
 function enterApp(){
   loadUserData();applyAvatar();
-  checkAndGiveLoginReward();
-  refreshAllUI();
+  checkAndGiveLoginReward();refreshAllUI();
   $('loginScreen').style.display='none';$('mainApp').classList.add('active');
+  renderPetList();updateAirdropUI();
+  airdropTimer=setInterval(updateAirdropUI,1000);
   loop();
 }
 
+// ========== MINING – NOW FULLY SAVE‑RESTORE EVERYTHING ==========
 $('btnMine').addEventListener('click',()=>{
-  if(state.nextMine&&Date.now()<state.nextMine)return;
+  if(state.nextMine&&Date.now()<state.nextMine)return alert('⏳ Cooling down—wait until reset please');
   state.isMining=true;state.lastMineAt=Date.now();state.nextMine=null;
-  $('btnMine').textContent='Mining...';$('btnMine').disabled=true;
+  saveUserData();
+  $('btnMine').textContent='⛏️ Mining…';$('btnMine').disabled=true;
   $('spinCore').style.animation='spin 3s linear infinite';
-  $('dispStat').textContent='Active';$('cdWrap').classList.add('hidden');saveUserData();
+  $('dispStat').textContent='🔄 Active';$('cdWrap').classList.add('hidden');
 });
-
 $('btnClaim').addEventListener('click',()=>{
-  if(state.mined<=0)return alert('Nothing to claim yet!');
-  state.claimed+=state.mined;state.mined=0;state.nextMine=Date.now()+DAY_MS;
-  alert(`Claimed!\nBalance: ${state.claimed.toFixed(4)} AMT\nNext mine in 24 hours`);
+  if(state.mined<=0)return alert('⚠️ Nothing mined yet—keep going!');
+  state.claimed+=state.mined;state.mined=0;state.nextMine=Date.now()+CONFIG.DAY_MS;state.isMining=false;
+  alert(`✅ CLAIMED SUCCESS!\n+${state.mined.toFixed(4)} moved to Wallet\n⏱️ Ready again in exactly 24 hours`);
   $('btnClaim').classList.add('hidden');$('btnMine').classList.remove('hidden');$('btnMine').disabled=true;
+  $('spinCore').style.animationPlayState='paused';$('dispStat').textContent='⏳ Waiting Reset';
   saveUserData();refreshAllUI();
 });
 
-$('btnCopyRef').addEventListener('click',()=>navigator.clipboard.writeText(state.myRef).then(()=>alert('Copied: '+state.myRef)));
+// ========== REFERRAL & CIRCLE ==========
+$('btnCopyRef').addEventListener('click',()=>navigator.clipboard.writeText(state.myRef).then(()=>alert(`✅ Copied:\n${state.myRef}`)));
 $('btnSetInviter').addEventListener('click',()=>{
-  const val=$('inviterRef').value.trim();if(!val)return alert('Enter referral/username');
-  if(val===state.myRef)return alert('Cannot use own code!');
-  state.inviter=val;saveUserData();alert('Saved inviter: '+val);$('inviterRef').value='';
+  const val=$('inviterRef').value.trim();if(!val)return alert('Please enter referral code/username first');
+  if(val===state.myRef)return alert('❌ Cannot use your own invite link!');
+  state.inviter=val;saveUserData();alert(`✅ Saved inviter: ${val}`);$('inviterRef').value='';
 });
 $('btnAddCircle').addEventListener('click',()=>{
   const val=$('newCircleMember').value.trim();if(!val)return alert('Enter Pi username/referral');
-  if(state.circle.length>=3)return alert('Circle full - max 3');
-  if([state.myRef,...state.circle].includes(val))return alert('Already added or yourself!');
-  state.circle.push(val);saveUserData();refreshAllUI();$('newCircleMember').value='';
+  if(state.circle.length>=3)return alert('⚠️ Circle Full—max 3 trusted contacts only');
+  if([state.myRef,...state.circle].includes(val))return alert('❌ Already added or cannot invite yourself!');
+  state.circle.push(val);saveUserData();refreshAllUI();alert(`✅ Added ${val}`);$('newCircleMember').value='';
 });
 
+// ========== MAIN UPDATE LOOP – PERSISTENT CALCULATION ==========
 function loop(){
   const now=Date.now();
   if(state.isMining&&state.lastMineAt){
-    const dur=now-state.lastMineAt;
-    if(dur>=DAY_MS){
+    const dur=now‑state.lastMineAt;
+    if(dur>=CONFIG.DAY_MS){
       state.isMining=false;state.mined=calcReward();
       $('spinCore').style.animationPlayState='paused';
-      $('dispStat').textContent='Ready to Claim';
+      $('dispStat').textContent='🎉 Ready Claim';
       $('btnMine').classList.add('hidden');$('btnClaim').classList.remove('hidden');
-    }else state.mined=(dur/DAY_MS)*calcReward();
+    }else{
+      state.mined=(dur/CONFIG.DAY_MS)*calcReward();
+    }
+    saveUserData();
   }
   if(state.nextMine&&now<state.nextMine){
-    const left=state.nextMine-now,pct=(left/DAY_MS)*100;
+    const left=state.nextMine‑now,pct=(left/CONFIG.DAY_MS)*100;
     $('dispCdTime').textContent=fmtTime(left);$('dispCdBar').style.width=pct+'%';
-    $('dispStat').textContent='Cooling down';$('cdWrap').classList.remove('hidden');
-    $('btnMine').disabled=true;$('btnMine').textContent='Wait...';
-  }else if(state.nextMine&&now>=state.nextMine){
-    state.nextMine=null;$('cdWrap').classList.add('hidden');
-    $('btnMine').disabled=false;$('btnMine').textContent='Start Mining';
-    $('dispStat').textContent='Ready';saveUserData();
-  }
-  updateMineUI();requestAnimationFrame(loop);
-}
-
-function calcReward(){let mul=1;mul+=state.referrals.length*REF_BONUS;mul+=state.circle.length*CIRCLE_BONUS;return BASE_RATE*mul;}
-function refreshAllUI(){
-  if(!state.me)return;$('dispUser').textContent=state.me.username;$('myRefCode').textContent=state.myRef;
-  $('refCount').textContent=state.referrals.length+' Pioneers';
-  $('circlePct').textContent=state.circle.length+' / 3 Slots';
-  $('circleBonus').textContent='+'+(state.circle.length*4)+'% Boost';
-  $('circleSlots').innerHTML=[0,1,2].map(i=>`<div class="circle-slot ${state.circle[i]?'active':''}">${state.circle[i]?'👤':'+'}</div>`).join('');
-  updateMineUI();
-}
-function updateMineUI(){
-  const total=(state.mined+state.claimed).toFixed(4);
-  $('dispMine').textContent=state.mined.toFixed(4);$('dispBal').textContent=total+' AMT';
-  $('wallBal').textContent=total+' AMT';$('wallClaimed').textContent=state.claimed.toFixed(4)+' AMT';
-  $('wallRewards').textContent=(state.loginRewards||0).toFixed(4)+' AMT';
-  $('dispRefBonus').textContent='+'+(state.referrals.length*5)+'% ('+state.referrals.length+' refs)';
-}
-function fmtTime(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return `${h}`.padStart(2,'0')+':'+`${m}`.padStart(2,'0')+':'+`${s%60}`.padStart(2,'0');}
-function saveUserData(){localStorage.setItem('amt-v5-user',JSON.stringify(state));}
-function loadUserData(){
-  const s=localStorage.getItem('amt-v5-user');if(!s)return;
-  try{const loaded=JSON.parse(s);state={loginRewards:0,lastLoginRewardDate:null,...loaded,isMining:false};}
-  catch(e){console.warn('Reset storage - corrupted');}
-}
-</script>
-</body>
-</html>
