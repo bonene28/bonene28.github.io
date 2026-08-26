@@ -185,7 +185,7 @@ input{
 <header class="header">
   <div class="logo">AMT</div>
   <h1>Alberto NFT Marketplace</h1>
-  <p class="sub">AMT Token • Test‑Net v1.1</p>
+  <p class="sub">AMT Token • Test‑Net v1.2 — PERMANENT SAVE</p>
   <span class="testnet-badge">TEST‑NET MODE</span>
 </header>
 
@@ -239,7 +239,7 @@ input{
     <div class="nav‑tab" data‑tab="wallet"><div class="icon">👛</div><div>Wallet</div></div>
   </div>
 
-  <!-- ===== MINING TAB – PERMANENT SAVE FIXED ===== -->
+  <!-- ===== MINING TAB — FULL RESTORE & CONTINUE FIXED ===== -->
   <div class="tab‑content" id="tabMining">
     <div class="card">
       <div class="core‑wrap">
@@ -269,7 +269,6 @@ input{
     </div>
   </div>
 
-  <!-- ===== NEW: 1‑MONTH TIMED AIRDROP TAB ===== -->
   <div class="tab‑content hidden" id="tabAirdrop">
     <div class="card">
       <h3 style="text‑align:center;margin‑bottom:.3rem">🎁 Monthly Airdrop Event</h3>
@@ -331,8 +330,8 @@ input{
       <div class="stat‑row"><span class="stat‑label">Claimed / Available</span><span class="stat‑value" id="wallClaimed">0.0000 AMT</span></div>
       <div class="stat‑row"><span class="stat‑label">Pending Mine</span><span class="stat‑value highlight" id="wallPending">0.0000 AMT</span></div>
       <div class="stat‑row"><span class="stat‑label">Login‑Rewards Earned</span><span class="stat‑value" id="wallRewards">0.0000 AMT</span></div>
-      <div class="stat‑row"><span class="stat‑label">Network</span><span class="stat‑value" style="color:var(--test)">Alberto Test‑Net v1.1</span></div>
-      <p style="text‑align:center;color:#777;margin‑top:1rem;font‑size:.8rem">Data saved locally; resets before Main‑Net launch</p>
+      <div class="stat‑row"><span class="stat‑label">Network</span><span class="stat‑value" style="color:var(--test)">Alberto Test‑Net v1.2</span></div>
+      <p style="text‑align:center;color:#777;margin‑top:1rem;font‑size:.8rem">✅ All mining progress saved & restored automatically</p>
     </div>
   </div>
 
@@ -392,7 +391,7 @@ const CONFIG = {
   AIRDROP_REWARD:50, AIRDROP_MIN_BAL:5
 };
 
-// ========== STATE – EVERYTHING SAVED ==========
+// ========== STATE — LAHAT KASAMA: mined, lastMineAt, isMining, nextMine — SAVED & LOADED ==========
 let state = {
   me:null, myRef:'', inviter:'', referrals:[], circle:[],
   mined:0, claimed:0, loginRewards:0, lastLoginRewardDate:null,
@@ -420,7 +419,7 @@ function applyAvatar(){
   $('avatarImg').src=state.avatarDataUrl;$('avatarImg').style.display='block';$('avatarPlaceholder').style.display='none';
 }
 
-// ========== TIER SYSTEM LOGIC ==========
+// ========== TIER SYSTEM ==========
 function getCurrentTier(){
   const total=state.claimed;
   let tier=TIERS[0];
@@ -467,18 +466,20 @@ function openPetModal(petId){
 $('modalCloseBtn').onclick=()=>$('petModal').classList.remove('active');
 $('petModal').addEventListener('click',e=>{if(e.target===e.currentTarget)$('petModal').classList.remove('active');});
 
-// ========== AIRDROP SYSTEM – 30‑DAY SCHEDULED ==========
+// ========== AIRDROP SYSTEM ==========
 function updateAirdropUI(){
   const now=Date.now(), start=CONFIG.AIRDROP_START.getTime(), end=CONFIG.AIRDROP_END.getTime();
   let phase, cdTxt, eligible=false, prog=0;
   if(now<start){
-    phase='⏳ Countdown';const left=start‑now;
-    cdTxt=fmtTimeShort(left);prog=Math.max(0,Math.min(99,((now‑(start‑30*86400000))/(start‑(start‑30*86400000)))*100));
+    phase='⏳ Countdown';const left=start‑now;cdTxt=fmtTimeShort(left);
+    prog=Math.max(0,Math.min(99,((now‑(start‑30*86400000))/(start‑(start‑30*86400000)))*100));
   }else if(now>=start&&now<=end){
-    phase='🔥 LIVE!';const left=end‑now;cdTxt=fmtTimeShort(left);prog=Math.max(0,Math.min(100,((now‑start)/(end‑start))*100));
+    phase='🔥 LIVE!';const left=end‑now;cdTxt=fmtTimeShort(left);
+    prog=Math.max(0,Math.min(100,((now‑start)/(end‑start))*100));
     eligible=state.claimed>=CONFIG.AIRDROP_MIN_BAL&&!state.airdropClaimed;
   }else{
-    phase='✅ Ended';cdTxt='Campaign Finished';prog=100;eligible=!state.airdropClaimed&&state.claimed>=CONFIG.AIRDROP_MIN_BAL;
+    phase='✅ Ended';cdTxt='Campaign Finished';prog=100;
+    eligible=!state.airdropClaimed&&state.claimed>=CONFIG.AIRDROP_MIN_BAL;
   }
   $('airdropPhase').textContent=phase;$('airdropCd').textContent=cdTxt;
   $('airdropPct').textContent=prog.toFixed(1)+' %';$('airdropProg').style.width=prog+'%';
@@ -525,6 +526,53 @@ document.querySelectorAll('.nav‑tab').forEach(tab=>{
   });
 });
 
+// ========== SAVE & LOAD — PINAAYOS LAHAT KASAMA MINING ==========
+function saveUserData(){
+  localStorage.setItem('amt‑v2‑full',JSON.stringify({
+    ...state,
+    // Siguraduhing numero at hindi nawawala
+    mined:Number(state.mined||0),
+    claimed:Number(state.claimed||0),
+    lastMineAt:state.lastMineAt?Number(state.lastMineAt):null,
+    nextMine:state.nextMine?Number(state.nextMine):null,
+    isMining:Boolean(state.isMining),
+    loginRewards:Number(state.loginRewards||0),
+    airdropClaimed:Boolean(state.airdropClaimed)
+  }));
+}
+
+function loadUserData(){
+  const raw=localStorage.getItem('amt‑v2‑full');
+  if(!raw)return;
+  try{
+    const loaded=JSON.parse(raw);
+    // I‑balik lahat — at ituloy ang pagmimining kung hindi pa tapos
+    Object.assign(state,{
+      mined:0,claimed:0,loginRewards:0,
+      isMining:false,lastMineAt:null,nextMine:null,airdropClaimed:false
+    },loaded);
+
+    // ✅ KUNG MAY NATITIRANG ORAS — KALKULAHIN ULIT ANG "mined" PAGBALIK
+    if(state.isMining&&state.lastMineAt){
+      const elapsed=Date.now()‑state.lastMineAt;
+      if(elapsed>=CONFIG.DAY_MS){
+        state.mined=calcReward();
+        state.isMining=false;state.lastMineAt=null;
+      }else{
+        // I‑update ang halaga batay sa lumipas na oras
+        state.mined=(elapsed/CONFIG.DAY_MS)*calcReward();
+      }
+    }
+    // Siguraduhing laging numero
+    state.mined=Number(state.mined||0);
+    state.claimed=Number(state.claimed||0);
+    saveUserData();// I‑save ang inayos na halaga
+  }catch(e){
+    console.warn('Load reset:',e);
+    localStorage.removeItem('amt‑v2‑full');
+  }
+}
+
 // ========== LOGIN FLOW ==========
 $('btnPiLogin').addEventListener('click',async ()=>{
   updDebug();if(!window.Pi)return alert('⚠️ Please open inside Pi Browser app!');
@@ -546,61 +594,27 @@ $('btnDemoLogin').addEventListener('click',()=>{
   enterApp();
 });
 function enterApp(){
-  loadUserData();applyAvatar();
+  loadUserData();// ✅ BASAHIN MUNA LAHAT — kasama ang dating Mining progress
+  applyAvatar();
   checkAndGiveLoginReward();refreshAllUI();
   $('loginScreen').style.display='none';$('mainApp').classList.add('active');
   renderPetList();updateAirdropUI();
   airdropTimer=setInterval(updateAirdropUI,1000);
+  restoreMiningUI();// ✅ IBALIK ANG BUTTON AT STATUS — kung nagmimining ka noon
   loop();
 }
 
-// ========== MINING – NOW FULLY SAVE‑RESTORE EVERYTHING ==========
-$('btnMine').addEventListener('click',()=>{
-  if(state.nextMine&&Date.now()<state.nextMine)return alert('⏳ Cooling down—wait until reset please');
-  state.isMining=true;state.lastMineAt=Date.now();state.nextMine=null;
-  saveUserData();
-  $('btnMine').textContent='⛏️ Mining…';$('btnMine').disabled=true;
-  $('spinCore').style.animation='spin 3s linear infinite';
-  $('dispStat').textContent='🔄 Active';$('cdWrap').classList.add('hidden');
-});
-$('btnClaim').addEventListener('click',()=>{
-  if(state.mined<=0)return alert('⚠️ Nothing mined yet—keep going!');
-  state.claimed+=state.mined;state.mined=0;state.nextMine=Date.now()+CONFIG.DAY_MS;state.isMining=false;
-  alert(`✅ CLAIMED SUCCESS!\n+${state.mined.toFixed(4)} moved to Wallet\n⏱️ Ready again in exactly 24 hours`);
-  $('btnClaim').classList.add('hidden');$('btnMine').classList.remove('hidden');$('btnMine').disabled=true;
-  $('spinCore').style.animationPlayState='paused';$('dispStat').textContent='⏳ Waiting Reset';
-  saveUserData();refreshAllUI();
-});
-
-// ========== REFERRAL & CIRCLE ==========
-$('btnCopyRef').addEventListener('click',()=>navigator.clipboard.writeText(state.myRef).then(()=>alert(`✅ Copied:\n${state.myRef}`)));
-$('btnSetInviter').addEventListener('click',()=>{
-  const val=$('inviterRef').value.trim();if(!val)return alert('Please enter referral code/username first');
-  if(val===state.myRef)return alert('❌ Cannot use your own invite link!');
-  state.inviter=val;saveUserData();alert(`✅ Saved inviter: ${val}`);$('inviterRef').value='';
-});
-$('btnAddCircle').addEventListener('click',()=>{
-  const val=$('newCircleMember').value.trim();if(!val)return alert('Enter Pi username/referral');
-  if(state.circle.length>=3)return alert('⚠️ Circle Full—max 3 trusted contacts only');
-  if([state.myRef,...state.circle].includes(val))return alert('❌ Already added or cannot invite yourself!');
-  state.circle.push(val);saveUserData();refreshAllUI();alert(`✅ Added ${val}`);$('newCircleMember').value='';
-});
-
-// ========== MAIN UPDATE LOOP – PERSISTENT CALCULATION ==========
-function loop(){
-  const now=Date.now();
+// ✅ IBALIK ANG TAMANG BUTTON/UI PAGBALIK NG APP
+function restoreMiningUI(){
   if(state.isMining&&state.lastMineAt){
-    const dur=now‑state.lastMineAt;
-    if(dur>=CONFIG.DAY_MS){
-      state.isMining=false;state.mined=calcReward();
-      $('spinCore').style.animationPlayState='paused';
-      $('dispStat').textContent='🎉 Ready Claim';
-      $('btnMine').classList.add('hidden');$('btnClaim').classList.remove('hidden');
-    }else{
-      state.mined=(dur/CONFIG.DAY_MS)*calcReward();
-    }
-    saveUserData();
-  }
-  if(state.nextMine&&now<state.nextMine){
-    const left=state.nextMine‑now,pct=(left/CONFIG.DAY_MS)*100;
-    $('dispCdTime').textContent=fmtTime(left);$('dispCdBar').style.width=pct+'%';
+    $('btnMine').textContent='⛏️ Mining…';$('btnMine').disabled=true;
+    $('spinCore').style.animation='spin 3s linear infinite';
+    $('dispStat').textContent='🔄 Resumed';
+    $('btnMine').classList.remove('hidden');$('btnClaim').classList.add('hidden');
+  }else if(state.nextMine&&Date.now()<state.nextMine){
+    $('btnMine').disabled=true;$('btnMine').textContent='⏳ Cooling…';
+    $('dispStat').textContent='⏳ On Cooldown';
+  }else if(state.mined>0){
+    $('btnMine').classList.add('hidden');$('btnClaim').classList.remove('hidden');
+    $('spinCore').style.animationPlayState='paused';
+    $('
