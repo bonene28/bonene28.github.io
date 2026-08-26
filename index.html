@@ -1,502 +1,441 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMT Test‑Net | Alberto Marketplace Token</title>
-    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,Arial,sans-serif}
-        :root{
-            --prim:#6C5CE7; --sec:#00CEC9; --gold:#FDCB6E;
-            --dark:#2D3436; --grad:linear-gradient(135deg,var(--prim),var(--sec));
-            --pi:#74C04D; --test:#FF7043; --reward:#FFD700
-        }
-        body{
-            min-height:100vh;
-            background:linear-gradient(180deg,#1A1A2E,#16213E);
-            color:#fff;
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-            padding:1.2rem 1rem
-        }
-        .header{text-align:center;margin-bottom:1.5rem;max-width:420px;width:100%}
-        .logo{
-            width:78px;height:78px;border-radius:1.2rem;background:var(--grad);
-            display:flex;align-items:center;justify-content:center;
-            font-size:2.4rem;font-weight:900;margin:0 auto .7rem;
-            box-shadow:0 0 24px rgba(108,92,231,.4)
-        }
-        h1{font-size:1.5rem;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .sub{color:#B2B2C1;font-size:.88rem;margin-top:.2rem}
-        .testnet-badge{
-            display:inline-block;background:rgba(255,112,67,.18);color:#FFB74D;
-            border-radius:.5rem;padding:.25rem .7rem;font-size:.78rem;font-weight:600;
-            margin-top:.5rem;border:1px solid rgba(255,112,67,.35)
-        }
-        .card{
-            background:rgba(255,255,255,.06);border-radius:1.5rem;padding:1.6rem;
-            max-width:420px;width:100%;border:1px solid rgba(255,255,255,.08);
-            backdrop-filter:blur(12px);box-shadow:0 10px 35px rgba(0,0,0,.25)
-        }
-        .login-icon{font-size:3.8rem;margin-bottom:.8rem;text-align:center}
-        .pi-btn,.demo-btn{
-            border:none;border-radius:.85rem;padding:.9rem 1.4rem;
-            font-size:1rem;font-weight:600;color:#fff;
-            cursor:pointer;transition:.3s ease;width:100%
-        }
-        .pi-btn{background:linear-gradient(135deg,#74C04D,#5FAF3E);box-shadow:0 4px 12px rgba(116,192,77,.38)}
-        .demo-btn{background:linear-gradient(135deg,#6C5CE7,#4834d4);margin-top:.75rem}
-        button:hover{transform:translateY(-2px)}
-        button:disabled{opacity:.55;cursor:not-allowed;transform:none}
-        .main-app{display:none;max-width:420px;width:100%}
-        .main-app.active{display:block}
-        .nav-tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:.35rem;margin-bottom:1.3rem}
-        .nav-tab{
-            background:rgba(255,255,255,.06);border-radius:.7rem;padding:.5rem .25rem;
-            text-align:center;font-size:.7rem;cursor:pointer;transition:.25s ease;
-            border:1px solid transparent
-        }
-        .nav-tab.active{background:var(--grad);border-color:rgba(255,255,255,.15)}
-        .nav-tab.disabled{opacity:.45;cursor:not-allowed}
-        .nav-tab .icon{font-size:1.15rem;margin-bottom:.1rem}
-        .nav-tab .badge{background:#E17055;font-size:.58rem;padding:.08rem .2rem;border-radius:.6rem;margin-left:.15rem}
-        .core-wrap{display:flex;align-items:center;justify-content:center;margin:.8rem 0 1.6rem}
-        .mining-core{
-            width:140px;height:140px;border-radius:50%;
-            background:conic-gradient(from 0deg,var(--prim),var(--sec),var(--gold),var(--prim));
-            position:relative;animation:spin 3s linear infinite;
-            display:flex;align-items:center;justify-content:center;
-            filter:drop-shadow(0 0 12px rgba(108,92,231,.55))
-        }
-        .core-inner{
-            width:112px;height:112px;border-radius:50%;background:#16213E;
-            display:flex;flex-direction:column;align-items:center;justify-content:center;
-            animation:pulse 1.8s ease-in-out infinite alternate
-        }
-        .core-inner strong{font-size:1.2rem;color:var(--gold)}
-        .core-inner span{font-size:.68rem;color:#aaa;margin-top:.1rem}
-        .stat-row{display:flex;justify-content:space-between;padding:.75rem 0;border-bottom:1px dashed rgba(255,255,255,.12)}
-        .stat-row:last-child{border:none}
-        .stat-label{color:#B2B2C1;font-size:.85rem}
-        .stat-value{font-weight:700;font-size:.92rem;color:#fff}
-        .stat-value.highlight{color:var(--gold)}
-        .btn{
-            width:100%;border:none;border-radius:.85rem;padding:.85rem;
-            font-size:.98rem;font-weight:600;cursor:pointer;
-            transition:.3s ease;margin-top:1rem
-        }
-        .btn-primary{background:var(--grad);color:#fff;box-shadow:0 4px 12px rgba(108,92,231,.38)}
-        .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
-        .btn:hover:not(:disabled){transform:translateY(-2px)}
-        .btn-small{width:auto;padding:.55rem 1rem;font-size:.88rem;margin-top:.4rem}
-        .btn-pi{background:linear-gradient(135deg,#74C04D,#5FAF3E);color:#fff}
-        .cooldown-bar{width:100%;height:7px;background:rgba(255,255,255,.1);border-radius:3.5px;margin-top:.7rem;overflow:hidden}
-        .cooldown-fill{height:100%;background:var(--grad);border-radius:3.5px;transition:width 1s linear}
-        .user-bar{
-            background:rgba(116,192,77,.1);border-radius:.8rem;padding:.8rem;margin-bottom:1.2rem;
-            display:flex;align-items:center;gap:.9rem
-        }
-        .avatar{
-            width:56px;height:56px;border-radius:50%;overflow:hidden;position:relative;
-            border:2px solid transparent;background:var(--grad);flex-shrink:0;
-            cursor:pointer;transition:.25s ease
-        }
-        .avatar:hover{transform:scale(1.05);border-color:rgba(255,255,255,.3)}
-        .avatar img{width:100%;height:100%;object-fit:cover;display:block}
-        .avatar .placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.7rem;background:rgba(255,255,255,.08)}
-        .avatar-hint{
-            position:absolute;bottom:-2px;right:-2px;background:var(--grad);border-radius:50%;
-            width:20px;height:20px;display:flex;align-items:center;justify-content:center;
-            font-size:.7rem;border:2px solid #16213E;line-height:1;z-index:1
-        }
-        .user-info{flex:1;min-width:0}
-        .user-bar .uname{font-weight:600;color:var(--pi);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .user-bar .role{font-size:.78rem;color:#B2B2C1;margin-top:.1rem}
-        .user-bar .amt{font-weight:700;color:var(--gold);font-size:.98rem;text-align:right;white-space:nowrap}
-        .ref-box,.sc-box{background:rgba(255,255,255,.04);border-radius:.8rem;padding:.9rem;margin-top:.9rem;border:1px solid rgba(255,255,255,.06)}
-        .ref-code{font-family:monospace;background:rgba(0,0,0,.25);border-radius:.5rem;padding:.5rem .7rem;margin:.5rem 0;word-break:break-all;color:var(--sec);font-weight:600}
-        .circle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.7rem}
-        .circle-slot{aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px dashed rgba(255,255,255,.15)}
-        .circle-slot.active{background:rgba(116,192,77,.18);border-style:solid;border-color:rgba(116,192,77,.55)}
-        .coming-soon{text-align:center;padding:2.2rem 1rem;color:#B2B2C1}
-        .hidden{display:none !important}
-        .debug{background:rgba(255,0,0,.1);border-radius:.6rem;padding:.7rem;margin-bottom:1rem;font-size:.8rem;border:1px solid rgba(255,0,0,.3)}
-        .reward-note{
-            background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);
-            border-radius:.7rem;padding:.7rem .9rem;margin-bottom:1rem;color:#FFE066;
-            font-size:.9rem;line-height:1.5;animation:fadeIn .5s ease
-        }
-        @keyframes fadeIn{0%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:none}}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes pulse{from{box-shadow:inset 0 0 16px rgba(108,92,231,.32)}to{box-shadow:inset 0 0 24px rgba(0,206,201,.5)}}
-        input{
-            width:100%;padding:.7rem;border-radius:.6rem;border:1px solid #333;
-            background:rgba(255,255,255,.05);color:#fff;outline:none;margin-top:.4rem
-        }
-        #avatarInput{display:none}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMT Test-Net | Alberto Marketplace Token</title>
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,Arial,sans-serif}
+:root{
+  --prim:#6C5CE7; --sec:#00CEC9; --gold:#FDCB6E;
+  --dark:#2D3436; --grad:linear-gradient(135deg,var(--prim),var(--sec));
+  --pi:#74C04D; --test:#FF7043; --reward:#FFD700
+}
+body{
+  min-height:100vh;background:linear-gradient(180deg,#1A1A2E,#16213E);
+  color:#fff;display:flex;flex-direction:column;align-items:center;
+  padding:1.2rem 1rem
+}
+.header{text-align:center;margin-bottom:1.5rem;max-width:420px;width:100%}
+.logo{
+  width:78px;height:78px;border-radius:1.2rem;background:var(--grad);
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.4rem;font-weight:900;margin:0 auto .7rem;
+  box-shadow:0 0 24px rgba(108,92,231,.4)
+}
+h1{font-size:1.5rem;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:#B2B2C1;font-size:.88rem;margin-top:.2rem}
+.testnet-badge{
+  display:inline-block;background:rgba(255,112,67,.18);color:#FFB74D;
+  border-radius:.5rem;padding:.25rem .7rem;font-size:.78rem;font-weight:600;
+  margin-top:.5rem;border:1px solid rgba(255,112,67,.35)
+}
+.card{
+  background:rgba(255,255,255,.06);border-radius:1.5rem;padding:1.6rem;
+  max-width:420px;width:100%;border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(12px);box-shadow:0 10px 35px rgba(0,0,0,.25)
+}
+.login-icon{font-size:3.8rem;margin-bottom:.8rem;text-align:center}
+.pi-btn,.demo-btn{
+  border:none;border-radius:.85rem;padding:.9rem 1.4rem;
+  font-size:1rem;font-weight:600;color:#fff;cursor:pointer;
+  transition:.3s ease;width:100%
+}
+.pi-btn{background:linear-gradient(135deg,#74C04D,#5FAF3E);box-shadow:0 4px 12px rgba(116,192,77,.38)}
+.demo-btn{background:linear-gradient(135deg,#6C5CE7,#4834d4);margin-top:.75rem}
+button:hover{transform:translateY(-2px)}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.main-app{display:none;max-width:420px;width:100%}
+.main-app.active{display:block}
+.nav-tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:.35rem;margin-bottom:1.3rem}
+.nav-tab{
+  background:rgba(255,255,255,.06);border-radius:.7rem;padding:.5rem .25rem;
+  text-align:center;font-size:.7rem;cursor:pointer;transition:.25s ease;
+  border:1px solid transparent
+}
+.nav-tab.active{background:var(--grad);border-color:rgba(255,255,255,.15)}
+.nav-tab.disabled{opacity:.45;cursor:not-allowed}
+.nav-tab .icon{font-size:1.15rem;margin-bottom:.1rem}
+.nav-tab .badge{background:#E17055;font-size:.58rem;padding:.08rem .2rem;border-radius:.6rem;margin-left:.15rem}
+.core-wrap{display:flex;align-items:center;justify-content:center;margin:.8rem 0 1.6rem}
+.mining-core{
+  width:140px;height:140px;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--prim),var(--sec),var(--gold),var(--prim));
+  position:relative;animation:spin 3s linear infinite;
+  display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 0 12px rgba(108,92,231,.55))
+}
+.core-inner{
+  width:112px;height:112px;border-radius:50%;background:#16213E;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  animation:pulse 1.8s ease-in-out infinite alternate
+}
+.core-inner strong{font-size:1.2rem;color:var(--gold)}
+.core-inner span{font-size:.68rem;color:#aaa;margin-top:.1rem}
+.stat-row{display:flex;justify-content:space-between;padding:.75rem 0;border-bottom:1px dashed rgba(255,255,255,.12)}
+.stat-row:last-child{border:none}
+.stat-label{color:#B2B2C1;font-size:.85rem}
+.stat-value{font-weight:700;font-size:.92rem;color:#fff}
+.stat-value.highlight{color:var(--gold)}
+.btn{
+  width:100%;border:none;border-radius:.85rem;padding:.85rem;
+  font-size:.98rem;font-weight:600;cursor:pointer;
+  transition:.3s ease;margin-top:1rem
+}
+.btn-primary{background:var(--grad);color:#fff;box-shadow:0 4px 12px rgba(108,92,231,.38)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn:hover:not(:disabled){transform:translateY(-2px)}
+.btn-small{width:auto;padding:.55rem 1rem;font-size:.88rem;margin-top:.4rem}
+.btn-pi{background:linear-gradient(135deg,#74C04D,#5FAF3E);color:#fff}
+.cooldown-bar{width:100%;height:7px;background:rgba(255,255,255,.1);border-radius:3.5px;margin-top:.7rem;overflow:hidden}
+.cooldown-fill{height:100%;background:var(--grad);border-radius:3.5px;transition:width 1s linear}
+.user-bar{
+  background:rgba(116,192,77,.1);border-radius:.8rem;padding:.8rem;margin-bottom:1.2rem;
+  display:flex;align-items:center;gap:.9rem
+}
+.avatar{
+  width:56px;height:56px;border-radius:50%;overflow:hidden;position:relative;
+  border:2px solid transparent;background:var(--grad);flex-shrink:0;
+  cursor:pointer;transition:.25s ease
+}
+.avatar:hover{transform:scale(1.05);border-color:rgba(255,255,255,.3)}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar .placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.7rem;background:rgba(255,255,255,.08)}
+.avatar-hint{
+  position:absolute;bottom:-2px;right:-2px;background:var(--grad);border-radius:50%;
+  width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;border:2px solid #16213E;line-height:1;z-index:1
+}
+.user-info{flex:1;min-width:0}
+.user-bar .uname{font-weight:600;color:var(--pi);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-bar .role{font-size:.78rem;color:#B2B2C1;margin-top:.1rem}
+.user-bar .amt{font-weight:700;color:var(--gold);font-size:.98rem;text-align:right;white-space:nowrap}
+.ref-box,.sc-box{background:rgba(255,255,255,.04);border-radius:.8rem;padding:.9rem;margin-top:.9rem;border:1px solid rgba(255,255,255,.06)}
+.ref-code{font-family:monospace;background:rgba(0,0,0,.25);border-radius:.5rem;padding:.5rem .7rem;margin:.5rem 0;word-break:break-all;color:var(--sec);font-weight:600}
+.circle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.7rem}
+.circle-slot{aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px dashed rgba(255,255,255,.15)}
+.circle-slot.active{background:rgba(116,192,77,.18);border-style:solid;border-color:rgba(116,192,77,.55)}
+.coming-soon{text-align:center;padding:2.2rem 1rem;color:#B2B2C1}
+.hidden{display:none !important}
+.debug{background:rgba(255,0,0,.1);border-radius:.6rem;padding:.7rem;margin-bottom:1rem;font-size:.8rem;border:1px solid rgba(255,0,0,.3)}
+.reward-note{
+  background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);
+  border-radius:.7rem;padding:.7rem .9rem;margin-bottom:1rem;color:#FFE066;
+  font-size:.9rem;line-height:1.5;animation:fadeIn .5s ease
+}
+@keyframes fadeIn{0%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{from{box-shadow:inset 0 0 16px rgba(108,92,231,.32)}to{box-shadow:inset 0 0 24px rgba(0,206,201,.5)}}
+input{
+  width:100%;padding:.7rem;border-radius:.6rem;border:1px solid #333;
+  background:rgba(255,255,255,.05);color:#fff;outline:none;margin-top:.4rem
+}
+#avatarInput{display:none}
+</style>
 </head>
 <body>
-    <header class="header">
-        <div class="logo">AMT</div>
-        <h1>Alberto Marketplace Token</h1>
-        <p class="sub">Ecosystem Mining • amt-mining-core-v3.5</p>
-        <span class="testnet-badge">🧪 TEST-NET MODE</span>
-    </header>
+<header class="header">
+  <div class="logo">AMT</div>
+  <h1>Alberto Marketplace Token</h1>
+  <p class="sub">Ecosystem Mining • amt-mining-core-v3.5</p>
+  <span class="testnet-badge">TEST-NET MODE</span>
+</header>
 
-    <div class="card" id="loginScreen">
-        <div class="login-icon">🥧</div>
-        <h2 style="margin-bottom:.4rem;text-align:center">Welcome Pioneer</h2>
-        <div id="debugInfo" class="debug">
-            <strong>🔍 Status:</strong> Checking…<br>
-            <span id="dbgBrowser">Browser: —</span><br>
-            <span id="dbgSdk">SDK: —</span>
-        </div>
-        <p style="color:#B2B2C1;margin-bottom:1.4rem;font-size:.9rem;text-align:center">
-            ✅ Gamitin LAMANG ang Pi Browser para totoong login<br>
-            🧪 Kung nag-aayos pa — pindutin ang Demo Login
-        </p>
-        <button class="pi-btn" id="btnPiLogin">🔓 Sign-in with Pi Network</button>
-        <button class="demo-btn" id="btnDemoLogin">🧪 Try Demo / Manual Login</button>
-        <div style="margin-top:1.2rem;text-align:left">
-            <label style="font-size:.85rem;color:#B2B2C1">Have Referral Code? (Pi-username)</label>
-            <input id="refInput" placeholder="@alberto_pi or abc-xyz-123">
-        </div>
+<div class="card" id="loginScreen">
+  <div class="login-icon">🥧</div>
+  <h2 style="margin-bottom:.4rem;text-align:center">Welcome Pioneer</h2>
+  <div id="debugInfo" class="debug">
+    <strong>Status:</strong> Checking...<br>
+    <span id="dbgBrowser">Browser: —</span><br>
+    <span id="dbgSdk">SDK: —</span>
+  </div>
+  <p style="color:#B2B2C1;margin-bottom:1.4rem;font-size:.9rem;text-align:center">
+    Use Pi Browser only for real login<br>
+    Still fixing? Press Demo Login
+  </p>
+  <button class="pi-btn" id="btnPiLogin">Sign-in with Pi Network</button>
+  <button class="demo-btn" id="btnDemoLogin">Try Demo / Manual Login</button>
+  <div style="margin-top:1.2rem;text-align:left">
+    <label style="font-size:.85rem;color:#B2B2C1">Have Referral Code? (Pi-username)</label>
+    <input id="refInput" placeholder="@alberto_pi or abc-xyz-123">
+  </div>
+</div>
+
+<div class="main-app" id="mainApp">
+  <div id="rewardBanner" class="reward-note hidden">
+    Daily Login Reward!<br>
+    +<span id="rewardAmt">10.0000</span> AMT added to wallet
+  </div>
+
+  <div class="user-bar">
+    <div class="avatar" id="avatarWrap" title="Click upload profile">
+      <div class="placeholder" id="avatarPlaceholder">👤</div>
+      <img id="avatarImg" alt="Profile" style="display:none">
+      <div class="avatar-hint">✏️</div>
     </div>
-
-    <div class="main-app" id="mainApp">
-        <div id="rewardBanner" class="reward-note hidden">
-            🎁 <strong>Welcome / Daily Login Reward!</strong><br>
-            ✅ +<span id="rewardAmt">10.0000</span> AMT added successfully to your wallet
-        </div>
-
-        <div class="user-bar">
-            <div class="avatar" id="avatarWrap" title="📸 Pindot mag-upload ng profile picture">
-                <div class="placeholder" id="avatarPlaceholder">👤</div>
-                <img id="avatarImg" alt="Profile" style="display:none">
-                <div class="avatar-hint">✏️</div>
-            </div>
-            <input type="file" accept="image/*" id="avatarInput">
-            <div class="user-info">
-                <span class="uname" id="dispUser">@pioneer</span>
-                <span class="role" id="connStatus">🟢 Connected</span>
-            </div>
-            <div class="amt" id="dispBal">0.0000 AMT</div>
-        </div>
-
-        <div class="nav-tabs">
-            <div class="nav-tab active" data-tab="mining"><div class="icon">⛏️</div><div>Mine</div></div>
-            <div class="nav-tab" data-tab="referral"><div class="icon">👥</div><div>Referrals</div></div>
-            <div class="nav-tab" data-tab="circle"><div class="icon">🛡️</div><div>Circle</div></div>
-            <div class="nav-tab" data-tab="wallet"><div class="icon">👛</div><div>Wallet</div></div>
-            <div class="nav-tab disabled" data-tab="swap"><div class="icon">🔄</div><div>Swap</div><span class="badge">Soon</span></div>
-            <div class="nav-tab disabled" data-tab="market"><div class="icon">🏪</div><div>Shop</div><span class="badge">Soon</span></div>
-        </div>
-
-        <div class="tab-content" id="tabMining">
-            <div class="card">
-                <div class="core-wrap">
-                    <div class="mining-core" id="spinCore">
-                        <div class="core-inner">
-                            <strong id="dispMine">0.0000</strong>
-                            <span>AMT EARNED</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="stats">
-                    <div class="stat-row"><span class="stat-label">Total Supply</span><span class="stat-value">25,000,000 AMT</span></div>
-                    <div class="stat-row"><span class="stat-label">Base Hash-Rate</span><span class="stat-value hash">1,250 – 1,500 H/s</span></div>
-                    <div class="stat-row"><span class="stat-label">Daily Mining</span><span class="stat-value highlight">+0.08 AMT / 24-hour Cycle</span></div>
-                    <div class="stat-row"><span class="stat-label">Referral Bonus</span><span class="stat-value highlight" id="dispRefBonus">+0 %</span></div>
-                    <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" id="dispStat">🔴 Ready</span></div>
-                </div>
-                <div id="cdWrap" class="hidden">
-                    <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-top:.9rem">
-                        <span style="color:#B2B2C1">Next Mining In</span>
-                        <span style="color:var(--gold)" id="dispCdTime">23:59:59</span>
-                    </div>
-                    <div class="cooldown-bar"><div class="cooldown-fill" id="dispCdBar" style="width:100%"></div></div>
-                </div>
-                <button class="btn btn-primary" id="btnMine">⛏️ Start Mining</button>
-                <button class="btn btn-pi hidden" id="btnClaim">🎁 Claim & Mine Again</button>
-            </div>
-        </div>
-
-        <div class="tab-content hidden" id="tabReferral">
-            <div class="card">
-                <h3 style="text-align:center;margin-bottom:.3rem">👥 Your Referral Hub</h3>
-                <p style="color:#B2B2C1;text-align:center;font-size:.85rem;margin-bottom:1rem">Same Pi username/code identity</p>
-                <div class="stat-row"><span class="stat-label">Your Referral Code</span><div class="ref-code" id="myRefCode">—</div></div>
-                <button class="btn btn-small btn-pi" style="width:100%" id="btnCopyRef">📋 Copy Referral Code</button>
-                <div class="stat-row" style="margin-top:.6rem"><span class="stat-label">Total Invited</span><span class="stat-value highlight" id="refCount">0 Pioneers</span></div>
-                <div class="ref-box">
-                    <strong>✅ Enter Referral</strong>
-                    <p style="font-size:.8rem;color:#aaa;margin:.3rem 0 .6rem">If invited — enter their Pi username/code</p>
-                    <input id="inviterRef" placeholder="@username or referral-code-here">
-                    <button class="btn btn-small btn-primary" style="width:100%;margin-top:.5rem" id="btnSetInviter">✅ Save Inviter</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content hidden" id="tabCircle">
-            <div class="card">
-                <h3 style="text-align:center;margin-bottom:.3rem">🛡️ Security Circle</h3>
-                <p style="color:#B2B2C1;text-align:center;font-size:.85rem;margin-bottom:1rem">Up to 3 trusted Pioneers</p>
-                <div class="stat-row"><span class="stat-label">Circle Strength</span><span class="stat-value highlight" id="circlePct">0 / 3 Slots</span></div>
-                <div class="stat-row"><span class="stat-label">Circle Bonus</span><span class="stat-value highlight" id="circleBonus">+0 % Mining Boost</span></div>
-                <div class="circle-grid" id="circleSlots">
-                    <div class="circle-slot">➕</div><div class="circle-slot">➕</div><div class="circle-slot">➕</div>
-                </div>
-                <div class="sc-box">
-                    <strong>🔗 Add Trusted Contact</strong>
-                    <p style="font-size:.8rem;color:#aaa;margin:.3rem 0 .6rem">Pi username / referral code</p>
-                    <input id="newCircleMember" placeholder="@trusted_person">
-                    <button class="btn btn-small btn-pi" style="width:100%;margin-top:.5rem" id="btnAddCircle">➕ Add to Circle</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content hidden" id="tabWallet">
-            <div class="card">
-                <h3 style="text-align:center;margin-bottom:1.2rem">👛 AMT Wallet</h3>
-                <div class="stat-row"><span class="stat-label">Total Balance</span><span class="stat-value highlight" id="wallBal">0.0000 AMT</span></div>
-                <div class="stat-row"><span class="stat-label">Claimed / Available</span><span class="stat-value" id="wallClaimed">0.0000 AMT</span></div>
-                <div class="stat-row"><span class="stat-label">Login-Rewards Earned</span><span class="stat-value" id="wallRewards">0.0000 AMT</span></div>
-                <div class="stat-row"><span class="stat-label">Network</span><span class="stat-value" style="color:var(--test)">🧪 Alberto Test-Net v1</span></div>
-                <p style="text-align:center;color:#777;margin-top:1rem;font-size:.8rem">Tokens reset before Main-Net launch</p>
-            </div>
-        </div>
-
-        <div class="tab-content hidden" id="tabSwap"><div class="card"><div class="coming-soon"><div class="icon">🔄</div><h3>Swap Coming Soon</h3></div></div></div>
-        <div class="tab-content hidden" id="tabMarket"><div class="card"><div class="coming-soon"><div class="icon">🏪</div><h3>Marketplace Coming Soon</h3></div></div></div>
+    <input type="file" accept="image/*" id="avatarInput">
+    <div class="user-info">
+      <span class="uname" id="dispUser">@pioneer</span>
+      <span class="role" id="connStatus">Connected</span>
     </div>
+    <div class="amt" id="dispBal">0.0000 AMT</div>
+  </div>
 
-    <script>
-        // === AMT TEST-NET MINER v3.5 FIXED — 10AMT REWARD & CLEAN CODE ===
-        const YOUR_APP_ID = "alberto-marketplace-token";
-        const DAY_MS = 24 * 60 * 60 * 1000;
-        const BASE_RATE = 0.08;
-        const REF_BONUS = 0.05;
-        const CIRCLE_BONUS = 0.04;
-        const DAILY_LOGIN_REWARD = 10;
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-tab="mining"><div class="icon">⛏️</div><div>Mine</div></div>
+    <div class="nav-tab" data-tab="referral"><div class="icon">👥</div><div>Referrals</div></div>
+    <div class="nav-tab" data-tab="circle"><div class="icon">🛡️</div><div>Circle</div></div>
+    <div class="nav-tab" data-tab="wallet"><div class="icon">👛</div><div>Wallet</div></div>
+    <div class="nav-tab disabled" data-tab="swap"><div class="icon">🔄</div><div>Swap</div><span class="badge">Soon</span></div>
+    <div class="nav-tab disabled" data-tab="market"><div class="icon">🏪</div><div>Shop</div><span class="badge">Soon</span></div>
+  </div>
 
-        let state = {
-            me: null, myRef: '', inviter: '', referrals: [], circle: [],
-            mined: 0, claimed: 0, loginRewards: 0, lastLoginRewardDate: null,
-            lastMineAt: null, nextMine: null, isMining: false,
-            avatarDataUrl: ''
-        };
-        const $ = id => document.getElementById(id);
-        let isPiReady = false;
+  <div class="tab-content" id="tabMining">
+    <div class="card">
+      <div class="core-wrap">
+        <div class="mining-core" id="spinCore">
+          <div class="core-inner">
+            <strong id="dispMine">0.0000</strong>
+            <span>AMT EARNED</span>
+          </div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat-row"><span class="stat-label">Total Supply</span><span class="stat-value">25000000 AMT</span></div>
+        <div class="stat-row"><span class="stat-label">Base Hash-Rate</span><span class="stat-value hash">1250-1500 H/s</span></div>
+        <div class="stat-row"><span class="stat-label">Daily Mining</span><span class="stat-value highlight">+0.08 AMT / 24hr</span></div>
+        <div class="stat-row"><span class="stat-label">Referral Bonus</span><span class="stat-value highlight" id="dispRefBonus">+0 %</span></div>
+        <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" id="dispStat">Ready</span></div>
+      </div>
+      <div id="cdWrap" class="hidden">
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-top:.9rem">
+          <span style="color:#B2B2C1">Next Mining In</span>
+          <span style="color:var(--gold)" id="dispCdTime">23:59:59</span>
+        </div>
+        <div class="cooldown-bar"><div class="cooldown-fill" id="dispCdBar" style="width:100%"></div></div>
+      </div>
+      <button class="btn btn-primary" id="btnMine">Start Mining</button>
+      <button class="btn btn-pi hidden" id="btnClaim">Claim & Mine Again</button>
+    </div>
+  </div>
 
-        function updDebug(){
-            const isPiBrowser = /PiBrowser/.test(navigator.userAgent);
-            $('dbgBrowser').textContent = `Browser: ${isPiBrowser?'✅ Pi Browser':'❌ HINDI Pi Browser — Demo lang gagana'}`;
-            $('dbgSdk').textContent = `SDK: ${window.Pi?'✅ Nakaload':'❌ WALA — buksan sa Pi Browser'}`;
-        }
-        updDebug();
+  <div class="tab-content hidden" id="tabReferral">
+    <div class="card">
+      <h3 style="text-align:center;margin-bottom:.3rem">Referral Hub</h3>
+      <p style="color:#B2B2C1;text-align:center;font-size:.85rem;margin-bottom:1rem">Same Pi username identity</p>
+      <div class="stat-row"><span class="stat-label">Your Referral Code</span><div class="ref-code" id="myRefCode">—</div></div>
+      <button class="btn btn-small btn-pi" style="width:100%" id="btnCopyRef">Copy Referral Code</button>
+      <div class="stat-row" style="margin-top:.6rem"><span class="stat-label">Total Invited</span><span class="stat-value highlight" id="refCount">0 Pioneers</span></div>
+      <div class="ref-box">
+        <strong>Enter Referral</strong>
+        <p style="font-size:.8rem;color:#aaa;margin:.3rem 0 .6rem">If invited enter their Pi username/code</p>
+        <input id="inviterRef" placeholder="@username or referral-code-here">
+        <button class="btn btn-small btn-primary" style="width:100%;margin-top:.5rem" id="btnSetInviter">Save Inviter</button>
+      </div>
+    </div>
+  </div>
 
-        $('avatarWrap').addEventListener('click', ()=> $('avatarInput').click());
-        $('avatarInput').addEventListener('change', e=>{
-            const file = e.target.files?.[0];
-            if(!file) return;
-            if(!file.type.startsWith('image/')) return alert('❌ Larawan lang pwede!');
-            const reader = new FileReader();
-            reader.onload = evt=>{
-                state.avatarDataUrl = evt.target.result;
-                applyAvatar();
-                saveUserData();
-            };
-            reader.readAsDataURL(file);
-        });
-        function applyAvatar(){
-            if(!state.avatarDataUrl){
-                $('avatarImg').style.display = 'none';
-                $('avatarPlaceholder').style.display = 'flex';
-                return;
-            }
-            $('avatarImg').src = state.avatarDataUrl;
-            $('avatarImg').style.display = 'block';
-            $('avatarPlaceholder').style.display = 'none';
-        }
+  <div class="tab-content hidden" id="tabCircle">
+    <div class="card">
+      <h3 style="text-align:center;margin-bottom:.3rem">Security Circle</h3>
+      <p style="color:#B2B2C1;text-align:center;font-size:.85rem;margin-bottom:1rem">Up to 3 trusted Pioneers</p>
+      <div class="stat-row"><span class="stat-label">Circle Strength</span><span class="stat-value highlight" id="circlePct">0 / 3 Slots</span></div>
+      <div class="stat-row"><span class="stat-label">Circle Bonus</span><span class="stat-value highlight" id="circleBonus">+0 % Mining Boost</span></div>
+      <div class="circle-grid" id="circleSlots">
+        <div class="circle-slot">+</div><div class="circle-slot">+</div><div class="circle-slot">+</div>
+      </div>
+      <div class="sc-box">
+        <strong>Add Trusted Contact</strong>
+        <p style="font-size:.8rem;color:#aaa;margin:.3rem 0 .6rem">Pi username / referral code</p>
+        <input id="newCircleMember" placeholder="@trusted_person">
+        <button class="btn btn-small btn-pi" style="width:100%;margin-top:.5rem" id="btnAddCircle">Add to Circle</button>
+      </div>
+    </div>
+  </div>
 
-        function checkAndGiveLoginReward(){
-            const todayStr = new Date().toDateString();
-            if(state.lastLoginRewardDate !== todayStr){
-                state.claimed += DAILY_LOGIN_REWARD;
-                state.loginRewards += DAILY_LOGIN_REWARD;
-                state.lastLoginRewardDate = todayStr;
-                saveUserData();
-                $('rewardAmt').textContent = DAILY_LOGIN_REWARD.toFixed(4);
-                $('rewardBanner').classList.remove('hidden');
-                setTimeout(()=> $('rewardBanner').classList.add('hidden'), 8000);
-                return true;
-            }
-            return false;
-        }
+  <div class="tab-content hidden" id="tabWallet">
+    <div class="card">
+      <h3 style="text-align:center;margin-bottom:1.2rem">AMT Wallet</h3>
+      <div class="stat-row"><span class="stat-label">Total Balance</span><span class="stat-value highlight" id="wallBal">0.0000 AMT</span></div>
+      <div class="stat-row"><span class="stat-label">Claimed / Available</span><span class="stat-value" id="wallClaimed">0.0000 AMT</span></div>
+      <div class="stat-row"><span class="stat-label">Login-Rewards Earned</span><span class="stat-value" id="wallRewards">0.0000 AMT</span></div>
+      <div class="stat-row"><span class="stat-label">Network</span><span class="stat-value" style="color:var(--test)">Alberto Test-Net v1</span></div>
+      <p style="text-align:center;color:#777;margin-top:1rem;font-size:.8rem">Reset before Main-Net launch</p>
+    </div>
+  </div>
 
-        async function initPiSDK() {
-            if(!window.Pi){ console.log('⚠️ Demo mode only'); return false; }
-            try{
-                await Pi.init({ version:'2.0', appId: YOUR_APP_ID, sandbox:true });
-                isPiReady = true; $('connStatus').textContent = '🟢 Pi SDK Ready';
-                return true;
-            }catch(err){ console.error('❌ SDK Error:', err); return false; }
-        }
-        initPiSDK();
+  <div class="tab-content hidden" id="tabSwap"><div class="card"><div class="coming-soon"><div class="icon">🔄</div><h3>Swap Coming Soon</h3></div></div></div>
+  <div class="tab-content hidden" id="tabMarket"><div class="card"><div class="coming-soon"><div class="icon">🏪</div><h3>Marketplace Coming Soon</h3></div></div></div>
+</div>
 
-        document.querySelectorAll('.nav-tab').forEach(tab=>{
-            tab.addEventListener('click', ()=>{
-                document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
-                tab.classList.add('active');
-                $(`tab${tab.dataset.tab[0].toUpperCase()+tab.dataset.tab.slice(1)}`).classList.remove('hidden');
-            });
-        });
+<script>
+const YOUR_APP_ID = "alberto-marketplace-token";
+const DAY_MS = 24*60*60*1000;
+const BASE_RATE = 0.08;
+const REF_BONUS = 0.05;
+const CIRCLE_BONUS = 0.04;
+const DAILY_LOGIN_REWARD = 10;
 
-        $('btnPiLogin').addEventListener('click', async ()=>{
-            updDebug();
-            if(!window.Pi) return alert('❌ Buksan sa LOOB NG PI BROWSER!');
-            if(!isPiReady) return alert('⏳ Hinihintay ang SDK…');
-            $('btnPiLogin').disabled = true; $('btnPiLogin').textContent = '🔄 Nagpapatotoo…';
-            try{
-                const auth = await Pi.authenticate(['username', 'wallet_address']);
-                if(!auth?.user) throw new Error('Walang user data — pahintulutan ang username');
-                state.me = { uid: auth.user.uid, username: '@'+auth.user.username, wallet: auth.user.wallet_address };
-                state.myRef = state.me.username;
-                const ref = $('refInput').value.trim();
-                if(ref && ref !== state.myRef) state.inviter = ref;
-                enterApp();
-            }catch(err){
-                console.error(err);
-                alert(`❌ Hindi makapasok: ${err.message}`);
-            }finally{ $('btnPiLogin').disabled = false; $('btnPiLogin').textContent = '🔓 Sign-in with Pi Network'; }
-        });
+let state = {
+  me:null,myRef:'',inviter:'',referrals:[],circle:[],
+  mined:0,claimed:0,loginRewards:0,lastLoginRewardDate:null,
+  lastMineAt:null,nextMine:null,isMining:false,avatarDataUrl:''
+};
+const $=id=>document.getElementById(id);
+let isPiReady=false;
 
-        $('btnDemoLogin').addEventListener('click', ()=>{
-            const name = 'pioneer_'+Math.random().toString(36).slice(2,8);
-            state.me = { uid:'demo_'+Date.now(), username:'@'+name, wallet:'demo_wallet_addr' };
-            state.myRef = state.me.username;
-            const ref = $('refInput').value.trim(); if(ref) state.inviter = ref;
-            enterApp();
-        });
+function updDebug(){
+  const isPiBrowser=/PiBrowser/.test(navigator.userAgent);
+  $('dbgBrowser').textContent=`Browser: ${isPiBrowser?'Pi Browser':'NOT Pi Browser - Demo only'}`;
+  $('dbgSdk').textContent=`SDK: ${window.Pi?'Loaded':'Missing - open in Pi Browser'}`;
+}
+updDebug();
 
-        function enterApp(){
-            loadUserData();
-            applyAvatar();
-            checkAndGiveLoginReward();
-            refreshAllUI();
-            $('loginScreen').style.display='none';
-            $('mainApp').classList.add('active');
-            loop();
-        }
+$('avatarWrap').addEventListener('click',()=>$('avatarInput').click());
+$('avatarInput').addEventListener('change',e=>{
+  const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith('image/'))return alert('Images only!');
+  const r=new FileReader();r.onload=ev=>{state.avatarDataUrl=ev.target.result;applyAvatar();saveUserData();};r.readAsDataURL(f);
+});
+function applyAvatar(){
+  if(!state.avatarDataUrl){$('avatarImg').style.display='none';$('avatarPlaceholder').style.display='flex';return;}
+  $('avatarImg').src=state.avatarDataUrl;$('avatarImg').style.display='block';$('avatarPlaceholder').style.display='none';
+}
 
-        $('btnMine').addEventListener('click', ()=>{
-            if(state.nextMine && Date.now() < state.nextMine) return;
-            state.isMining = true; state.lastMineAt = Date.now(); state.nextMine = null;
-            $('btnMine').textContent='⛏️ Mining…'; $('btnMine').disabled=true;
-            $('spinCore').style.animation='spin 3s linear infinite';
-            $('dispStat').textContent='🟢 Active'; $('cdWrap').classList.add('hidden');
-            saveUserData();
-        });
+function checkAndGiveLoginReward(){
+  const today=new Date().toDateString();
+  if(state.lastLoginRewardDate!==today){
+    state.claimed+=DAILY_LOGIN_REWARD;state.loginRewards+=DAILY_LOGIN_REWARD;
+    state.lastLoginRewardDate=today;saveUserData();
+    $('rewardAmt').textContent=DAILY_LOGIN_REWARD.toFixed(4);
+    $('rewardBanner').classList.remove('hidden');
+    setTimeout(()=>$('rewardBanner').classList.add('hidden'),8000);
+    return true;
+  }
+  return false;
+}
 
-        $('btnClaim').addEventListener('click', ()=>{
-            if(state.mined<=0) return alert('Wala pang makukuha!');
-            state.claimed += state.mined; state.mined = 0;
-            state.nextMine = Date.now()+DAY_MS;
-            alert(`✅ Claimed!\n💰 Balance: ${state.claimed.toFixed(4)} AMT\n⏰ Magagamit ulit pagkalipas ng 24 oras`);
-            $('btnClaim').classList.add('hidden'); $('btnMine').classList.remove('hidden');
-            $('btnMine').disabled = true;
-            saveUserData(); refreshAllUI();
-        });
+async function initPiSDK(){
+  if(!window.Pi){console.log('Demo mode only');return false;}
+  try{await Pi.init({version:'2.0',appId:YOUR_APP_ID,sandbox:true});isPiReady=true;$('connStatus').textContent='Pi SDK Ready';return true;}
+  catch(err){console.error('SDK Error:',err);return false;}
+}
+initPiSDK();
 
-        $('btnCopyRef').addEventListener('click', ()=>{
-            navigator.clipboard.writeText(state.myRef).then(()=>alert('✅ Nakopya: '+state.myRef));
-        });
-        $('btnSetInviter').addEventListener('click', ()=>{
-            const val=$('inviterRef').value.trim();
-            if(!val) return alert('Ilagay ang referral code');
-            if(val===state.myRef) return alert('Hindi pwede sarili mong code!');
-            state.inviter=val; saveUserData(); alert('✅ Nakatala ang nag-imbita: '+val);
-            $('inviterRef').value='';
-        });
+document.querySelectorAll('.nav-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
+    tab.classList.add('active');
+    $(`tab${tab.dataset.tab[0].toUpperCase()+tab.dataset.tab.slice(1)}`).classList.remove('hidden');
+  });
+});
 
-        $('btnAddCircle').addEventListener('click', ()=>{
-            const val=$('newCircleMember').value.trim();
-            if(!val) return alert('Ilagay ang Pi username/code');
-            if(state.circle.length>=3) return alert('Puno na ang Circle — hanggang 3 tao lang');
-            if([state.myRef,...state.circle].includes(val)) return alert('Nakasulat na o ikaw ito!');
-            state.circle.push(val); saveUserData(); refreshAllUI();
-            $('newCircleMember').value='';
-        });
+$('btnPiLogin').addEventListener('click',async ()=>{
+  updDebug();if(!window.Pi)return alert('Open INSIDE Pi Browser!');
+  if(!isPiReady)return alert('Waiting SDK...');
+  $('btnPiLogin').disabled=true;$('btnPiLogin').textContent='Authenticating...';
+  try{
+    const auth=await Pi.authenticate(['username','wallet_address']);
+    if(!auth?.user)throw new Error('No user info - allow username');
+    state.me={uid:auth.user.uid,username:'@'+auth.user.username,wallet:auth.user.wallet_address};
+    state.myRef=state.me.username;const ref=$('refInput').value.trim();if(ref&&ref!==state.myRef)state.inviter=ref;
+    enterApp();
+  }catch(err){console.error(err);alert(`Login failed: ${err.message}`);}
+  finally{$('btnPiLogin').disabled=false;$('btnPiLogin').textContent='Sign-in with Pi Network';}
+});
 
-        function loop(){
-            const now=Date.now();
-            if(state.isMining && state.lastMineAt){
-                const dur=now-state.lastMineAt;
-                if(dur>=DAY_MS){
-                    state.isMining=false; state.mined=calcReward();
-                    $('spinCore').style.animationPlayState='paused';
-                    $('dispStat').textContent='✅ Ready to Claim';
-                    $('btnMine').classList.add('hidden'); $('btnClaim').classList.remove('hidden');
-                }else state.mined=(dur/DAY_MS)*calcReward();
-            }
-            if(state.nextMine && now<state.nextMine){
-                const left=state.nextMine-now, pct=(left/DAY_MS)*100;
-                $('dispCdTime').textContent=fmtTime(left);
-                $('dispCdBar').style.width=pct+'%';
-                $('dispStat').textContent='⏰ Cooling';
-                $('cdWrap').classList.remove('hidden');
-                $('btnMine').disabled=true; $('btnMine').textContent='⏰ Maghintay…';
-            }else if(state.nextMine && now>=state.nextMine){
-                state.nextMine=null; $('cdWrap').classList.add('hidden');
-                $('btnMine').disabled=false; $('btnMine').textContent='⛏️ Start Mining';
-                $('dispStat').textContent='🔴 Ready'; saveUserData();
-            }
-            updateMineUI(); requestAnimationFrame(loop);
-        }
+$('btnDemoLogin').addEventListener('click',()=>{
+  const name='pioneer_'+Math.random().toString(36).slice(2,8);
+  state.me={uid:'demo_'+Date.now(),username:'@'+name,wallet:'demo_wallet_addr'};
+  state.myRef=state.me.username;const ref=$('refInput').value.trim();if(ref)state.inviter=ref;
+  enterApp();
+});
 
-        function calcReward(){
-            let mul=1;
-            mul+=state.referrals.length*REF_BONUS;
-            mul+=state.circle.length*CIRCLE_BONUS;
-            return BASE_RATE*mul;
-        }
-        function refreshAllUI(){
-            if(!state.me) return;
-            $('dispUser').textContent=state.me.username;
-            $('myRefCode').textContent=state.myRef;
-            $('refCount').textContent=state.referrals.length+' Pioneers';
-            $('circlePct').textContent=state.circle.length+' / 3 Slots';
-            $('circleBonus').textContent='+'+(state.circle.length*4)+'% Boost';
-            $('circleSlots').innerHTML=[0,1,2].map(i=>
-                `<div class="circle-slot ${state.circle[i]?'active':''}">${state.circle[i]?'👤':'➕'}</div>`
-            ).join('');
-            updateMineUI();
-        }
-        function updateMineUI(){
-            const totalBal = (state.mined + state.claimed).toFixed(4);
-            $('dispMine').textContent=state.mined.toFixed(4);
-            $('dispBal').textContent=totalBal+' AMT';
-            $('wallBal').textContent=totalBal+' AMT';
-            $('wallClaimed').textContent=state.claimed.toFixed(4)+' AMT';
-            $('wallRewards').textContent=(state.loginRewards||0).toFixed(4)+' AMT';
-            $('dispRefBonus').textContent='+'+(state.referrals.length*5)+'% ('+state.referrals.length+' refs)';
-        }
-        function fmtTime(ms){
-            const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
-            return `${h}`.padStart(2,'0')+':'+`${m}`.padStart(2,'0')+':'+`${s%60}`.padStart(2,'0');
-        }
-        function saveUserData(){localStorage.setItem('amt-v5-user',JSON.stringify(state))}
-        function loadUserData(){
-            const s=localStorage.getItem('amt-v5-user');
-            if(s){
-                const loaded=JSON.parse(s);
-                state={loginRewards:0,lastLoginRewardDate:null,...loaded,isMining:false};
-            }
-        }
-    </script>
+function enterApp(){
+  loadUserData();applyAvatar();
+  checkAndGiveLoginReward();
+  refreshAllUI();
+  $('loginScreen').style.display='none';$('mainApp').classList.add('active');
+  loop();
+}
+
+$('btnMine').addEventListener('click',()=>{
+  if(state.nextMine&&Date.now()<state.nextMine)return;
+  state.isMining=true;state.lastMineAt=Date.now();state.nextMine=null;
+  $('btnMine').textContent='Mining...';$('btnMine').disabled=true;
+  $('spinCore').style.animation='spin 3s linear infinite';
+  $('dispStat').textContent='Active';$('cdWrap').classList.add('hidden');saveUserData();
+});
+
+$('btnClaim').addEventListener('click',()=>{
+  if(state.mined<=0)return alert('Nothing to claim yet!');
+  state.claimed+=state.mined;state.mined=0;state.nextMine=Date.now()+DAY_MS;
+  alert(`Claimed!\nBalance: ${state.claimed.toFixed(4)} AMT\nNext mine in 24 hours`);
+  $('btnClaim').classList.add('hidden');$('btnMine').classList.remove('hidden');$('btnMine').disabled=true;
+  saveUserData();refreshAllUI();
+});
+
+$('btnCopyRef').addEventListener('click',()=>navigator.clipboard.writeText(state.myRef).then(()=>alert('Copied: '+state.myRef)));
+$('btnSetInviter').addEventListener('click',()=>{
+  const val=$('inviterRef').value.trim();if(!val)return alert('Enter referral/username');
+  if(val===state.myRef)return alert('Cannot use own code!');
+  state.inviter=val;saveUserData();alert('Saved inviter: '+val);$('inviterRef').value='';
+});
+$('btnAddCircle').addEventListener('click',()=>{
+  const val=$('newCircleMember').value.trim();if(!val)return alert('Enter Pi username/referral');
+  if(state.circle.length>=3)return alert('Circle full - max 3');
+  if([state.myRef,...state.circle].includes(val))return alert('Already added or yourself!');
+  state.circle.push(val);saveUserData();refreshAllUI();$('newCircleMember').value='';
+});
+
+function loop(){
+  const now=Date.now();
+  if(state.isMining&&state.lastMineAt){
+    const dur=now-state.lastMineAt;
+    if(dur>=DAY_MS){
+      state.isMining=false;state.mined=calcReward();
+      $('spinCore').style.animationPlayState='paused';
+      $('dispStat').textContent='Ready to Claim';
+      $('btnMine').classList.add('hidden');$('btnClaim').classList.remove('hidden');
+    }else state.mined=(dur/DAY_MS)*calcReward();
+  }
+  if(state.nextMine&&now<state.nextMine){
+    const left=state.nextMine-now,pct=(left/DAY_MS)*100;
+    $('dispCdTime').textContent=fmtTime(left);$('dispCdBar').style.width=pct+'%';
+    $('dispStat').textContent='Cooling down';$('cdWrap').classList.remove('hidden');
+    $('btnMine').disabled=true;$('btnMine').textContent='Wait...';
+  }else if(state.nextMine&&now>=state.nextMine){
+    state.nextMine=null;$('cdWrap').classList.add('hidden');
+    $('btnMine').disabled=false;$('btnMine').textContent='Start Mining';
+    $('dispStat').textContent='Ready';saveUserData();
+  }
+  updateMineUI();requestAnimationFrame(loop);
+}
+
+function calcReward(){let mul=1;mul+=state.referrals.length*REF_BONUS;mul+=state.circle.length*CIRCLE_BONUS;return BASE_RATE*mul;}
+function refreshAllUI(){
+  if(!state.me)return;$('dispUser').textContent=state.me.username;$('myRefCode').textContent=state.myRef;
+  $('refCount').textContent=state.referrals.length+' Pioneers';
+  $('circlePct').textContent=state.circle.length+' / 3 Slots';
+  $('circleBonus').textContent='+'+(state.circle.length*4)+'% Boost';
+  $('circleSlots').innerHTML=[0,1,2].map(i=>`<div class="circle-slot ${state.circle[i]?'active':''}">${state.circle[i]?'👤':'+'}</div>`).join('');
+  updateMineUI();
+}
+function updateMineUI(){
+  const total=(state.mined+state.claimed).toFixed(4);
+  $('dispMine').textContent=state.mined.toFixed(4);$('dispBal').textContent=total+' AMT';
+  $('wallBal').textContent=total+' AMT';$('wallClaimed').textContent=state.claimed.toFixed(4)+' AMT';
+  $('wallRewards').textContent=(state.loginRewards||0).toFixed(4)+' AMT';
+  $('dispRefBonus').textContent='+'+(state.referrals.length*5)+'% ('+state.referrals.length+' refs)';
+}
+function fmtTime(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return `${h}`.padStart(2,'0')+':'+`${m}`.padStart(2,'0')+':'+`${s%60}`.padStart(2,'0');}
+function saveUserData(){localStorage.setItem('amt-v5-user',JSON.stringify(state));}
+function loadUserData(){
+  const s=localStorage.getItem('amt-v5-user');if(!s)return;
+  try{const loaded=JSON.parse(s);state={loginRewards:0,lastLoginRewardDate:null,...loaded,isMining:false};}
+  catch(e){console.warn('Reset storage - corrupted');}
+}
+</script>
 </body>
 </html>
