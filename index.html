@@ -49,16 +49,14 @@ button:hover{transform:translateY(-2px)}
 button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 .main-app{display:none;max-width:420px;width:100%}
 .main-app.active{display:block}
-.nav-tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:.35rem;margin-bottom:1.3rem}
+.nav-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:.35rem;margin-bottom:1.3rem}
 .nav-tab{
   background:rgba(255,255,255,.06);border-radius:.7rem;padding:.5rem .25rem;
   text-align:center;font-size:.7rem;cursor:pointer;transition:.25s ease;
   border:1px solid transparent
 }
 .nav-tab.active{background:var(--grad);border-color:rgba(255,255,255,.15)}
-.nav-tab.disabled{opacity:.45;cursor:not-allowed}
 .nav-tab .icon{font-size:1.15rem;margin-bottom:.1rem}
-.nav-tab .badge{background:#E17055;font-size:.58rem;padding:.08rem .2rem;border-radius:.6rem;margin-left:.15rem}
 .core-wrap{display:flex;align-items:center;justify-content:center;margin:.8rem 0 1.6rem}
 .mining-core{
   width:140px;height:140px;border-radius:50%;
@@ -112,52 +110,11 @@ button:disabled{opacity:.55;cursor:not-allowed;transform:none}
 .user-bar .uname{font-weight:600;color:var(--pi);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .user-bar .role,.user-bar .lvl{font-size:.78rem;color:#B2B2C1;margin-top:.1rem}
 .user-bar .amt{font-weight:700;color:var(--gold);font-size:.98rem;text-align:right;white-space:nowrap;margin-left:auto}
-.ref-box,.sc-box,.pet-grid,.airdrop-box{background:rgba(255,255,255,.04);border-radius:.8rem;padding:.9rem;margin-top:.9rem;border:1px solid rgba(255,255,255,.06)}
+.ref-box,.sc-box,.airdrop-box{background:rgba(255,255,255,.04);border-radius:.8rem;padding:.9rem;margin-top:.9rem;border:1px solid rgba(255,255,255,.06)}
 .ref-code{font-family:monospace;background:rgba(0,0,0,.25);border-radius:.5rem;padding:.5rem .7rem;margin:.5rem 0;word-break:break-all;color:var(--sec);font-weight:600}
 .circle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.7rem}
 .circle-slot{aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:2px dashed rgba(255,255,255,.15)}
 .circle-slot.active{background:rgba(116,192,77,.18);border-style:solid;border-color:rgba(116,192,77,.55)}
-.pet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-top:.5rem;padding:.7rem}
-.pet-card{
-  background:rgba(255,255,255,.05);border-radius:1rem;padding:.9rem;text-align:center;cursor:pointer;
-  border:2px solid transparent;transition:.25s ease
-}
-.pet-card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 6px 18px rgba(253,203,110,.2)}
-.pet-icon{font-size:2.8rem;margin-bottom:.4rem}
-.pet-name{font-weight:700;font-size:.9rem;color:#fff;margin-bottom:.2rem}
-.pet-rarity{font-size:.7rem;font-weight:600;padding:.15rem .5rem;border-radius:1rem;display:inline-block;margin-bottom:.35rem}
-.rarity-common{background:#718096;color:#E2E8F0}
-.rarity-rare{background:#2B6CB0;color:#BEE3F8}
-.rarity-epic{background:#6B46C1;color:#E9D8FF}
-.rarity-legendary{background:#B7791F;color:#FEEBC8}
-.pet-price{font-weight:bold;color:var(--gold);font-size:.9rem}
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
-  display:flex;align-items:center;justify-content:center;padding:1.2rem;z-index:999;opacity:0;
-  visibility:hidden;transition:.25s ease
-}
-.modal-overlay.active{opacity:1;visibility:visible}
-.modal-box{
-  background:linear-gradient(180deg,#2A2A47,#1E2A47);border-radius:1.5rem;padding:1.6rem;
-  max-width:380px;width:100%;border:1px solid rgba(255,255,255,.1);transform:translateY(12px);
-  transition:.25s ease
-}
-.modal-overlay.active .modal-box{transform:translateY(0)}
-.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-.modal-title{font-size:1.3rem;font-weight:800}
-.modal-close{
-  width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.08);
-  color:#fff;font-size:1.1rem;cursor:pointer;transition:.2s ease
-}
-.modal-close:hover{background:rgba(255,82,82,.35);transform:rotate(90deg)}
-.modal-pet-icon{font-size:4rem;text-align:center;margin:.4rem 0 .8rem}
-.modal-rarity{text-align:center;margin-bottom:.9rem}
-.stats-block{background:rgba(255,255,255,.04);border-radius:.9rem;padding:.95rem;margin-bottom:.9rem}
-.stats-title{font-weight:700;font-size:.9rem;color:var(--gold);margin-bottom:.6rem}
-.ability-block{background:rgba(0,206,201,.06);border:1px solid rgba(0,206,201,.2);border-radius:.9rem;padding:.95rem}
-.ability-title{font-weight:700;font-size:.9rem;color:var(--sec);margin-bottom:.4rem}
-.ability-desc{font-size:.85rem;line-height:1.6;color:#ddd}
-.coming-soon{text-align:center;padding:2.2rem 1rem;color:#B2B2C1}
 .hidden{display:none !important}
 .debug{background:rgba(255,0,0,.1);border-radius:.6rem;padding:.7rem;margin-bottom:1rem;font-size:.8rem;border:1px solid rgba(255,0,0,.3)}
 .reward-note{
@@ -185,7 +142,7 @@ input{
 <header class="header">
   <div class="logo">AMT</div>
   <h1>Alberto NFT Marketplace</h1>
-  <p class="sub">AMT Token • Test‑Net v1.2 — PERMANENT SAVE</p>
+  <p class="sub">AMT Token • Test‑Net v1.3 — Clean & Fixed</p>
   <span class="testnet-badge">TEST‑NET MODE</span>
 </header>
 
@@ -235,11 +192,10 @@ input{
     <div class="nav‑tab" data‑tab="airdrop"><div class="icon">🎁</div><div>Airdrop</div></div>
     <div class="nav‑tab" data‑tab="referral"><div class="icon">👥</div><div>Referrals</div></div>
     <div class="nav‑tab" data‑tab="circle"><div class="icon">🛡️</div><div>Circle</div></div>
-    <div class="nav‑tab" data‑tab="market"><div class="icon">🏪</div><div>Shop</div></div>
     <div class="nav‑tab" data‑tab="wallet"><div class="icon">👛</div><div>Wallet</div></div>
   </div>
 
-  <!-- ===== MINING TAB — FULL RESTORE & CONTINUE FIXED ===== -->
+  <!-- ===== MINING TAB — PERMANENT SAVE & CLEAN ===== -->
   <div class="tab‑content" id="tabMining">
     <div class="card">
       <div class="core‑wrap">
@@ -330,52 +286,14 @@ input{
       <div class="stat‑row"><span class="stat‑label">Claimed / Available</span><span class="stat‑value" id="wallClaimed">0.0000 AMT</span></div>
       <div class="stat‑row"><span class="stat‑label">Pending Mine</span><span class="stat‑value highlight" id="wallPending">0.0000 AMT</span></div>
       <div class="stat‑row"><span class="stat‑label">Login‑Rewards Earned</span><span class="stat‑value" id="wallRewards">0.0000 AMT</span></div>
-      <div class="stat‑row"><span class="stat‑label">Network</span><span class="stat‑value" style="color:var(--test)">Alberto Test‑Net v1.2</span></div>
-      <p style="text‑align:center;color:#777;margin‑top:1rem;font‑size:.8rem">✅ All mining progress saved & restored automatically</p>
+      <div class="stat‑row"><span class="stat‑label">Network</span><span class="stat‑value" style="color:var(--test)">Alberto Test‑Net v1.3</span></div>
+      <p style="text‑align:center;color:#777;margin‑top:1rem;font‑size:.8rem">✅ Mining progress fully saved & restored automatically</p>
     </div>
-  </div>
-
-  <div class="tab‑content hidden" id="tabMarket">
-    <div class="card">
-      <h3 style="text‑align:center;margin‑bottom:.3rem">🏪 Pet Marketplace</h3>
-      <p style="color:#B2B2C1;text‑align:center;font‑size:.85rem;margin‑bottom:.5rem">Tap any pet → view Stats & Abilities</p>
-      <div class="pet‑grid" id="petGrid"></div>
-    </div>
-  </div>
-</div>
-
-<div class="modal‑overlay" id="petModal">
-  <div class="modal‑box">
-    <div class="modal‑head">
-      <h2 class="modal‑title" id="modalPetName">Pet Name</h2>
-      <button class="modal‑close" id="modalCloseBtn">✕</button>
-    </div>
-    <div class="modal‑pet‑icon" id="modalPetIcon">🐉</div>
-    <div class="modal‑rarity"><span class="pet‑rarity" id="modalPetRarity">Rarity</span></div>
-    <div class="stats‑block">
-      <h4 class="stats‑title">📊 Base Stats</h4>
-      <div class="stat‑row"><span class="stat‑label">⚔️ Attack</span><span class="stat‑value" id="statAtk">—</span></div>
-      <div class="stat‑row"><span class="stat‑label">🛡️ Defense</span><span class="stat‑value" id="statDef">—</span></div>
-      <div class="stat‑row"><span class="stat‑label">❤️ Health</span><span class="stat‑value" id="statHp">—</span></div>
-      <div class="stat‑row"><span class="stat‑label">⚡ Speed</span><span class="stat‑value" id="statSpd">—</span></div>
-      <div class="stat‑row"><span class="stat‑label">✨ Mining Boost</span><span class="stat‑value highlight" id="statBoost">—</span></div>
-    </div>
-    <div class="ability‑block">
-      <h4 class="ability‑title">🌟 Special Ability</h4>
-      <p class="ability‑desc" id="petAbilityDesc">—</p>
-    </div>
-    <button class="btn btn‑primary" style="margin‑top:1.2rem" id="btnBuyPet">🛒 Buy / Mint — <span id="petPriceTag">??? AMT</span></button>
   </div>
 </div>
 
 <script>
-// ========== DATA ==========
-const PETS = [
-  {id:'dragon‑fire',icon:'🐲',name:'Flare Wyrm',rarity:'legendary',price:500,stats:{atk:28,def:22,hp:160,spd:14,boost:0.08},ability:{name:'Infernal Heart',desc:'+8 % Mining yield; chance for double rewards; burn damage effect'}},
-  {id:'wolf‑shadow',icon:'🐺',name:'Shadow Howler',rarity:'epic',price:280,stats:{atk:22,def:14,hp:110,spd:22,boost:0.05},ability:{name:'Lunar Bond',desc:'+5 % base; referrals you invited also gain +3 % boost'}},
-  {id:'spirit‑fox',icon:'🦊',name:'Spirit Vulpine',rarity:'rare',price:120,stats:{atk:14,def:10,hp:95,spd:26,boost:0.035},ability:{name:'Fortune Sight',desc:'Better rare drops; constant +3.5 % Mining speed boost'}},
-  {id:'turtle‑stone',icon:'🐢',name:'Stone Sheller',rarity:'common',price:25,stats:{atk:6,def:28,hp:200,spd:6,boost:0.01},ability:{name:'Stability',desc:'Never earn below base Mining rate; protects all rewards'}},
-];
+// ========== SETTINGS & TIERS ==========
 const TIERS = [
   {lvl:1,name:'Novice',minBal:0,bonusPct:0,color:'tier‑1'},
   {lvl:2,name:'Pioneer',minBal:25,bonusPct:2,color:'tier‑2'},
@@ -391,7 +309,7 @@ const CONFIG = {
   AIRDROP_REWARD:50, AIRDROP_MIN_BAL:5
 };
 
-// ========== STATE — LAHAT KASAMA: mined, lastMineAt, isMining, nextMine — SAVED & LOADED ==========
+// ========== STATE — LAHAT SAVED: mined, isMining, timestamps ==========
 let state = {
   me:null, myRef:'', inviter:'', referrals:[], circle:[],
   mined:0, claimed:0, loginRewards:0, lastLoginRewardDate:null,
@@ -399,9 +317,17 @@ let state = {
   airdropClaimed:false
 };
 const $=id=>document.getElementById(id);
-let isPiReady=false, airdropTimer=null;
+let isPiReady=false, airdropTimer=null, loopId=null;
 
-// ========== HELPERS & DEBUG ==========
+// ========== HELPERS ==========
+function fmtTime(ms){
+  let s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);s=s%60;
+  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+function fmtTimeShort(ms){
+  if(ms<86400000)return fmtTime(ms);
+  let d=Math.floor(ms/86400000);return `${d}d ${fmtTime(ms%86400000)}`;
+}
 function updDebug(){
   const isPiBrowser=/PiBrowser/.test(navigator.userAgent);
   $('dbgBrowser').textContent=`Browser: ${isPiBrowser?'✅ Pi Browser':'⚠️ NOT Pi Browser — Demo mode only'}`;
@@ -434,6 +360,15 @@ function refreshTierUI(){
   $('tierBonus').textContent=`+${tier.bonusPct} %`;
 }
 
+// ========== CALCULATE REWARD ==========
+function calcReward(){
+  const tier=getCurrentTier();
+  let bonusMult=1+(tier.bonusPct/100);
+  if(state.inviter)bonusMult+=CONFIG.REF_BONUS;
+  bonusMult+=(state.circle.length*CONFIG.CIRCLE_BONUS);
+  return CONFIG.BASE_RATE*bonusMult;
+}
+
 // ========== LOGIN REWARD ==========
 function checkAndGiveLoginReward(){
   const today=new Date().toDateString();
@@ -447,24 +382,6 @@ function checkAndGiveLoginReward(){
   }
   return false;
 }
-
-// ========== PET SYSTEM ==========
-function renderPetList(){
-  $('petGrid').innerHTML=PETS.map(p=>`<div class="pet‑card" data‑pet‑id="${p.id}"><div class="pet‑icon">${p.icon}</div><div class="pet‑name">${p.name}</div><div class="pet‑rarity rarity‑${p.rarity}">${p.rarity.toUpperCase()}</div><div class="pet‑price">${p.price} AMT</div></div>`).join('');
-  document.querySelectorAll('.pet‑card').forEach(c=>c.addEventListener('click',()=>openPetModal(c.dataset.petId)));
-}
-function openPetModal(petId){
-  const pet=PETS.find(x=>x.id===petId);if(!pet)return;
-  $('modalPetName').textContent=pet.name;$('modalPetIcon').textContent=pet.icon;
-  $('modalPetRarity').textContent=pet.rarity.toUpperCase();$('modalPetRarity').className=`pet‑rarity rarity‑${pet.rarity}`;
-  $('statAtk').textContent=pet.stats.atk;$('statDef').textContent=pet.stats.def;
-  $('statHp').textContent=pet.stats.hp;$('statSpd').textContent=pet.stats.spd;
-  $('statBoost').textContent=`+${(pet.stats.boost*100).toFixed(1)} %`;
-  $('petAbilityDesc').textContent=pet.ability.desc;
-  $('petPriceTag').textContent=`${pet.price} AMT`;$('petModal').classList.add('active');
-}
-$('modalCloseBtn').onclick=()=>$('petModal').classList.remove('active');
-$('petModal').addEventListener('click',e=>{if(e.target===e.currentTarget)$('petModal').classList.remove('active');});
 
 // ========== AIRDROP SYSTEM ==========
 function updateAirdropUI(){
@@ -521,55 +438,45 @@ document.querySelectorAll('.nav‑tab').forEach(tab=>{
     document.querySelectorAll('.tab‑content').forEach(c=>c.classList.add('hidden'));
     tab.classList.add('active');
     $(`tab${tab.dataset.tab[0].toUpperCase()+tab.dataset.tab.slice(1)}`).classList.remove('hidden');
-    if(tab.dataset.tab==='market')renderPetList();
     if(tab.dataset.tab==='airdrop')updateAirdropUI();
   });
 });
 
-// ========== SAVE & LOAD — PINAAYOS LAHAT KASAMA MINING ==========
+// ========== ✅ PERMANENT SAVE & LOAD — mining values included ==========
 function saveUserData(){
-  localStorage.setItem('amt‑v2‑full',JSON.stringify({
+  localStorage.setItem('amt‑v3‑clean',JSON.stringify({
     ...state,
-    // Siguraduhing numero at hindi nawawala
-    mined:Number(state.mined||0),
-    claimed:Number(state.claimed||0),
+    mined:Number(state.mined||0),claimed:Number(state.claimed||0),
     lastMineAt:state.lastMineAt?Number(state.lastMineAt):null,
     nextMine:state.nextMine?Number(state.nextMine):null,
-    isMining:Boolean(state.isMining),
-    loginRewards:Number(state.loginRewards||0),
+    isMining:Boolean(state.isMining),loginRewards:Number(state.loginRewards||0),
     airdropClaimed:Boolean(state.airdropClaimed)
   }));
 }
 
 function loadUserData(){
-  const raw=localStorage.getItem('amt‑v2‑full');
+  const raw=localStorage.getItem('amt‑v3‑clean');
   if(!raw)return;
   try{
     const loaded=JSON.parse(raw);
-    // I‑balik lahat — at ituloy ang pagmimining kung hindi pa tapos
     Object.assign(state,{
       mined:0,claimed:0,loginRewards:0,
       isMining:false,lastMineAt:null,nextMine:null,airdropClaimed:false
     },loaded);
 
-    // ✅ KUNG MAY NATITIRANG ORAS — KALKULAHIN ULIT ANG "mined" PAGBALIK
+    // Resume ongoing mining
     if(state.isMining&&state.lastMineAt){
       const elapsed=Date.now()‑state.lastMineAt;
       if(elapsed>=CONFIG.DAY_MS){
-        state.mined=calcReward();
-        state.isMining=false;state.lastMineAt=null;
+        state.mined=calcReward();state.isMining=false;state.lastMineAt=null;
       }else{
-        // I‑update ang halaga batay sa lumipas na oras
         state.mined=(elapsed/CONFIG.DAY_MS)*calcReward();
       }
     }
-    // Siguraduhing laging numero
-    state.mined=Number(state.mined||0);
-    state.claimed=Number(state.claimed||0);
-    saveUserData();// I‑save ang inayos na halaga
+    state.mined=Number(state.mined||0);state.claimed=Number(state.claimed||0);
+    saveUserData();
   }catch(e){
-    console.warn('Load reset:',e);
-    localStorage.removeItem('amt‑v2‑full');
+    console.warn('Load reset:',e);localStorage.removeItem('amt‑v3‑clean');
   }
 }
 
@@ -594,17 +501,67 @@ $('btnDemoLogin').addEventListener('click',()=>{
   enterApp();
 });
 function enterApp(){
-  loadUserData();// ✅ BASAHIN MUNA LAHAT — kasama ang dating Mining progress
-  applyAvatar();
+  loadUserData();applyAvatar();
   checkAndGiveLoginReward();refreshAllUI();
   $('loginScreen').style.display='none';$('mainApp').classList.add('active');
-  renderPetList();updateAirdropUI();
-  airdropTimer=setInterval(updateAirdropUI,1000);
-  restoreMiningUI();// ✅ IBALIK ANG BUTTON AT STATUS — kung nagmimining ka noon
-  loop();
+  updateAirdropUI();airdropTimer=setInterval(updateAirdropUI,1000);
+  restoreMiningUI();loop();
 }
 
-// ✅ IBALIK ANG TAMANG BUTTON/UI PAGBALIK NG APP
+// ========== MINING CONTROLS ==========
+$('btnMine').addEventListener('click',()=>{
+  if(state.nextMine&&Date.now()<state.nextMine)return alert('⏳ Cooling down—please wait reset');
+  state.isMining=true;state.lastMineAt=Date.now();state.nextMine=null;
+  saveUserData();
+  $('btnMine').textContent='⛏️ Mining…';$('btnMine').disabled=true;
+  $('spinCore').style.animation='spin 3s linear infinite';
+  $('dispStat').textContent='🔄 Active';$('cdWrap').classList.add('hidden');
+});
+$('btnClaim').addEventListener('click',()=>{
+  if(state.mined<=0)return alert('⚠️ Nothing mined yet—keep going!');
+  state.claimed+=state.mined;state.mined=0;state.nextMine=Date.now()+CONFIG.DAY_MS;state.isMining=false;
+  alert(`✅ CLAIMED!\n+${(state.claimed).toFixed(4)} AMT total\n⏱️ Ready again in exactly 24 hours`);
+  $('btnClaim').classList.add('hidden');$('btnMine').classList.remove('hidden');$('btnMine').disabled=true;
+  $('spinCore').style.animationPlayState='paused';$('dispStat').textContent='⏳ Waiting Reset';
+  saveUserData();refreshAllUI();
+});
+
+// ========== REFERRAL & CIRCLE ==========
+$('btnCopyRef').addEventListener('click',()=>navigator.clipboard.writeText(state.myRef).then(()=>alert(`✅ Copied:\n${state.myRef}`)));
+$('btnSetInviter').addEventListener('click',()=>{
+  const val=$('inviterRef').value.trim();if(!val)return alert('Please enter referral code/username first');
+  if(val===state.myRef)return alert('❌ Cannot use your own invite link!');
+  state.inviter=val;saveUserData();alert(`✅ Saved inviter: ${val}`);$('inviterRef').value='';refreshAllUI();
+});
+$('btnAddCircle').addEventListener('click',()=>{
+  const val=$('newCircleMember').value.trim();if(!val)return alert('Enter Pi username/referral');
+  if(state.circle.length>=3)return alert('⚠️ Circle Full—max 3 trusted contacts only');
+  if([state.myRef,...state.circle].includes(val))return alert('❌ Already added or cannot invite yourself!');
+  state.circle.push(val);saveUserData();refreshAllUI();alert(`✅ Added ${val}`);$('newCircleMember').value='';
+});
+
+// ========== REFRESH ALL NUMBERS ==========
+function refreshAllUI(){
+  $('dispUser').textContent=state.me?.username||'@pioneer';
+  $('myRefCode').textContent=state.myRef||'—';
+  $('refCount').textContent=`${state.referrals.length} Pioneers`;
+  $('dispMine').textContent=state.mined.toFixed(4);
+  $('dispBal').textContent=state.claimed.toFixed(4)+' AMT';
+  $('wallBal').textContent=state.claimed.toFixed(4)+' AMT';
+  $('wallClaimed').textContent=state.claimed.toFixed(4)+' AMT';
+  $('wallPending').textContent=state.mined.toFixed(4)+' AMT';
+  $('wallRewards').textContent=state.loginRewards.toFixed(4)+' AMT';
+  $('dispRefBonus').textContent=state.inviter?`+${CONFIG.REF_BONUS*100} %`:'+0 %';
+  $('circlePct').textContent=`${state.circle.length}/3 Slots`;
+  $('circleBonus').textContent=`+${(state.circle.length*CONFIG.CIRCLE_BONUS*100).toFixed(0)} %`;
+  document.querySelectorAll('.circle‑slot').forEach((s,i)=>{
+    s.classList.toggle('active',!!state.circle[i]);
+    s.textContent=state.circle[i]?state.circle[i].slice(0,6):'+';
+  });
+  refreshTierUI();
+}
+
+// ========== RESTORE MINING BUTTON STATE AFTER LOGIN/RETURN ==========
 function restoreMiningUI(){
   if(state.isMining&&state.lastMineAt){
     $('btnMine').textContent='⛏️ Mining…';$('btnMine').disabled=true;
@@ -614,7 +571,47 @@ function restoreMiningUI(){
   }else if(state.nextMine&&Date.now()<state.nextMine){
     $('btnMine').disabled=true;$('btnMine').textContent='⏳ Cooling…';
     $('dispStat').textContent='⏳ On Cooldown';
+    $('btnMine').classList.remove('hidden');$('btnClaim').classList.add('hidden');
   }else if(state.mined>0){
     $('btnMine').classList.add('hidden');$('btnClaim').classList.remove('hidden');
     $('spinCore').style.animationPlayState='paused';
-    $('
+    $('dispStat').textContent='🎉 Ready Claim';
+  }else{
+    $('btnMine').classList.remove('hidden');$('btnClaim').classList.add('hidden');
+    $('btnMine').disabled=false;$('btnMine').textContent='Start Mining';
+    $('spinCore').style.animationPlayState='running';
+    $('dispStat').textContent='Ready';
+  }
+}
+
+// ========== MAIN UPDATE LOOP — EVERY SECOND ==========
+function loop(){
+  loopId=requestAnimationFrame(loop);
+  const now=Date.now();
+
+  // Update live mining progress
+  if(state.isMining&&state.lastMineAt){
+    const dur=now‑state.lastMineAt;
+    if(dur>=CONFIG.DAY_MS){
+      state.mined=calcReward();state.isMining=false;state.lastMineAt=null;
+      saveUserData();refreshAllUI();restoreMiningUI();
+    }else{
+      state.mined=(dur/CONFIG.DAY_MS)*calcReward();
+      if((dur%2000)<50)saveUserData();
+    }
+  }
+
+  // Cooldown timer
+  if(state.nextMine&&now<state.nextMine){
+    $('cdWrap').classList.remove('hidden');
+    const left=state.nextMine‑now,pct=(left/CONFIG.DAY_MS)*100;
+    $('dispCdTime').textContent=fmtTime(left);$('dispCdBar').style.width=pct+'%';
+    restoreMiningUI();
+  }else $('cdWrap').classList.add('hidden');
+
+  $('dispMine').textContent=state.mined.toFixed(4);
+  $('wallPending').textContent=state.mined.toFixed(4)+' AMT';
+}
+</script>
+</body>
+</html>
