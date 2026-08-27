@@ -1,17 +1,25 @@
+AMT Pi Testnet Backend — server.js
+
 "use strict";
 
 /*
  * ============================================================
  * ALBERTO MARKETPLACE TOKEN (AMT)
- * PI TESTNET MINING BACKEND
+ * PI TESTNET ECOSYSTEM BACKEND
+ * ============================================================
  *
- * IMPORTANT:
- * - Existing AMT mining/ledger functions are preserved.
- * - Pi user authentication is verified server-side.
- * - Pi username is used as the referral identifier.
- * - Maximum direct referrals per Pioneer: 5.
- * - Referral rewards are NOT credited on Testnet.
- * - Referral activity is recorded for future Mainnet rules.
+ * FEATURES
+ * - Pi account authentication
+ * - Separate AMT referral code
+ * - Pi Testnet public wallet address
+ * - AMT Reputation Score
+ * - 24-hour server-side mining
+ * - AMT ledger and balance
+ * - Referral relationships
+ * - Security Circle
+ *
+ * TESTNET ONLY
+ * Never send wallet passphrases or private keys to this server.
  * ============================================================
  */
 
@@ -25,31 +33,23 @@ const app = express();
 const PORT = Number(process.env.PORT || 10000);
 
 const PI_API_BASE = (
-  process.env.PI_API_BASE || "https://api.minepi.com"
+  process.env.PI_API_BASE || "https://api.testnet.minepi.com"
 ).trim().replace(/\/+$/, "");
-
-const PI_API_KEY = (
-  process.env.PI_API_KEY || ""
-).trim();
 
 const AMT_MINING_RATE = Number(
   process.env.AMT_MINING_RATE || "0.01"
 );
 
-const MINING_DURATION_SECONDS = 24 * 60 * 60;
-const MAXIMUM_BASE_REWARD = Number(
-  (AMT_MINING_RATE * 24).toFixed(8)
-);
-
-const MAX_DIRECT_REFERRALS = Number.MAX_SAFE_INTEGER;
-
-if (!Number.isFinite(AMT_MINING_RATE) || AMT_MINING_RATE < 0) {
-  console.error("AMT_MINING_RATE must be a valid non-negative number.");
-  process.exit(1);
-}
+const MINING_DURATION_MS = 24 * 60 * 60 * 1000;
+const MAX_SECURITY_CIRCLE = 3;
 
 if (!process.env.DATABASE_URL) {
   console.error("DATABASE_URL is missing.");
+  process.exit(1);
+}
+
+if (!Number.isFinite(AMT_MINING_RATE) || AMT_MINING_RATE < 0) {
+  console.error("AMT_MINING_RATE must be a valid number.");
   process.exit(1);
 }
 
@@ -61,42 +61,162 @@ const pool = new Pool({
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "1mb" }));
 
-async function readJsonResponse(response) {
-  const text = await response.text();
-  if (!text) return null;
+function sendError(res, status, error, code = null) {
+  const response = {
+    success: false,
+    error
+  };
 
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { raw: text };
-  }
+  if (code) response.code = code;
+
+  return res.status(status).json(response);
 }
 
-function sendError(res, status, error, code = null) {
-  const response = { success: false, error };
-  if (code) response.code = code;
-  return res.status(status).json(response);
+function normalizeUsername(value) {
+  if (!value || typeof value !== "string") return null;
+
+  const clean = value.trim();
+
+  if (!clean) return null;
+
+  return clean.startsWith("@") ? clean : "@" + clean;
+}
+
+function normalizeWalletAddress(value) {
+  if (!value || typeof value !== "string") return null;
+
+  const clean = value.trim().toUpperCase();
+
+  /*
+   * Public Stellar/Pi-style wallet address validation.
+   * A public address normally starts with G.
+   */
+  if (!/^G[A-Z2-7]{55}$/.test(clean)) {
+    return null;
+  }
+
+  return clean;
+}
+
+function generateReferralCode() {
+  return (
+    "AMT-" +
+    crypto.randomBytes(4).toString("hex").toUpperCase()
+  );
+}
+
+function generateReference(prefix) {
+  return (
+    prefix +
+    "-" +
+    Date.now() +
+    "-" +
+    crypto.randomBytes(6).toString("hex").toUpperCase()
+  );
 }
 
 async function initializeDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS members (
       id SERIAL PRIMARY KEY,
-      pi_uid TEXT UNIQUE NOT NULL,
-      username TEXT,
+
+      pi_uid TEXT UNIQUE,
+      username TEXT UNIQUE,
+
+      referral_code TEXT UNIQUE NOT NULL,
+      reputation_score INTEGER NOT NULL DEFAULT 100,
+
       kyc_status TEXT NOT NULL DEFAULT 'UNVERIFIED'
-        CHECK (kyc_status IN ('UNVERIFIED','PENDING','VERIFIED','REJECTED')),
+        CHECK (
+          kyc_status IN (
+            'UNVERIFIED',
+            'PENDING',
+            'VERIFIED',
+            'REJECTED'
+          )
+        ),
+
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
 
+  /*
+   * Compatibility upgrades for an existing database.
+   */
+  await pool.query(`
+    ALTER TABLE members
+    ADD COLUMN IF NOT EXISTS referral_code TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE members
+    ADD COLUMN IF NOT EXISTS reputation_score INTEGER NOT NULL DEFAULT 100;
+  `);
+
+  /*
+   * Generate missing referral codes for old accounts.
+   */
+  const missingCodes = await pool.query(`
+    SELECT id
+    FROM members
+    WHERE referral_code IS NULL
+  `);
+
+  for (const row of missingCodes.rows) {
+    let code;
+    let exists = true;
+
+    while (exists) {
+      code = generateReferralCode();
+
+      const check = await pool.query(
+        `
+        SELECT id
+        FROM members
+        WHERE referral_code = $1
+        `,
+        [code]
+      );
+
+      exists = check.rows.length > 0;
+    }
+
+    await pool.query(
+      `
+      UPDATE members
+      SET referral_code = $1,
+          updated_at = NOW()
+      WHERE id = $2
+      `,
+      [code, row.id]
+    );
+  }
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS
+    idx_members_referral_code_unique
+    ON members(referral_code);
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS amt_wallets (
       id SERIAL PRIMARY KEY,
-      member_id INTEGER UNIQUE NOT NULL REFERENCES members(id) ON DELETE CASCADE,
-      wallet_status TEXT NOT NULL DEFAULT 'NOT_CONNECTED',
+
+      member_id INTEGER UNIQUE NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
       wallet_address TEXT UNIQUE,
+
+      wallet_status TEXT NOT NULL DEFAULT 'NOT_CONNECTED'
+        CHECK (
+          wallet_status IN (
+            'NOT_CONNECTED',
+            'CONNECTED'
+          )
+        ),
+
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -105,13 +225,26 @@ async function initializeDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS mining_sessions (
       id SERIAL PRIMARY KEY,
-      member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+
+      member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
       started_at TIMESTAMPTZ NOT NULL,
       ends_at TIMESTAMPTZ NOT NULL,
+
       status TEXT NOT NULL DEFAULT 'ACTIVE'
-        CHECK (status IN ('ACTIVE','COMPLETED','CANCELLED')),
+        CHECK (
+          status IN (
+            'ACTIVE',
+            'COMPLETED',
+            'CANCELLED'
+          )
+        ),
+
       rate NUMERIC(30,8) NOT NULL,
       claimed_amount NUMERIC(30,8) NOT NULL DEFAULT 0,
+
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
@@ -119,10 +252,17 @@ async function initializeDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS amt_ledger (
       id SERIAL PRIMARY KEY,
-      member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+
+      member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
       amount NUMERIC(30,8) NOT NULL,
+
       type TEXT NOT NULL,
+
       reference TEXT UNIQUE NOT NULL,
+
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
@@ -130,10 +270,23 @@ async function initializeDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS referrals (
       id SERIAL PRIMARY KEY,
-      referrer_member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
-      referred_member_id INTEGER UNIQUE NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+
+      referrer_member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      referred_member_id INTEGER UNIQUE NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
       status TEXT NOT NULL DEFAULT 'ACTIVE'
-        CHECK (status IN ('ACTIVE','INACTIVE')),
+        CHECK (
+          status IN (
+            'ACTIVE',
+            'INACTIVE'
+          )
+        ),
+
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
@@ -141,12 +294,26 @@ async function initializeDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS security_circle (
       id SERIAL PRIMARY KEY,
-      owner_member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
-      member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+
+      owner_member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
       status TEXT NOT NULL DEFAULT 'ACTIVE'
-        CHECK (status IN ('ACTIVE','INACTIVE')),
+        CHECK (
+          status IN (
+            'ACTIVE',
+            'INACTIVE'
+          )
+        ),
+
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      UNIQUE (owner_member_id, member_id)
+
+      UNIQUE(owner_member_id, member_id)
     );
   `);
 
@@ -161,17 +328,35 @@ async function initializeDatabase() {
   `);
 
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_referral_referrer
+    CREATE INDEX IF NOT EXISTS idx_referrals_referrer
     ON referrals(referrer_member_id);
   `);
 
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_security_owner
+    CREATE INDEX IF NOT EXISTS idx_circle_owner
     ON security_circle(owner_member_id);
   `);
 
-  console.log("AMT PostgreSQL database initialized.");
+  console.log("AMT database initialized.");
 }
+
+async function readJsonResponse(response) {
+  const text = await response.text();
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
+/*
+ * ============================================================
+ * PI AUTHENTICATION
+ * ============================================================
+ */
 
 async function verifyPiAccessToken(accessToken) {
   if (!accessToken || typeof accessToken !== "string") {
@@ -180,75 +365,123 @@ async function verifyPiAccessToken(accessToken) {
     throw error;
   }
 
-  const endpoint = `${PI_API_BASE}/v2/me`;
-  let response;
-
-  try {
-    response = await fetch(endpoint, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json"
-      }
-    });
-  } catch (error) {
-    console.error("Pi API connection error:", error.message);
-    const apiError = new Error("Unable to contact Pi Platform API.");
-    apiError.statusCode = 502;
-    throw apiError;
-  }
+  const response = await fetch(`${PI_API_BASE}/v2/me`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json"
+    }
+  });
 
   const data = await readJsonResponse(response);
 
   if (!response.ok) {
     const error = new Error(
-      `Pi access token verification failed: HTTP ${response.status}`
+      `Pi authentication failed: HTTP ${response.status}`
     );
-    error.statusCode = response.status === 401 ? 401 : 502;
+
+    error.statusCode =
+      response.status === 401 ? 401 : 502;
+
     error.piStatus = response.status;
     error.piResponse = data;
+
     throw error;
   }
 
-  if (!data || typeof data.uid !== "string" || !data.uid) {
+  if (!data || !data.uid) {
     const error = new Error(
-      "Pi API response did not contain a valid UID."
+      "Pi response does not contain a valid UID."
     );
+
     error.statusCode = 502;
     throw error;
   }
 
   return {
-    uid: data.uid,
-    username:
-      typeof data.username === "string" ? data.username : null,
-    credentials: data.credentials || null
+    uid: String(data.uid),
+    username: normalizeUsername(data.username)
   };
 }
 
 async function getAuthenticatedMember(accessToken) {
   const piUser = await verifyPiAccessToken(accessToken);
 
-  const result = await pool.query(
+  let memberResult = await pool.query(
     `
-    INSERT INTO members (pi_uid, username)
-    VALUES ($1, $2)
-    ON CONFLICT (pi_uid)
-    DO UPDATE SET
-      username = EXCLUDED.username,
-      updated_at = NOW()
-    RETURNING id, pi_uid, username, kyc_status
+    SELECT *
+    FROM members
+    WHERE pi_uid = $1
+    LIMIT 1
     `,
-    [piUser.uid, piUser.username]
+    [piUser.uid]
   );
 
-  const member = result.rows[0];
+  if (memberResult.rows.length === 0) {
+    let referralCode;
+    let exists = true;
+
+    while (exists) {
+      referralCode = generateReferralCode();
+
+      const check = await pool.query(
+        `
+        SELECT id
+        FROM members
+        WHERE referral_code = $1
+        `,
+        [referralCode]
+      );
+
+      exists = check.rows.length > 0;
+    }
+
+    memberResult = await pool.query(
+      `
+      INSERT INTO members
+      (
+        pi_uid,
+        username,
+        referral_code,
+        reputation_score
+      )
+      VALUES ($1, $2, $3, 100)
+      RETURNING *
+      `,
+      [
+        piUser.uid,
+        piUser.username,
+        referralCode
+      ]
+    );
+  } else {
+    memberResult = await pool.query(
+      `
+      UPDATE members
+      SET username = $1,
+          updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+      `,
+      [
+        piUser.username,
+        memberResult.rows[0].id
+      ]
+    );
+  }
+
+  const member = memberResult.rows[0];
 
   await pool.query(
     `
-    INSERT INTO amt_wallets (member_id, wallet_status)
+    INSERT INTO amt_wallets
+    (
+      member_id,
+      wallet_status
+    )
     VALUES ($1, 'NOT_CONNECTED')
-    ON CONFLICT (member_id) DO NOTHING
+    ON CONFLICT(member_id)
+    DO NOTHING
     `,
     [member.id]
   );
@@ -258,9 +491,28 @@ async function getAuthenticatedMember(accessToken) {
 
 /*
  * ============================================================
- * HEALTH / ROOT
+ * HEALTH
  * ============================================================
  */
+
+app.get("/", (req, res) => {
+  return res.json({
+    success: true,
+    app: "Alberto Marketplace Token",
+    symbol: "AMT",
+    network: "Pi Testnet",
+    status: "ONLINE",
+    features: [
+      "PI_AUTH",
+      "AMT_REFERRAL_CODE",
+      "REPUTATION_SCORE",
+      "PUBLIC_WALLET_ADDRESS",
+      "SERVER_SIDE_MINING",
+      "AMT_LEDGER",
+      "SECURITY_CIRCLE"
+    ]
+  });
+});
 
 app.get("/api/health", async (req, res) => {
   try {
@@ -268,135 +520,217 @@ app.get("/api/health", async (req, res) => {
 
     return res.json({
       success: true,
-      service: "AMT Backend",
-      network: "Pi Testnet",
+      service: "AMT Pi Testnet Backend",
       database: "connected",
-      piApiBase: PI_API_BASE,
-      maxDirectReferrals: MAX_DIRECT_REFERRALS,
       status: "healthy"
     });
   } catch (error) {
-    console.error("Database health error:", error.message);
     return res.status(500).json({
       success: false,
-      service: "AMT Backend",
-      network: "Pi Testnet",
       database: "error",
       status: "unhealthy"
     });
   }
 });
 
-app.get("/", (req, res) => {
-  return res.json({
-    app: "Alberto Marketplace Token",
-    symbol: "AMT",
-    network: "Pi Testnet",
-    environment: "TESTNET",
-    piApiBase: PI_API_BASE,
-    miningRate: `${AMT_MINING_RATE} AMT/hour`,
-    miningDuration: "24 hours",
-    maximumBaseReward: MAXIMUM_BASE_REWARD,
-    maxDirectReferrals: MAX_DIRECT_REFERRALS,
-    referralReward: "PENDING_FOR_MAINNET",
-    status: "ONLINE"
-  });
-});
-
 /*
  * ============================================================
- * AUTH / PROFILE / KYC / WALLET
+ * AUTH / PROFILE
  * ============================================================
  */
 
 app.post("/api/auth/verify", async (req, res) => {
   try {
-    const { accessToken } = req.body || {};
-    const member = await getAuthenticatedMember(accessToken);
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
     return res.json({
       success: true,
+
       user: {
+        id: member.id,
         uid: member.pi_uid,
-        username: member.username
-      },
-      kyc: { status: member.kyc_status }
+        username: member.username,
+        referralCode: member.referral_code,
+        reputationScore: member.reputation_score,
+        kycStatus: member.kyc_status
+      }
     });
   } catch (error) {
-    console.error("Pi authentication verification error:", error.message);
+    console.error("Auth error:", error.message);
+
     return sendError(
       res,
       error.statusCode || 401,
       "Pi account verification failed.",
-      error.piStatus ? `PI_HTTP_${error.piStatus}` : null
+      error.piStatus
+        ? `PI_HTTP_${error.piStatus}`
+        : null
     );
   }
 });
 
 app.post("/api/profile", async (req, res) => {
   try {
-    const { accessToken } = req.body || {};
-    const member = await getAuthenticatedMember(accessToken);
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
     const walletResult = await pool.query(
       `
-      SELECT wallet_status, wallet_address
+      SELECT
+        wallet_address,
+        wallet_status
       FROM amt_wallets
       WHERE member_id = $1
       `,
       [member.id]
     );
 
-    const wallet = walletResult.rows[0] || null;
+    const wallet = walletResult.rows[0] || {};
 
     return res.json({
       success: true,
+
       profile: {
-        uid: member.pi_uid,
-        username: member.username,
+        id: member.id,
+        piUsername: member.username,
+        referralCode: member.referral_code,
+        reputationScore: member.reputation_score,
         kycStatus: member.kyc_status,
-        walletStatus: wallet?.wallet_status || "NOT_CONNECTED",
-        walletAddress: wallet?.wallet_address || null
+
+        walletAddress:
+          wallet.wallet_address || null,
+
+        walletStatus:
+          wallet.wallet_status ||
+          "NOT_CONNECTED"
       }
     });
   } catch (error) {
     console.error("Profile error:", error.message);
+
     return sendError(
       res,
-      error.statusCode || 401,
-      "Profile authentication failed."
+      error.statusCode || 500,
+      "Could not load profile."
     );
   }
 });
 
-app.post("/api/kyc/status", async (req, res) => {
+/*
+ * ============================================================
+ * WALLET
+ *
+ * PUBLIC ADDRESS ONLY
+ * NEVER SEND PRIVATE KEY OR PASSPHRASE.
+ * ============================================================
+ */
+
+app.post("/api/wallet/connect", async (req, res) => {
   try {
-    const { accessToken } = req.body || {};
-    const member = await getAuthenticatedMember(accessToken);
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
+
+    const walletAddress = normalizeWalletAddress(
+      req.body?.walletAddress
+    );
+
+    if (!walletAddress) {
+      return sendError(
+        res,
+        400,
+        "Invalid public wallet address.",
+        "INVALID_WALLET"
+      );
+    }
+
+    const existing = await pool.query(
+      `
+      SELECT member_id
+      FROM amt_wallets
+      WHERE wallet_address = $1
+      LIMIT 1
+      `,
+      [walletAddress]
+    );
+
+    if (
+      existing.rows.length > 0 &&
+      Number(existing.rows[0].member_id) !==
+      Number(member.id)
+    ) {
+      return sendError(
+        res,
+        409,
+        "This wallet address is already connected to another AMT account.",
+        "WALLET_ALREADY_USED"
+      );
+    }
+
+    const walletResult = await pool.query(
+      `
+      UPDATE amt_wallets
+      SET
+        wallet_address = $1,
+        wallet_status = 'CONNECTED',
+        updated_at = NOW()
+      WHERE member_id = $2
+      RETURNING
+        wallet_address,
+        wallet_status
+      `,
+      [
+        walletAddress,
+        member.id
+      ]
+    );
+
+    /*
+     * Reputation bonus for connecting
+     * a valid public wallet address.
+     */
+    const scoreResult = await pool.query(
+      `
+      UPDATE members
+      SET
+        reputation_score =
+          LEAST(reputation_score + 5, 1000),
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING reputation_score
+      `,
+      [member.id]
+    );
 
     return res.json({
       success: true,
-      kyc: {
-        status: member.kyc_status,
-        miningAllowed: true,
-        migrationEligible: member.kyc_status === "VERIFIED",
-        protectedTransactionsEligible: member.kyc_status === "VERIFIED"
-      }
+      message:
+        "Public Pi Testnet wallet connected.",
+
+      wallet: walletResult.rows[0],
+
+      reputationScore:
+        scoreResult.rows[0].reputation_score
     });
   } catch (error) {
-    console.error("KYC status error:", error.message);
+    console.error("Wallet connect error:", error.message);
+
     return sendError(
       res,
-      error.statusCode || 401,
-      "Unable to read KYC status."
+      error.statusCode || 500,
+      "Could not connect wallet."
     );
   }
 });
 
 app.post("/api/wallet", async (req, res) => {
   try {
-    const { accessToken } = req.body || {};
-    const member = await getAuthenticatedMember(accessToken);
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
     const balanceResult = await pool.query(
       `
@@ -409,31 +743,106 @@ app.post("/api/wallet", async (req, res) => {
 
     const walletResult = await pool.query(
       `
-      SELECT wallet_status, wallet_address
+      SELECT
+        wallet_address,
+        wallet_status
       FROM amt_wallets
       WHERE member_id = $1
       `,
       [member.id]
     );
 
-    const balance = Number(balanceResult.rows[0].balance);
-    const wallet = walletResult.rows[0] || null;
-
     return res.json({
       success: true,
       network: "Pi Testnet",
+
       wallet: {
-        amt: Number(balance.toFixed(8)),
-        walletStatus: wallet?.wallet_status || "NOT_CONNECTED",
-        walletAddress: wallet?.wallet_address || null
+        address:
+          walletResult.rows[0]?.wallet_address ||
+          null,
+
+        status:
+          walletResult.rows[0]?.wallet_status ||
+          "NOT_CONNECTED",
+
+        amtBalance: Number(
+          Number(
+            balanceResult.rows[0].balance
+          ).toFixed(8)
+        )
       }
     });
   } catch (error) {
     console.error("Wallet error:", error.message);
+
     return sendError(
       res,
       error.statusCode || 500,
-      "Could not load AMT wallet."
+      "Could not load wallet."
+    );
+  }
+});
+
+/*
+ * ============================================================
+ * REPUTATION SCORE
+ * ============================================================
+ */
+
+app.post("/api/reputation", async (req, res) => {
+  try {
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
+
+    const referralResult = await pool.query(
+      `
+      SELECT COUNT(*)::INTEGER AS count
+      FROM referrals
+      WHERE referrer_member_id = $1
+      AND status = 'ACTIVE'
+      `,
+      [member.id]
+    );
+
+    const miningResult = await pool.query(
+      `
+      SELECT COUNT(*)::INTEGER AS count
+      FROM mining_sessions
+      WHERE member_id = $1
+      AND status = 'COMPLETED'
+      `,
+      [member.id]
+    );
+
+    return res.json({
+      success: true,
+
+      reputation: {
+        score: member.reputation_score,
+        level:
+          member.reputation_score >= 500
+            ? "ELITE"
+            : member.reputation_score >= 250
+              ? "TRUSTED"
+              : member.reputation_score >= 100
+                ? "PIONEER"
+                : "NEW",
+
+        completedMiningSessions:
+          Number(miningResult.rows[0].count),
+
+        activeReferrals:
+          Number(referralResult.rows[0].count)
+      }
+    });
+  } catch (error) {
+    console.error("Reputation error:", error.message);
+
+    return sendError(
+      res,
+      error.statusCode || 500,
+      "Could not load reputation score."
     );
   }
 });
@@ -441,23 +850,22 @@ app.post("/api/wallet", async (req, res) => {
 /*
  * ============================================================
  * MINING
- * Existing mining behavior is preserved.
  * ============================================================
  */
 
 app.post("/api/mining/start", async (req, res) => {
-  let client = null;
-  let transactionStarted = false;
+  let client;
 
   try {
-    const { accessToken } = req.body || {};
-    const member = await getAuthenticatedMember(accessToken);
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
     client = await pool.connect();
-    await client.query("BEGIN");
-    transactionStarted = true;
 
-    const active = await client.query(
+    await client.query("BEGIN");
+
+    const activeResult = await client.query(
       `
       SELECT *
       FROM mining_sessions
@@ -470,66 +878,94 @@ app.post("/api/mining/start", async (req, res) => {
       [member.id]
     );
 
-    if (active.rows.length > 0) {
+    if (activeResult.rows.length > 0) {
       await client.query("COMMIT");
-      transactionStarted = false;
-
-      const currentSession = active.rows[0];
 
       return res.json({
         success: true,
         status: "ALREADY_MINING",
-        session: {
-          id: currentSession.id,
-          startedAt: currentSession.started_at,
-          endsAt: currentSession.ends_at,
-          rate: Number(currentSession.rate)
-        }
+        session: activeResult.rows[0]
       });
     }
 
     const startedAt = new Date();
     const endsAt = new Date(
-      startedAt.getTime() + MINING_DURATION_SECONDS * 1000
+      startedAt.getTime() + MINING_DURATION_MS
     );
 
-    const sessionResult = await client.query(
+    const result = await client.query(
       `
       INSERT INTO mining_sessions
-      (member_id, started_at, ends_at, status, rate)
-      VALUES ($1, $2, $3, 'ACTIVE', $4)
-      RETURNING id, started_at, ends_at, rate
+      (
+        member_id,
+        started_at,
+        ends_at,
+        status,
+        rate
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        'ACTIVE',
+        $4
+      )
+      RETURNING *
       `,
-      [member.id, startedAt, endsAt, AMT_MINING_RATE]
+      [
+        member.id,
+        startedAt,
+        endsAt,
+        AMT_MINING_RATE
+      ]
+    );
+
+    await client.query(
+      `
+      UPDATE members
+      SET
+        reputation_score =
+          LEAST(reputation_score + 1, 1000),
+        updated_at = NOW()
+      WHERE id = $1
+      `,
+      [member.id]
     );
 
     await client.query("COMMIT");
-    transactionStarted = false;
-
-    const session = sessionResult.rows[0];
 
     return res.json({
       success: true,
       status: "MINING_STARTED",
-      kycStatus: member.kyc_status,
+
       session: {
-        id: session.id,
-        startedAt: session.started_at,
-        endsAt: session.ends_at,
-        rate: Number(session.rate),
-        maximumBaseReward: MAXIMUM_BASE_REWARD
+        id: result.rows[0].id,
+        startedAt:
+          result.rows[0].started_at,
+        endsAt:
+          result.rows[0].ends_at,
+        rate:
+          Number(result.rows[0].rate),
+
+        maximumReward:
+          Number(
+            (
+              AMT_MINING_RATE * 24
+            ).toFixed(8)
+          )
       }
     });
   } catch (error) {
-    if (client && transactionStarted) {
+    if (client) {
       try {
         await client.query("ROLLBACK");
-      } catch (rollbackError) {
-        console.error("Mining rollback error:", rollbackError.message);
-      }
+      } catch {}
     }
 
-    console.error("Start mining error:", error.message);
+    console.error(
+      "Mining start error:",
+      error.message
+    );
 
     return sendError(
       res,
@@ -543,8 +979,9 @@ app.post("/api/mining/start", async (req, res) => {
 
 app.post("/api/mining/status", async (req, res) => {
   try {
-    const { accessToken } = req.body || {};
-    const member = await getAuthenticatedMember(accessToken);
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
     const result = await pool.query(
       `
@@ -561,61 +998,78 @@ app.post("/api/mining/status", async (req, res) => {
     if (result.rows.length === 0) {
       return res.json({
         success: true,
-        mining: false,
-        message: "No active mining session."
+        mining: false
       });
     }
 
     const session = result.rows[0];
+
     const now = Date.now();
-    const start = new Date(session.started_at).getTime();
-    const end = new Date(session.ends_at).getTime();
-    const current = Math.min(Math.max(now, start), end);
-    const elapsedSeconds = (current - start) / 1000;
-    const rate = Number(session.rate);
+    const start =
+      new Date(session.started_at).getTime();
 
-    const earned = Math.min(
-      rate * (elapsedSeconds / 3600),
-      rate * 24
-    );
+    const end =
+      new Date(session.ends_at).getTime();
 
-    const completed = now >= end;
+    const elapsed =
+      Math.min(Math.max(now, start), end) - start;
+
+    const progress =
+      Math.min(
+        elapsed / MINING_DURATION_MS,
+        1
+      );
+
+    const maximum =
+      Number(session.rate) * 24;
+
+    const earned =
+      maximum * progress;
 
     return res.json({
       success: true,
       mining: true,
-      completed,
+
+      completed: now >= end,
+
       session: {
         id: session.id,
         startedAt: session.started_at,
         endsAt: session.ends_at,
-        rate,
-        earned: Number(earned.toFixed(8)),
-        maximumBaseReward: Number((rate * 24).toFixed(8)),
-        claimAvailable: completed
+        progress: Number(
+          (progress * 100).toFixed(4)
+        ),
+        earned: Number(
+          earned.toFixed(8)
+        ),
+        claimAvailable: now >= end
       }
     });
   } catch (error) {
-    console.error("Mining status error:", error.message);
+    console.error(
+      "Mining status error:",
+      error.message
+    );
+
     return sendError(
       res,
       error.statusCode || 500,
-      "Could not read mining status."
+      "Could not load mining status."
     );
   }
 });
 
 app.post("/api/mining/claim", async (req, res) => {
-  let client = null;
-  let transactionStarted = false;
+  let client;
 
   try {
-    const { accessToken } = req.body || {};
-    const member = await getAuthenticatedMember(accessToken);
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
     client = await pool.connect();
+
     await client.query("BEGIN");
-    transactionStarted = true;
 
     const result = await client.query(
       `
@@ -632,115 +1086,117 @@ app.post("/api/mining/claim", async (req, res) => {
 
     if (result.rows.length === 0) {
       await client.query("ROLLBACK");
-      transactionStarted = false;
 
       return sendError(
         res,
         404,
-        "No active mining session.",
-        "NO_ACTIVE_SESSION"
+        "No active mining session."
       );
     }
 
     const session = result.rows[0];
-    const now = Date.now();
-    const start = new Date(session.started_at).getTime();
-    const end = new Date(session.ends_at).getTime();
 
-    if (now < end) {
+    const end =
+      new Date(session.ends_at).getTime();
+
+    if (Date.now() < end) {
       await client.query("ROLLBACK");
-      transactionStarted = false;
 
-      const remainingSeconds = Math.ceil((end - now) / 1000);
-
-      return res.status(403).json({
-        success: false,
-        code: "MINING_NOT_COMPLETE",
-        message:
-          "The 24-hour mining session must finish before the reward can be claimed.",
-        remainingSeconds
-      });
+      return sendError(
+        res,
+        403,
+        "Mining session is not complete yet.",
+        "MINING_NOT_COMPLETE"
+      );
     }
 
-    const rate = Number(session.rate);
-
-    const grossEarned = Math.min(
-      rate * 24,
-      MAXIMUM_BASE_REWARD
-    );
-
-    const claimable = Number(
+    const reward = Number(
       (
-        grossEarned -
-        Number(session.claimed_amount)
+        Number(session.rate) * 24
       ).toFixed(8)
     );
 
-    if (claimable <= 0) {
-      await client.query("ROLLBACK");
-      transactionStarted = false;
-
-      return res.json({
-        success: true,
-        claimed: 0,
-        message: "No new AMT reward is available."
-      });
-    }
-
     const reference =
-      `MINING-${session.id}-${crypto.randomBytes(8).toString("hex")}`;
+      generateReference("MINING");
 
     await client.query(
       `
       INSERT INTO amt_ledger
-      (member_id, amount, type, reference)
-      VALUES ($1, $2, 'MINING_REWARD', $3)
-      `,
-      [member.id, claimable, reference]
-    );
-
-    const newClaimed = Number(
       (
-        Number(session.claimed_amount) +
-        claimable
-      ).toFixed(8)
+        member_id,
+        amount,
+        type,
+        reference
+      )
+      VALUES (
+        $1,
+        $2,
+        'MINING_REWARD',
+        $3
+      )
+      `,
+      [
+        member.id,
+        reward,
+        reference
+      ]
     );
 
     await client.query(
       `
       UPDATE mining_sessions
-      SET claimed_amount = $1,
-          status = 'COMPLETED'
+      SET
+        claimed_amount = $1,
+        status = 'COMPLETED'
       WHERE id = $2
       `,
-      [newClaimed, session.id]
+      [
+        reward,
+        session.id
+      ]
+    );
+
+    const scoreResult = await client.query(
+      `
+      UPDATE members
+      SET
+        reputation_score =
+          LEAST(reputation_score + 10, 1000),
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING reputation_score
+      `,
+      [member.id]
     );
 
     await client.query("COMMIT");
-    transactionStarted = false;
 
     return res.json({
       success: true,
-      claimed: claimable,
-      sessionStatus: "COMPLETED",
+      claimed: reward,
+
+      reputationScore:
+        scoreResult.rows[0].reputation_score,
+
       message:
-        "AMT Testnet mining reward recorded in the ledger."
+        "AMT Testnet reward recorded in the AMT ledger."
     });
   } catch (error) {
-    if (client && transactionStarted) {
+    if (client) {
       try {
         await client.query("ROLLBACK");
-      } catch (rollbackError) {
-        console.error("Claim rollback error:", rollbackError.message);
-      }
+      } catch {}
     }
 
-    console.error("Claim reward error:", error.message);
+    console.error(
+      "Mining claim error:",
+      error.message
+    );
 
     return sendError(
       res,
       error.statusCode || 500,
-      "Could not record AMT mining reward."
+      "Could not claim mining reward."
     );
   } finally {
     if (client) client.release();
@@ -751,246 +1207,39 @@ app.post("/api/mining/claim", async (req, res) => {
  * ============================================================
  * REFERRAL
  *
- * Pi username = referral identifier.
- * Maximum 5 direct referrals.
- * No Testnet reward is created.
+ * Each AMT account has its own AMT-XXXXXXXX code.
+ * This is separate from the Pi username.
  * ============================================================
  */
 
-app.post("/api/referral/auto-link", async (req, res) => {
-  let client = null;
-  let transactionStarted = false;
+app.post("/api/referral/link", async (req, res) => {
+  let client;
 
   try {
-    const { accessToken, referralUsername } = req.body || {};
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
-    const member = await getAuthenticatedMember(accessToken);
-
-    const cleanUsername =
-      typeof referralUsername === "string"
-        ? referralUsername.trim()
+    const referralCode =
+      typeof req.body?.referralCode === "string"
+        ? req.body.referralCode
+            .trim()
+            .toUpperCase()
         : "";
 
-    if (!cleanUsername) {
-      return res.json({
-        success: true,
-        status: "NO_REFERRAL",
-        linked: false,
-        message: "No referral username was supplied."
-      });
-    }
-
-    if (
-      member.username &&
-      cleanUsername.toLowerCase() === member.username.toLowerCase()
-    ) {
+    if (!referralCode) {
       return sendError(
         res,
         400,
-        "A member cannot refer themselves.",
-        "SELF_REFERRAL"
+        "Referral code is required."
       );
     }
 
     client = await pool.connect();
+
     await client.query("BEGIN");
-    transactionStarted = true;
 
-    const referrerResult = await client.query(
-      `
-      SELECT id, pi_uid, username
-      FROM members
-      WHERE LOWER(username) = LOWER($1)
-      LIMIT 1
-      `,
-      [cleanUsername]
-    );
-
-    if (referrerResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      transactionStarted = false;
-
-      return res.json({
-        success: true,
-        status: "REFERRER_NOT_FOUND",
-        linked: false,
-        message:
-          "The referral Pioneer has not been registered in AMT yet."
-      });
-    }
-
-    const referrer = referrerResult.rows[0];
-
-    if (Number(referrer.id) === Number(member.id)) {
-      await client.query("ROLLBACK");
-      transactionStarted = false;
-
-      return sendError(
-        res,
-        400,
-        "A member cannot refer themselves.",
-        "SELF_REFERRAL"
-      );
-    }
-
-    const existing = await client.query(
-      `
-      SELECT id, referrer_member_id
-      FROM referrals
-      WHERE referred_member_id = $1
-      LIMIT 1
-      `,
-      [member.id]
-    );
-
-    if (existing.rows.length > 0) {
-      await client.query("COMMIT");
-      transactionStarted = false;
-
-      return res.json({
-        success: true,
-        status: "ALREADY_LINKED",
-        linked: false,
-        message: "This account already has a referral relationship."
-      });
-    }
-
-    const countResult = await client.query(
-      `
-      SELECT COUNT(*)::INTEGER AS count
-      FROM referrals
-      WHERE referrer_member_id = $1
-      AND status = 'ACTIVE'
-      `,
-      [referrer.id]
-    );
-
-    const referralCount = Number(countResult.rows[0].count);
-
-    if (referralCount >= MAX_DIRECT_REFERRALS) {
-      await client.query("COMMIT");
-      transactionStarted = false;
-
-      return res.json({
-        success: true,
-        status: "REFERRER_LIMIT_REACHED",
-        linked: false,
-        limit: MAX_DIRECT_REFERRALS,
-        message:
-          "This Pioneer already has the maximum number of direct referrals."
-      });
-    }
-
-    await client.query(
-      `
-      INSERT INTO referrals
-      (referrer_member_id, referred_member_id, status)
-      VALUES ($1, $2, 'ACTIVE')
-      `,
-      [referrer.id, member.id]
-    );
-
-    /*
-     * Automatically place the invited Pioneer in the
-     * referrer's AMT Security Circle.
-     */
-    await client.query(
-      `
-      INSERT INTO security_circle
-      (owner_member_id, member_id, status)
-      VALUES ($1, $2, 'ACTIVE')
-      ON CONFLICT (owner_member_id, member_id)
-      DO UPDATE SET status = 'ACTIVE'
-      `,
-      [referrer.id, member.id]
-    );
-
-    await client.query("COMMIT");
-    transactionStarted = false;
-
-    return res.json({
-      success: true,
-      status: "REFERRAL_LINKED",
-      linked: true,
-      referrer: {
-        username: referrer.username
-      },
-      securityCircleAdded: true,
-      referralCount: referralCount + 1,
-      maxDirectReferrals: MAX_DIRECT_REFERRALS,
-      rewardStatus: "PENDING_FOR_MAINNET",
-      message:
-        "Referral relationship recorded. No Testnet reward was created."
-    });
-  } catch (error) {
-    if (client && transactionStarted) {
-      try {
-        await client.query("ROLLBACK");
-      } catch (rollbackError) {
-        console.error(
-          "Referral rollback error:",
-          rollbackError.message
-        );
-      }
-    }
-
-    console.error("Referral auto-link error:", error.message);
-
-    return sendError(
-      res,
-      error.statusCode || 500,
-      "Could not create referral relationship."
-    );
-  } finally {
-    if (client) client.release();
-  }
-});
-
-/*
- * Compatibility endpoint.
- * Existing clients can still use a member ID if needed.
- */
-app.post("/api/referral/link", async (req, res) => {
-  try {
-    const { accessToken, referralMemberId } = req.body || {};
-
-    if (!referralMemberId) {
-      return sendError(
-        res,
-        400,
-        "referralMemberId is required."
-      );
-    }
-
-    const member = await getAuthenticatedMember(accessToken);
-
-    const referrer = await pool.query(
-      `
-      SELECT id, pi_uid, username
-      FROM members
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [referralMemberId]
-    );
-
-    if (referrer.rows.length === 0) {
-      return sendError(
-        res,
-        404,
-        "Referral member not found."
-      );
-    }
-
-    if (Number(referrer.rows[0].id) === Number(member.id)) {
-      return sendError(
-        res,
-        400,
-        "A member cannot refer themselves."
-      );
-    }
-
-    const existing = await pool.query(
+    const existingResult = await client.query(
       `
       SELECT id
       FROM referrals
@@ -1000,132 +1249,177 @@ app.post("/api/referral/link", async (req, res) => {
       [member.id]
     );
 
-    if (existing.rows.length > 0) {
+    if (existingResult.rows.length > 0) {
+      await client.query("ROLLBACK");
+
       return sendError(
         res,
         409,
-        "This account already has a referral relationship."
+        "This account already has a referral."
       );
     }
 
-    const countResult = await pool.query(
+    const referrerResult = await client.query(
       `
-      SELECT COUNT(*)::INTEGER AS count
-      FROM referrals
-      WHERE referrer_member_id = $1
-      AND status = 'ACTIVE'
+      SELECT *
+      FROM members
+      WHERE UPPER(referral_code) = $1
+      LIMIT 1
       `,
-      [referrer.rows[0].id]
+      [referralCode]
     );
+
+    if (referrerResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+
+      return sendError(
+        res,
+        404,
+        "Referral code not found."
+      );
+    }
+
+    const referrer =
+      referrerResult.rows[0];
 
     if (
-      Number(countResult.rows[0].count) >=
-      MAX_DIRECT_REFERRALS
+      Number(referrer.id) ===
+      Number(member.id)
     ) {
+      await client.query("ROLLBACK");
+
       return sendError(
         res,
-        409,
-        "This Pioneer already has the maximum number of direct referrals.",
-        "REFERRER_LIMIT_REACHED"
+        400,
+        "You cannot use your own referral code."
       );
     }
 
-    await pool.query(
+    await client.query(
       `
       INSERT INTO referrals
-      (referrer_member_id, referred_member_id)
-      VALUES ($1, $2)
+      (
+        referrer_member_id,
+        referred_member_id,
+        status
+      )
+      VALUES (
+        $1,
+        $2,
+        'ACTIVE'
+      )
       `,
-      [referrer.rows[0].id, member.id]
+      [
+        referrer.id,
+        member.id
+      ]
     );
 
-    await pool.query(
+    /*
+     * Reputation is updated.
+     * No AMT referral reward is issued here.
+     * This remains Testnet-only.
+     */
+    await client.query(
       `
-      INSERT INTO security_circle
-      (owner_member_id, member_id)
-      VALUES ($1, $2)
-      ON CONFLICT (owner_member_id, member_id)
-      DO UPDATE SET status = 'ACTIVE'
+      UPDATE members
+      SET
+        reputation_score =
+          LEAST(reputation_score + 5, 1000),
+        updated_at = NOW()
+      WHERE id = $1
       `,
-      [referrer.rows[0].id, member.id]
+      [referrer.id]
     );
+
+    await client.query("COMMIT");
 
     return res.json({
       success: true,
       status: "REFERRAL_LINKED",
-      rewardStatus: "PENDING_FOR_MAINNET"
+
+      referrer: {
+        username: referrer.username,
+        referralCode:
+          referrer.referral_code
+      },
+
+      rewardStatus:
+        "TESTNET_NO_TOKEN_REWARD"
     });
   } catch (error) {
-    console.error("Referral error:", error.message);
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {}
+    }
+
+    console.error(
+      "Referral error:",
+      error.message
+    );
+
     return sendError(
       res,
       error.statusCode || 500,
-      "Could not create referral relationship."
+      "Could not link referral."
     );
+  } finally {
+    if (client) client.release();
   }
 });
 
-/*
- * Referral dashboard:
- * returns the current user's Pi username, direct referrals,
- * active miners and future Mainnet reward status.
- */
 app.post("/api/referral/status", async (req, res) => {
   try {
-    const { accessToken } = req.body || {};
-    const owner = await getAuthenticatedMember(accessToken);
+    const member = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
     const result = await pool.query(
       `
       SELECT
-        r.id,
-        r.status,
-        r.created_at,
         m.username,
-        m.pi_uid,
-        EXISTS (
-          SELECT 1
-          FROM mining_sessions ms
-          WHERE ms.member_id = m.id
-          AND ms.status = 'ACTIVE'
-          AND ms.ends_at > NOW()
-        ) AS mining
+        m.referral_code,
+        r.created_at
       FROM referrals r
       JOIN members m
         ON m.id = r.referred_member_id
       WHERE r.referrer_member_id = $1
       AND r.status = 'ACTIVE'
-      ORDER BY r.created_at ASC
+      ORDER BY r.created_at DESC
       `,
-      [owner.id]
+      [member.id]
     );
-
-    const referrals = result.rows.map((row) => ({
-      username: row.username || "Pi Pioneer",
-      mining: Boolean(row.mining),
-      status: row.mining ? "MINING" : "NOT_MINING",
-      joinedAt: row.created_at
-    }));
 
     return res.json({
       success: true,
+
       referral: {
-        username: owner.username || null,
-        maxDirectReferrals: MAX_DIRECT_REFERRALS,
-        count: referrals.length,
-        activeMiners: referrals.filter((r) => r.mining).length,
-        rewardStatus: "PENDING_FOR_MAINNET",
-        rewardMessage:
-          "Referral rewards are reserved for future Mainnet rules. No Testnet reward is credited.",
-        referrals
+        code: member.referral_code,
+
+        count:
+          result.rows.length,
+
+        referrals:
+          result.rows.map(row => ({
+            username: row.username,
+            referralCode:
+              row.referral_code,
+            joinedAt:
+              row.created_at
+          }))
       }
     });
   } catch (error) {
-    console.error("Referral status error:", error.message);
+    console.error(
+      "Referral status error:",
+      error.message
+    );
+
     return sendError(
       res,
       error.statusCode || 500,
-      "Could not load referral status."
+      "Could not load referrals."
     );
   }
 });
@@ -1138,37 +1432,54 @@ app.post("/api/referral/status", async (req, res) => {
 
 app.post("/api/security-circle/add", async (req, res) => {
   try {
-    const { accessToken, memberId } = req.body || {};
+    const owner = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
-    if (!memberId) {
-      return sendError(res, 400, "memberId is required.");
-    }
+    const referralCode =
+      typeof req.body?.referralCode === "string"
+        ? req.body.referralCode
+            .trim()
+            .toUpperCase()
+        : "";
 
-    const owner = await getAuthenticatedMember(accessToken);
-
-    if (Number(memberId) === Number(owner.id)) {
+    if (!referralCode) {
       return sendError(
         res,
         400,
-        "A member cannot add themselves to their Security Circle."
+        "Member AMT referral code is required."
       );
     }
 
-    const target = await pool.query(
+    const targetResult = await pool.query(
       `
-      SELECT id
+      SELECT id, username
       FROM members
-      WHERE id = $1
+      WHERE UPPER(referral_code) = $1
       LIMIT 1
       `,
-      [memberId]
+      [referralCode]
     );
 
-    if (target.rows.length === 0) {
+    if (targetResult.rows.length === 0) {
       return sendError(
         res,
         404,
-        "Security Circle member not found."
+        "AMT member not found."
+      );
+    }
+
+    const target =
+      targetResult.rows[0];
+
+    if (
+      Number(target.id) ===
+      Number(owner.id)
+    ) {
+      return sendError(
+        res,
+        400,
+        "You cannot add yourself."
       );
     }
 
@@ -1184,34 +1495,64 @@ app.post("/api/security-circle/add", async (req, res) => {
 
     if (
       Number(countResult.rows[0].count) >=
-      MAX_DIRECT_REFERRALS
+      MAX_SECURITY_CIRCLE
     ) {
       return sendError(
         res,
         409,
-        `Security Circle limit is ${MAX_DIRECT_REFERRALS} members.`,
-        "SECURITY_CIRCLE_LIMIT"
+        `Security Circle limit is ${MAX_SECURITY_CIRCLE}.`
       );
     }
 
     await pool.query(
       `
       INSERT INTO security_circle
-      (owner_member_id, member_id)
-      VALUES ($1, $2)
-      ON CONFLICT (owner_member_id, member_id)
-      DO UPDATE SET status = 'ACTIVE'
+      (
+        owner_member_id,
+        member_id,
+        status
+      )
+      VALUES (
+        $1,
+        $2,
+        'ACTIVE'
+      )
+      ON CONFLICT(
+        owner_member_id,
+        member_id
+      )
+      DO UPDATE
+      SET status = 'ACTIVE'
       `,
-      [owner.id, memberId]
+      [
+        owner.id,
+        target.id
+      ]
+    );
+
+    await pool.query(
+      `
+      UPDATE members
+      SET
+        reputation_score =
+          LEAST(reputation_score + 2, 1000),
+        updated_at = NOW()
+      WHERE id = $1
+      `,
+      [owner.id]
     );
 
     return res.json({
       success: true,
-      status: "SECURITY_CIRCLE_ADDED",
-      message: "Security Circle member recorded."
+      message:
+        `${target.username || "Pioneer"} added to Security Circle.`
     });
   } catch (error) {
-    console.error("Security Circle error:", error.message);
+    console.error(
+      "Security Circle add error:",
+      error.message
+    );
+
     return sendError(
       res,
       error.statusCode || 500,
@@ -1222,51 +1563,59 @@ app.post("/api/security-circle/add", async (req, res) => {
 
 app.post("/api/security-circle/status", async (req, res) => {
   try {
-    const { accessToken } = req.body || {};
-    const owner = await getAuthenticatedMember(accessToken);
+    const owner = await getAuthenticatedMember(
+      req.body?.accessToken
+    );
 
     const result = await pool.query(
       `
       SELECT
-        sc.member_id,
         m.username,
-        m.kyc_status,
-        EXISTS (
-          SELECT 1
-          FROM mining_sessions ms
-          WHERE ms.member_id = m.id
-          AND ms.status = 'ACTIVE'
-          AND ms.ends_at > NOW()
-        ) AS mining
+        m.referral_code,
+        m.reputation_score,
+        sc.created_at
       FROM security_circle sc
       JOIN members m
         ON m.id = sc.member_id
       WHERE sc.owner_member_id = $1
       AND sc.status = 'ACTIVE'
-      ORDER BY sc.id ASC
+      ORDER BY sc.created_at ASC
       `,
       [owner.id]
     );
 
-    const members = result.rows.map((row) => ({
-      memberId: row.member_id,
-      username: row.username || "Pi Pioneer",
-      kycStatus: row.kyc_status,
-      mining: Boolean(row.mining),
-      status: row.mining ? "MINING" : "NOT_MINING"
-    }));
-
     return res.json({
       success: true,
+
       securityCircle: {
-        enabled: members.length > 0,
-        count: members.length,
-        limit: MAX_DIRECT_REFERRALS,
-        members
+        count:
+          result.rows.length,
+
+        limit:
+          MAX_SECURITY_CIRCLE,
+
+        members:
+          result.rows.map(row => ({
+            username:
+              row.username,
+
+            referralCode:
+              row.referral_code,
+
+            reputationScore:
+              row.reputation_score,
+
+            addedAt:
+              row.created_at
+          }))
       }
     });
   } catch (error) {
-    console.error("Security Circle status error:", error.message);
+    console.error(
+      "Security Circle status error:",
+      error.message
+    );
+
     return sendError(
       res,
       error.statusCode || 500,
@@ -1286,40 +1635,34 @@ async function startServer() {
     await initializeDatabase();
 
     app.listen(PORT, () => {
-      console.log("==========================================");
-      console.log("Alberto Marketplace Token (AMT)");
-      console.log("Pi Testnet Mining Backend");
-      console.log("Server running on port:", PORT);
+      console.log("======================================");
+      console.log("ALBERTO MARKETPLACE TOKEN (AMT)");
+      console.log("PI TESTNET ECOSYSTEM BACKEND");
+      console.log("--------------------------------------");
+      console.log("Port:", PORT);
       console.log("Pi API:", PI_API_BASE);
-      console.log("Pi /me endpoint:", `${PI_API_BASE}/v2/me`);
       console.log(
-        "PI_API_KEY configured:",
-        PI_API_KEY ? "YES" : "NO"
-      );
-      console.log(
-        "AMT mining rate:",
+        "Mining Rate:",
         AMT_MINING_RATE,
         "AMT/hour"
       );
-      console.log("Mining duration:", "24 hours");
       console.log(
-        "Maximum base reward:",
-        MAXIMUM_BASE_REWARD,
-        "AMT/session"
+        "Mining Duration:",
+        "24 hours"
       );
       console.log(
-        "Maximum direct referrals:",
-        MAX_DIRECT_REFERRALS
+        "Security Circle Limit:",
+        MAX_SECURITY_CIRCLE
       );
-      console.log(
-        "Referral reward:",
-        "PENDING_FOR_MAINNET"
-      );
-      console.log("KYC required for mining:", "NO");
-      console.log("==========================================");
+      console.log("Status: ONLINE");
+      console.log("======================================");
     });
   } catch (error) {
-    console.error("Server startup failed:", error.message);
+    console.error(
+      "Server startup failed:",
+      error.message
+    );
+
     process.exit(1);
   }
 }
