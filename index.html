@@ -1,672 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alberto Marketplace Token</title>
-
-<!-- Pi Browser SDK -->
-<script src="https://sdk.minepi.com/pi-sdk.js"></script>
-
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{
-  min-height:100vh;background:radial-gradient(circle at top,#382050 0%,#120a1b 45%,#050307 100%);
-  color:#fff;font-family:Arial,Helvetica,sans-serif;padding-bottom:82px
-}
-button,input{font:inherit}
-button{cursor:pointer}
-.hidden{display:none!important}
-
-/* HEADER */
-.header{
-  position:sticky;top:0;z-index:1000;padding:12px 16px;
-  display:flex;align-items:center;gap:12px;
-  background:rgba(7,4,12,.96);backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(184,113,255,.25)
-}
-.logo{
-  width:48px;height:48px;border-radius:15px;display:grid;place-items:center;
-  background:linear-gradient(145deg,#ffe69a,#b36cf0);color:#241039;
-  font-weight:900;font-size:17px;border:1px solid #e3bbff;flex-shrink:0
-}
-.brand strong{display:block;font-size:17px}
-.brand span{display:block;color:#a99caf;font-size:11px;margin-top:3px}
-.online-dot{margin-left:auto;width:12px;height:12px;border-radius:50%;background:#59ef9b;box-shadow:0 0 16px #59ef9b}
-.header-btn{
-  border:1px solid #65407e;background:#160c20;color:#fff;border-radius:11px;
-  padding:9px 11px;font-weight:bold;font-size:11px
-}
-
-/* HERO */
-.hero{padding:34px 18px 18px;max-width:1100px;margin:auto}
-.badge{
-  display:inline-block;padding:8px 13px;border-radius:999px;
-  border:1px solid rgba(255,208,92,.45);color:#ffd35a;background:rgba(255,194,60,.07);
-  font-size:11px;font-weight:bold;letter-spacing:1px
-}
-.hero h1{font-size:clamp(40px,8vw,68px);line-height:1.02;margin:20px 0 10px}
-.hero h1 span{color:#fff}
-.hero p{color:#aaa0b0;line-height:1.6;font-size:15px}
-.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-.primary,.secondary{
-  border-radius:13px;padding:13px 16px;font-weight:bold
-}
-.primary{border:0;background:#a5ff52;color:#081007}
-.secondary{border:1px solid #70458e;background:#160c21;color:#fff}
-
-/* LOGIN */
-.login-card,.notice,.panel,.balance-card,.card{
-  border:1px solid rgba(172,99,255,.27);
-  background:linear-gradient(145deg,rgba(40,21,58,.96),rgba(10,6,15,.97));
-  box-shadow:0 15px 40px rgba(0,0,0,.32);border-radius:22px
-}
-.login-card{max-width:620px;margin:18px auto;padding:22px}
-.login-card h2{font-size:22px;margin-bottom:7px}
-.muted{color:#938899;font-size:12px;line-height:1.5}
-.pi-login{
-  width:100%;margin-top:17px;padding:14px;border:0;border-radius:13px;
-  background:linear-gradient(135deg,#7138c8,#a653f0);color:#fff;font-weight:900
-}
-.status{
-  margin-top:13px;padding:12px;border-radius:12px;background:rgba(255,255,255,.04);
-  color:#c9becf;font-size:12px;line-height:1.5
-}
-.status.ok{border:1px solid rgba(83,241,151,.3);color:#8ff3b9}
-.status.err{border:1px solid rgba(255,91,110,.3);color:#ff9ca9}
-
-/* DASHBOARD */
-.wrap{max-width:1100px;margin:auto;padding:0 16px}
-.user-card{padding:20px;margin-top:10px;display:flex;align-items:center;gap:15px}
-.avatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#29133b;border:1px solid #8e52bd;font-size:25px}
-.user-card h2{font-size:21px}
-.online-pill{margin-left:auto;color:#69efa6;border:1px solid #326e55;background:rgba(54,170,110,.08);padding:8px 11px;border-radius:999px;font-size:10px;font-weight:bold}
-.notice{padding:14px 16px;margin:12px 0;color:#cfc4d5;font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
-.panel{padding:17px;min-height:125px}
-.panel .label{color:#918697;font-size:10px;letter-spacing:1.4px}
-.big{font-size:29px;font-weight:900;margin-top:10px}
-.green{color:#a5ff52}
-.gold{color:#ffd35a}
-.purple{color:#d4a5ff}
-.mini{color:#8e8396;font-size:10px;margin-top:6px}
-.balance-card{padding:22px;margin-top:12px;position:relative;overflow:hidden}
-.balance-card:after{
-  content:"";position:absolute;width:250px;height:250px;border-radius:50%;
-  right:-100px;top:-100px;background:rgba(151,70,255,.13);filter:blur(4px)
-}
-.balance-title{color:#9b91a1;font-size:11px;letter-spacing:2px}
-.balance{font-size:45px;font-weight:900;margin-top:10px;position:relative;z-index:1}
-.balance-sub{color:#ffd35a;font-weight:bold;margin-top:5px}
-.mining-row{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:18px}
-.mining-box{padding:13px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:rgba(5,3,9,.4)}
-.mining-box strong{display:block;font-size:16px}
-.mining-box span{display:block;color:#817887;font-size:9px;margin-top:5px}
-.action-row{display:flex;gap:9px;margin-top:14px}
-.action-row button{flex:1;padding:12px;border-radius:11px;font-weight:bold}
-.mine-btn{border:0;background:#a5ff52;color:#071006}
-.claim-btn{border:1px solid #7650a1;background:#160c20;color:#fff}
-.claim-btn:disabled,.mine-btn:disabled{opacity:.45;cursor:not-allowed}
-
-/* TABS */
-.section{margin-top:22px}
-.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.section-title h2{font-size:22px}
-.section-title span{color:#8e8297;font-size:10px}
-.tabs{display:flex;gap:7px;overflow:auto;padding-bottom:4px}
-.tab{
-  white-space:nowrap;border:1px solid #513366;background:#12091a;color:#bfa9ce;
-  padding:10px 13px;border-radius:999px;font-size:11px;font-weight:bold
-}
-.tab.active{background:#7138c8;color:#fff;border-color:#a15be6}
-.content-card{padding:17px}
-.row{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)
-}
-.row:last-child{border-bottom:0}
-.row small{display:block;color:#85798b;margin-top:3px}
-.pill{padding:6px 9px;border-radius:999px;font-size:9px;font-weight:bold}
-.pill.on{color:#72efaa;background:rgba(71,202,130,.09);border:1px solid #315f48}
-.pill.off{color:#a99dab;background:rgba(255,255,255,.04);border:1px solid #3c3441}
-
-/* MARKET */
-.market-controls{margin-top:18px}
-.search{
-  width:100%;padding:13px 15px;border-radius:13px;outline:none;
-  border:1px solid rgba(160,90,235,.3);background:#0e0816;color:#fff
-}
-.categories{display:flex;gap:8px;overflow:auto;margin-top:10px}
-.category{
-  white-space:nowrap;padding:9px 12px;border:1px solid #5d3978;
-  border-radius:999px;background:#12091b;color:#cbb9d6;font-size:10px;font-weight:bold
-}
-.category.active{background:#7138c8;color:#fff}
-.market-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px;margin-top:15px}
-.card{overflow:hidden}
-.pet-image{height:250px;background:radial-gradient(circle,#351357,#160922 55%,#09050e);display:flex;align-items:center;justify-content:center;position:relative}
-.pet-image img{width:100%;height:100%;object-fit:contain;padding:7px}
-.rarity{position:absolute;top:10px;right:10px;background:#0b0610dd;border:1px solid #a76add;color:#e1c1ff;padding:6px 9px;border-radius:999px;font-size:9px;font-weight:bold}
-.card-body{padding:15px}
-.card-body .collection{font-size:9px;color:#a87bd2;letter-spacing:1px}
-.card-body h3{margin-top:6px;font-size:18px}
-.desc{color:#94899b;font-size:11px;line-height:1.5;margin-top:7px;min-height:34px}
-.meta{display:flex;justify-content:space-between;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.06)}
-.meta span{color:#8d8194;font-size:9px}
-.meta strong{display:block;color:#d7b5fa;margin-top:3px}
-.buy{width:100%;margin-top:10px;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#7138c8,#a653f0);color:#fff;font-weight:bold}
-
-/* MODAL */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(7px);z-index:5000;display:none;align-items:center;justify-content:center;padding:16px}
-.modal-box{width:100%;max-width:430px;max-height:90vh;overflow:auto;padding:20px;text-align:center;border:1px solid #9556dd;border-radius:21px;background:linear-gradient(145deg,#28123d,#0c0711)}
-.close{float:right;width:32px;height:32px;border-radius:50%;border:1px solid #70428f;background:#160b20;color:#fff}
-.modal img{width:220px;height:230px;object-fit:contain;display:block;margin:25px auto 5px}
-.modal h2{font-size:25px}
-.modal .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}
-.stat{padding:11px;border:1px solid rgba(255,255,255,.06);border-radius:11px;background:#0d0712}
-.stat span{display:block;color:#7f7486;font-size:9px}.stat strong{display:block;margin-top:4px;color:#dfc5f7}
-
-/* BOTTOM NAV */
-.bottom{
-  position:fixed;bottom:0;left:0;right:0;z-index:2000;height:70px;
-  display:grid;grid-template-columns:repeat(6,1fr);background:rgba(7,5,10,.98);
-  border-top:1px solid rgba(177,108,244,.2)
-}
-.bottom button{border:0;background:none;color:#827789;font-size:9px;font-weight:bold}
-.bottom button b{display:block;font-size:22px;margin-bottom:3px}
-.bottom button.active{color:#fff}
-
-@media(max-width:600px){
-  .brand span{display:none}.brand strong{font-size:14px}
-  .header-btn{font-size:9px;padding:8px}
-  .grid{grid-template-columns:1fr 1fr}
-  .balance{font-size:39px}
-  .mining-row{grid-template-columns:repeat(3,1fr)}
-}
-@media(max-width:380px){
-  .grid{grid-template-columns:1fr}
-  .online-pill{display:none}
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alberto Marketplace Token</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,sans-serif;background:#090611;color:#fff}
+    header{padding:18px;background:#100a18;border-bottom:1px solid #35213f;display:flex;align-items:center;gap:14px}
+    .logo{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,#9c72c9,#33203e);display:grid;place-items:center;font-weight:900;font-size:22px}
+    h1{font-size:20px;margin:0}.sub{color:#aaa;font-size:13px;margin-top:4px}
+    main{max-width:760px;margin:auto;padding:22px}
+    .badge{display:inline-block;border:1px solid #8b6a2c;color:#e7c65a;padding:10px 16px;border-radius:30px;margin-bottom:18px}
+    .card{background:#130d1c;border:1px solid #34213e;border-radius:22px;padding:20px;margin:14px 0}
+    .big{font-size:38px;font-weight:800;margin:8px 0}
+    button{border:0;border-radius:14px;padding:15px 18px;font-weight:800;font-size:16px;cursor:pointer;width:100%;margin-top:10px}
+    .pi{background:#7d2bc4;color:white}.dark{background:#24162e;color:white;border:1px solid #523564}
+    .green{background:#1c8b55;color:white}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .muted{color:#aaa}.ok{color:#65df9b}.err{color:#ff6e6e}
+    pre{white-space:pre-wrap;word-break:break-word;color:#bbb}
+    @media(max-width:500px){main{padding:14px}.row{grid-template-columns:1fr}}
+  </style>
 </head>
-
 <body>
-
-<header class="header">
+<header>
   <div class="logo">AMT</div>
-  <div class="brand">
-    <strong>ALBERTO MARKETPLACE TOKEN</strong>
-    <span>AMT TESTNET</span>
-  </div>
-  <div id="onlineDot" class="online-dot"></div>
-  <button class="header-btn" onclick="configureApi()">⚙ API</button>
+  <div><h1>ALBERTO MARKETPLACE TOKEN</h1><div class="sub">Pi Testnet • PostgreSQL Mining Ledger</div></div>
 </header>
 
-<section class="hero">
-  <span class="badge">● PI TESTNET</span>
-  <h1>Mine. Build. <span>Pioneer.</span></h1>
-  <p>Welcome to the Alberto Ecosystem Mining Network.</p>
-</section>
+<main>
+  <div class="badge">● PI TESTNET</div>
 
-<div class="wrap">
-
-  <section id="loginSection" class="login-card">
-    <h2>🔐 Sign in with Pi</h2>
-    <p class="muted">Your Pi username is used to identify your AMT Testnet account. Your wallet passphrase is never requested here.</p>
-    <button id="piLoginBtn" class="pi-login" onclick="loginWithPi()">🟣 LOGIN WITH PI</button>
-    <div id="loginStatus" class="status">Waiting for Pi Sign-In...</div>
-  </section>
-
-  <section id="dashboard" class="hidden">
-
-    <div class="user-card panel">
-      <div class="avatar">👤</div>
-      <div>
-        <div class="muted">PI PIONEER</div>
-        <h2 id="username">Pioneer</h2>
-      </div>
-      <div class="online-pill">ONLINE</div>
-    </div>
-
-    <div id="accountNotice" class="notice">
-      ✅ Pi Sign-In successful. AMT account verified.
-    </div>
-
-    <div class="balance-card">
-      <div class="balance-title">AVAILABLE AMT</div>
-      <div id="balance" class="balance">0.00000000</div>
-      <div class="balance-sub">AMT Testnet</div>
-
-      <div class="mining-row">
-        <div class="mining-box"><strong id="rate">0.01</strong><span>AMT / HOUR</span></div>
-        <div class="mining-box"><strong id="miningStatus">OFF</strong><span>MINING STATUS</span></div>
-        <div class="mining-box"><strong>PI</strong><span>NETWORK</span></div>
-      </div>
-
-      <div class="action-row">
-        <button id="mineBtn" class="mine-btn" onclick="startMining()">⛏ START MINING</button>
-        <button id="claimBtn" class="claim-btn" disabled onclick="claimMining()">🎁 CLAIM</button>
-      </div>
-
-      <div id="miningInfo" class="status">Mining is currently OFF.</div>
-    </div>
-
-    <div class="grid">
-      <div class="panel">
-        <div class="label">REPUTATION</div>
-        <div id="reputation" class="big green">0</div>
-        <div class="mini">AMT ecosystem score</div>
-      </div>
-      <div class="panel">
-        <div class="label">REFERRAL TIER</div>
-        <div id="tier" class="big purple">Pioneer</div>
-        <div id="refCount" class="mini">0 / 5 direct referrals</div>
-      </div>
-    </div>
-
-    <section class="section">
-      <div class="section-title">
-        <h2>🧭 Ecosystem</h2><span>LIVE DATA</span>
-      </div>
-      <div class="tabs">
-        <button class="tab active" onclick="showPanel('profilePanel',this)">👤 Profile</button>
-        <button class="tab" onclick="showPanel('referralPanel',this)">🤝 Referral</button>
-        <button class="tab" onclick="showPanel('circlePanel',this)">🛡 Circle</button>
-        <button class="tab" onclick="showPanel('marketPanel',this)">🛒 Market</button>
-      </div>
-
-      <div id="profilePanel" class="content-card panel">
-        <div class="row"><div>Pi Username<small id="pUsername">—</small></div><span class="pill on">VERIFIED</span></div>
-        <div class="row"><div>KYC Status<small id="kyc">UNVERIFIED</small></div><span class="pill off">PI</span></div>
-        <div class="row"><div>Wallet Status<small id="walletStatus">NOT_CONNECTED</small></div><span class="pill off">AMT</span></div>
-        <div class="row"><div>Wallet Address<small id="walletAddress">Not connected</small></div></div>
-      </div>
-
-      <div id="referralPanel" class="content-card panel hidden">
-        <div class="row"><div>Your referral code<small id="refCode">—</small></div><button class="secondary" onclick="copyReferral()">COPY</button></div>
-        <div id="referrals">Loading referrals...</div>
-      </div>
-
-      <div id="circlePanel" class="content-card panel hidden">
-        <div id="circle">Loading Security Circle...</div>
-      </div>
-
-      <div id="marketPanel" class="hidden">
-        <div class="market-controls">
-          <input id="searchNFT" class="search" placeholder="🔎 Search pets..." oninput="filterPets()">
-          <div class="categories">
-            <button class="category active" data-cat="all" onclick="setCategory(this)">🐾 All</button>
-            <button class="category" data-cat="legendary" onclick="setCategory(this)">⭐ Legendary</button>
-            <button class="category" data-cat="mythic" onclick="setCategory(this)">👑 Mythic</button>
-            <button class="category" data-cat="epic" onclick="setCategory(this)">💜 Epic</button>
-            <button class="category" data-cat="rare" onclick="setCategory(this)">💎 Rare</button>
-          </div>
-        </div>
-        <div id="marketGrid" class="market-grid"></div>
-      </div>
-    </section>
-  </section>
-</div>
-
-<!-- PET MODAL -->
-<div id="petModal" class="modal" onclick="if(event.target===this)closePet()">
-  <div class="modal-box">
-    <button class="close" onclick="closePet()">✕</button>
-    <img id="mImg" alt="Pet">
-    <h2 id="mName">Pet</h2>
-    <div id="mRarity" class="muted"></div>
-    <div class="stats">
-      <div class="stat"><span>❤️ HP</span><strong id="mHP">—</strong></div>
-      <div class="stat"><span>⚔️ Attack</span><strong id="mAtk">—</strong></div>
-      <div class="stat"><span>🛡️ Defense</span><strong id="mDef">—</strong></div>
-      <div class="stat"><span>⚡ Speed</span><strong id="mSpd">—</strong></div>
-    </div>
-    <div class="status" id="mAbility">—</div>
-    <button class="buy" onclick="buyCurrentPet()">🟣 BUY WITH PI</button>
+  <div class="card">
+    <h2>Mine & Build</h2>
+    <p class="muted">Your mining history is stored in the existing PostgreSQL database.</p>
+    <button class="pi" id="loginBtn">LOGIN WITH PI</button>
+    <button class="green" id="mineBtn" disabled>START MINING</button>
+    <button class="dark" id="claimBtn" disabled>CHECK / CLAIM</button>
+    <div id="status" class="muted" style="margin-top:14px">Not signed in.</div>
   </div>
-</div>
 
-<nav class="bottom">
-  <button class="active" onclick="scrollToTop()"><b>🐾</b>Pet</button>
-  <button onclick="scrollToId('profilePanel')"><b>👤</b>Profile</button>
-  <button onclick="scrollToId('referralPanel')"><b>🤝</b>Referral</button>
-  <button onclick="scrollToId('circlePanel')"><b>🛡</b>Circle</button>
-  <button onclick="showPanel('marketPanel',document.querySelectorAll('.tab')[3]);scrollToId('marketPanel')"><b>🛒</b>Market</button>
-  <button onclick="alert('Chat module ready for the next backend phase.')"><b>💬</b>Chat</button>
-</nav>
+  <div class="card">
+    <h2>Wallet</h2>
+    <div class="big" id="balance">0.00000000 AMT</div>
+    <div id="walletInfo" class="muted">Connect Pi login first.</div>
+    <button class="dark" id="refreshWalletBtn" disabled>REFRESH WALLET</button>
+  </div>
 
-<!-- Existing marketplace payment handler can remain if marketplace.js is in your repository -->
-<script src="marketplace.js"></script>
+  <div class="card">
+    <h2>Profile</h2>
+    <div id="profile" class="muted">Not signed in.</div>
+  </div>
+
+  <div class="card">
+    <h2>Referral</h2>
+    <div id="referral" class="muted">Not signed in.</div>
+  </div>
+
+  <div class="card">
+    <h2>System</h2>
+    <pre id="system">Checking backend...</pre>
+  </div>
+</main>
 
 <script>
-"use strict";
-
-/*
-  ============================================================
-  IMPORTANT:
-  Put your deployed AMT backend URL here.
-  Example:
-  const API_BASE = "https://your-backend.onrender.com";
-  ============================================================
-*/
-const API_BASE = (localStorage.getItem("amtApiBase") || "").replace(/\/+$/,"");
-
-let piAuth = null;
-let currentPet = null;
-let selectedCategory = "all";
-let miningTimer = null;
-
-const pets = [
- {name:"Golden Tiger",img:"Golden-tiger.png",rarity:"Legendary",cat:"legendary",price:8,rep:90,hp:240,atk:120,def:95,spd:88,ability:"Critical Claw"},
- {name:"Inferno Dragon",img:"inferno-dragon.png",rarity:"Mythic",cat:"mythic",price:20,rep:95,hp:420,atk:210,def:180,spd:75,ability:"Inferno Breath"},
- {name:"Nature Mantis",img:"nature-mantis.png",rarity:"Epic",cat:"epic",price:12,rep:87,hp:180,atk:95,def:70,spd:110,ability:"Nature Slash"},
- {name:"Ocean Shark",img:"ocean-shark.png",rarity:"Legendary",cat:"legendary",price:10,rep:91,hp:300,atk:150,def:110,spd:95,ability:"Tsunami Bite"},
- {name:"Phoenix",img:"phoenix.png",rarity:"Mythic",cat:"mythic",price:20,rep:96,hp:350,atk:190,def:130,spd:100,ability:"Rebirth Flame"},
- {name:"Shadow Spider",img:"shadow-spider.png",rarity:"Epic",cat:"epic",price:15,rep:86,hp:170,atk:105,def:65,spd:125,ability:"Shadow Venom"},
- {name:"Storm Eagle",img:"storm-eagle.png",rarity:"Legendary",cat:"legendary",price:16,rep:89,hp:260,atk:145,def:90,spd:135,ability:"Thunder Dive"},
- {name:"Swamp Crocodile",img:"swamp-crocodile.png",rarity:"Epic",cat:"epic",price:10,rep:84,hp:280,atk:120,def:140,spd:60,ability:"Swamp Crush"},
- {name:"Thunder Bee",img:"thunder-bee.png",rarity:"Rare",cat:"rare",price:6,rep:82,hp:120,atk:85,def:40,spd:160,ability:"Lightning Sting"},
- {name:"Void Wolf",img:"void-wolf.png",rarity:"Mythic",cat:"mythic",price:18,rep:94,hp:310,atk:175,def:120,spd:115,ability:"Void Howl"}
-];
-
-function setStatus(text,type=""){
-  const el=document.getElementById("loginStatus");
-  el.textContent=text;
-  el.className="status "+type;
-}
-function backendUrl(){
-  if(API_BASE) return API_BASE;
-  return location.origin;
-}
-async function api(path,body){
-  const response=await fetch(backendUrl()+path,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(body)
-  });
-  const data=await response.json().catch(()=>({success:false,error:"Invalid server response"}));
-  if(!response.ok || data.success===false) throw new Error(data.error || "Server request failed.");
-  return data;
-}
-function configureApi(){
-  const current=localStorage.getItem("amtApiBase")||"";
-  const value=prompt("Enter your deployed AMT backend URL. Example: https://your-backend.onrender.com",current);
-  if(value===null)return;
-  localStorage.setItem("amtApiBase",value.trim().replace(/\/+$/,""));
-  alert("AMT backend URL saved. Reloading...");
-  location.reload();
-}
-
-async function loginWithPi(){
-  const btn=document.getElementById("piLoginBtn");
-  btn.disabled=true;
-  setStatus("Opening Pi Sign-In...");
-
-  try{
-    if(!window.Pi) throw new Error("Pi SDK is not available. Open this app inside Pi Browser.");
-    Pi.init({version:"2.0",sandbox:true});
-
-    const auth=await Pi.authenticate(
-      ["username","payments"],
-      onIncompletePaymentFound
-    );
-
-    if(!auth || !auth.accessToken) throw new Error("Pi Sign-In succeeded but no access token was returned.");
-
-    piAuth=auth;
-    localStorage.setItem("piUser",auth.user?.username || "");
-    localStorage.setItem("piAccessToken",auth.accessToken);
-
-    setStatus("Pi Sign-In successful. Verifying AMT account...");
-
-    /*
-      THIS IS THE IMPORTANT FIX:
-      The backend expects { accessToken } at /api/auth/verify.
-      We do NOT send only the username.
-    */
-    const verified=await api("/api/auth/verify",{accessToken:auth.accessToken});
-
-    if(!verified.success) throw new Error("AMT account verification failed.");
-
-    showDashboard(verified);
-    await refreshAll();
-
-    setStatus("Pi Sign-In successful. AMT account verified.","ok");
-  }catch(err){
-    console.error(err);
-    setStatus("Pi Sign-In succeeded, but AMT account verification failed. "+err.message,"err");
-    alert("AMT verification failed.\n\n"+err.message+"\n\nCheck the AMT backend URL using ⚙ API.");
-  }finally{
-    btn.disabled=false;
-  }
-}
-
-function onIncompletePaymentFound(payment){
-  console.log("Incomplete Pi payment:",payment);
-}
-
-function showDashboard(data){
-  document.getElementById("loginSection").classList.add("hidden");
-  document.getElementById("dashboard").classList.remove("hidden");
-  const user=data.user||{};
-  document.getElementById("username").textContent=user.username||"Pi Pioneer";
-  document.getElementById("pUsername").textContent=user.username||"—";
-  document.getElementById("reputation").textContent=data.reputationScore ?? 0;
-  document.getElementById("tier").textContent=data.referralTier||"Pioneer";
-  document.getElementById("accountNotice").textContent="✅ Pi Sign-In successful. AMT account verified.";
-  document.getElementById("refCode").textContent=user.username||"—";
-}
-
-async function refreshAll(){
-  const token=piAuth?.accessToken || localStorage.getItem("piAccessToken");
-  if(!token)return;
-
-  try{
-    const [profile,wallet,rep,ref,circle,mining]=await Promise.all([
-      api("/api/profile",{accessToken:token}),
-      api("/api/wallet",{accessToken:token}),
-      api("/api/reputation",{accessToken:token}),
-      api("/api/referral/status",{accessToken:token}),
-      api("/api/security-circle/status",{accessToken:token}),
-      api("/api/mining/status",{accessToken:token})
-    ]);
-
-    renderProfile(profile.profile);
-    renderWallet(wallet.wallet);
-    renderRep(rep.reputation);
-    renderReferral(ref.referral);
-    renderCircle(circle.securityCircle);
-    renderMining(mining);
-  }catch(err){
-    console.error("Refresh error:",err);
-  }
-}
-
-function renderProfile(p){
-  if(!p)return;
-  document.getElementById("username").textContent=p.username||"Pi Pioneer";
-  document.getElementById("pUsername").textContent=p.username||"—";
-  document.getElementById("kyc").textContent=p.kycStatus||"UNVERIFIED";
-  document.getElementById("walletStatus").textContent=p.walletStatus||"NOT_CONNECTED";
-  document.getElementById("walletAddress").textContent=p.walletAddress||"Not connected";
-  document.getElementById("refCode").textContent=p.username||"—";
-  document.getElementById("tier").textContent=p.referralTier||"Pioneer";
-  document.getElementById("refCount").textContent=(p.referralCount||0)+" / "+(p.referralLimit||5)+" direct referrals";
-}
-function renderWallet(w){
-  if(!w)return;
-  document.getElementById("balance").textContent=Number(w.amt||0).toFixed(8);
-}
-function renderRep(r){
-  if(!r)return;
-  document.getElementById("reputation").textContent=r.score??0;
-  document.getElementById("tier").textContent=r.referralTier||"Pioneer";
-  document.getElementById("refCount").textContent=(r.referralCount||0)+" / 5 direct referrals";
-}
-function renderReferral(r){
-  if(!r)return;
-  document.getElementById("refCode").textContent=r.username||"—";
-  document.getElementById("refCount").textContent=(r.count||0)+" / "+(r.limit||5)+" direct referrals";
-  document.getElementById("tier").textContent=r.tier||"Pioneer";
-  const box=document.getElementById("referrals");
-  if(!r.referrals?.length){
-    box.innerHTML='<div class="muted" style="padding:12px 0">No direct referrals yet.</div>';
-    return;
-  }
-  box.innerHTML=r.referrals.map(x=>`
-    <div class="row">
-      <div><strong>${escapeHtml(x.username||"Pi Pioneer")}</strong><small>${x.mining?"Mining active":"Mining off"}</small></div>
-      <span class="pill ${x.mining?"on":"off"}">${x.mining?"ONLINE":"OFFLINE"}</span>
-    </div>`).join("");
-}
-function renderCircle(c){
-  const box=document.getElementById("circle");
-  if(!c || !c.members?.length){
-    box.innerHTML='<div class="muted">Security Circle is currently empty.</div>';
-    return;
-  }
-  box.innerHTML=c.members.map(x=>`
-    <div class="row">
-      <div><strong>${escapeHtml(x.username||"Pi Pioneer")}</strong><small>KYC: ${escapeHtml(x.kycStatus||"UNVERIFIED")}</small></div>
-      <span class="pill ${x.mining?"on":"off"}">${x.mining?"MINING":"OFF"}</span>
-    </div>`).join("");
-}
-function renderMining(m){
-  const status=document.getElementById("miningStatus");
-  const info=document.getElementById("miningInfo");
-  const claim=document.getElementById("claimBtn");
-  const mine=document.getElementById("mineBtn");
-  if(!m?.mining){
-    status.textContent="OFF";status.className="big";
-    info.textContent="Mining is currently OFF.";
-    claim.disabled=true;mine.disabled=false;
-    return;
-  }
-  status.textContent="ON";status.className="big green";
-  mine.disabled=true;
-  claim.disabled=!m.session?.claimAvailable;
-  document.getElementById("rate").textContent=Number(m.session?.rate||0.01).toFixed(2);
-  info.textContent=`Earned: ${Number(m.session?.earned||0).toFixed(8)} AMT • ${m.completed?"Mining complete — claim available":"24-hour mining session active."}`;
-}
-
-async function startMining(){
-  try{
-    const token=piAuth?.accessToken;
-    if(!token)return alert("Please login with Pi first.");
-    const result=await api("/api/mining/start",{accessToken:token});
-    renderMining({mining:true,session:{...result.session,claimAvailable:false,rate:Number(result.session.rate),earned:0}});
-    await refreshAll();
-  }catch(err){alert(err.message)}
-}
-async function claimMining(){
-  try{
-    const token=piAuth?.accessToken;
-    if(!token)return alert("Please login with Pi first.");
-    const result=await api("/api/mining/claim",{accessToken:token});
-    alert("🎉 Claimed "+Number(result.claimed||0).toFixed(8)+" AMT Testnet.");
-    await refreshAll();
-  }catch(err){alert(err.message)}
-}
-
-function showPanel(id,btn){
-  ["profilePanel","referralPanel","circlePanel","marketPanel"].forEach(x=>document.getElementById(x).classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
-  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-  if(btn)btn.classList.add("active");
-  if(id==="marketPanel")renderMarket();
-}
-function scrollToId(id){
-  const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
-}
-function scrollToTop(){window.scrollTo({top:0,behavior:"smooth"})}
-
-function renderMarket(){
-  const grid=document.getElementById("marketGrid");
-  grid.innerHTML=pets.map((p,i)=>`
-    <article class="card pet-card" data-cat="${p.cat}" data-name="${p.name.toLowerCase()}">
-      <div class="pet-image">
-        <img src="${p.img}" alt="${escapeHtml(p.name)}" loading="lazy">
-        <span class="rarity">${p.rarity}</span>
-      </div>
-      <div class="card-body">
-        <div class="collection">ALBERTO PETS</div>
-        <h3>${escapeHtml(p.name)}</h3>
-        <p class="desc">Digital companion with unique combat traits and reputation.</p>
-        <div class="meta">
-          <div><span>⭐ PET REP</span><strong>${p.rep}/100</strong></div>
-          <div><span>TEST-PI</span><strong>${p.price} Pi</strong></div>
-        </div>
-        <button class="buy" onclick="openPet(${i})">VIEW / BUY</button>
-      </div>
-    </article>`).join("");
-  filterPets();
-}
-function setCategory(btn){
-  document.querySelectorAll(".category").forEach(x=>x.classList.remove("active"));
-  btn.classList.add("active");selectedCategory=btn.dataset.cat;filterPets();
-}
-function filterPets(){
-  const q=(document.getElementById("searchNFT")?.value||"").toLowerCase().trim();
-  document.querySelectorAll(".pet-card").forEach(card=>{
-    const okCat=selectedCategory==="all"||card.dataset.cat===selectedCategory;
-    const okName=card.dataset.name.includes(q);
-    card.style.display=okCat&&okName?"":"none";
-  });
-}
-function openPet(i){
-  const p=pets[i];currentPet=p;
-  document.getElementById("mImg").src=p.img;
-  document.getElementById("mName").textContent=p.name;
-  document.getElementById("mRarity").textContent=p.rarity+" • "+p.price+" Pi";
-  document.getElementById("mHP").textContent=p.hp;
-  document.getElementById("mAtk").textContent=p.atk;
-  document.getElementById("mDef").textContent=p.def;
-  document.getElementById("mSpd").textContent=p.spd;
-  document.getElementById("mAbility").textContent="✨ Special Ability: "+p.ability;
-  document.getElementById("petModal").style.display="flex";
-}
-function closePet(){document.getElementById("petModal").style.display="none"}
-function buyCurrentPet(){
-  if(!currentPet)return;
   /*
-    If your existing marketplace.js has the working Buy button,
-    this event can be connected to it. We intentionally do not
-    create a fake payment transaction here.
-  */
-  const original=document.querySelector(`.pet-card[data-name="${CSS.escape(currentPet.name.toLowerCase())}"] .buy`);
-  if(original){closePet();original.click();}
-}
-function copyReferral(){
-  const code=document.getElementById("refCode").textContent;
-  if(!code||code==="—")return;
-  navigator.clipboard?.writeText(code);
-  alert("Referral code copied: "+code);
-}
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-}
+   * IMPORTANT:
+   * If this index.html is hosted on GitHub Pages and server.js is on Render,
+   * put your REAL Render backend URL here once.
+   * Example: https://alberto-amt-backend.onrender.com
+   */
+  const API_BASE = "https://YOUR-RENDER-SERVICE.onrender.com";
 
-/* Restore a previous Pi session only after the user has authenticated once. */
-async function restoreSession(){
-  const token=localStorage.getItem("piAccessToken");
-  const username=localStorage.getItem("piUser");
-  if(!token)return;
-  try{
-    const verified=await api("/api/auth/verify",{accessToken:token});
-    piAuth={accessToken:token,user:{username:verified.user?.username||username}};
-    showDashboard(verified);
-    await refreshAll();
-  }catch(e){
-    localStorage.removeItem("piAccessToken");
-    localStorage.removeItem("piUser");
+  let accessToken = null;
+
+  const $ = id => document.getElementById(id);
+
+  function show(message, type="") {
+    $("status").className = type;
+    $("status").textContent = message;
   }
-}
 
-document.addEventListener("DOMContentLoaded",()=>{
-  renderMarket();
-  restoreSession();
-});
+  async function api(path, options={}) {
+    const headers = {"Content-Type":"application/json", ...(options.headers || {})};
+    const body = options.body ? JSON.stringify(options.body) : undefined;
+
+    const r = await fetch(API_BASE + path, {
+      method: options.method || "POST",
+      headers,
+      body
+    });
+
+    const data = await r.json().catch(() => ({success:false,error:"Invalid server response"}));
+
+    if (!r.ok || data.success === false) {
+      throw new Error(data.error || `HTTP ${r.status}`);
+    }
+    return data;
+  }
+
+  async function loadAll() {
+    if (!accessToken) return;
+
+    const profile = await api("/api/profile", {body:{accessToken}});
+    $("profile").innerHTML =
+      `<b>${profile.profile.username || "Pi Pioneer"}</b><br>
+       UID: ${profile.profile.uid}<br>
+       Reputation: ${profile.profile.reputationScore}<br>
+       Tier: ${profile.profile.referralTier}<br>
+       Mining: ${profile.profile.miningActive ? "ACTIVE" : "INACTIVE"}`;
+
+    const wallet = await api("/api/wallet", {body:{accessToken}});
+    $("balance").textContent = `${wallet.wallet.amt.toFixed(8)} AMT`;
+    $("walletInfo").textContent =
+      `${wallet.wallet.walletStatus} • ${wallet.wallet.walletAddress || "No wallet address saved"}`;
+
+    const referral = await api("/api/referral/status", {body:{accessToken}});
+    $("referral").innerHTML =
+      `Tier: <b>${referral.referral.tier}</b><br>
+       Direct referrals: ${referral.referral.count}/${referral.referral.limit}<br>
+       Active miners: ${referral.referral.activeMiners}`;
+
+    const mining = await api("/api/mining/status", {body:{accessToken}});
+    if (mining.mining) {
+      $("mineBtn").textContent = "MINING ACTIVE";
+      $("mineBtn").disabled = true;
+      $("claimBtn").disabled = !mining.session.claimAvailable;
+      show(
+        mining.session.claimAvailable
+          ? `Mining complete. ${mining.session.earned.toFixed(8)} AMT ready to claim.`
+          : `Mining active • ${mining.session.earned.toFixed(8)} AMT earned so far.`,
+        "ok"
+      );
+    } else {
+      $("mineBtn").textContent = "START MINING";
+      $("mineBtn").disabled = false;
+      $("claimBtn").disabled = true;
+    }
+  }
+
+  async function login() {
+    try {
+      show("Opening Pi authentication...");
+      if (!window.Pi) throw new Error("Pi SDK did not load.");
+
+      Pi.init({version:"2.0", sandbox:true});
+
+      const auth = await Pi.authenticate(
+        ["username", "wallet_address"],
+        () => {}
+      );
+
+      accessToken = auth.accessToken;
+
+      const verified = await api("/api/auth/verify", {
+        body:{accessToken}
+      });
+
+      show(`Pi Sign-In successful: @${verified.user.username || "Pioneer"}`, "ok");
+
+      $("mineBtn").disabled = false;
+      $("refreshWalletBtn").disabled = false;
+
+      await loadAll();
+    } catch (e) {
+      console.error(e);
+      show("AMT verification failed: " + e.message, "err");
+    }
+  }
+
+  $("loginBtn").onclick = login;
+
+  $("mineBtn").onclick = async () => {
+    try {
+      await api("/api/mining/start", {body:{accessToken}});
+      show("Mining started. Your session is stored in PostgreSQL.", "ok");
+      await loadAll();
+    } catch(e) { show(e.message, "err"); }
+  };
+
+  $("claimBtn").onclick = async () => {
+    try {
+      const result = await api("/api/mining/claim", {body:{accessToken}});
+      show(`Claimed ${Number(result.claimed).toFixed(8)} AMT. Ledger record saved.`, "ok");
+      await loadAll();
+    } catch(e) { show(e.message, "err"); }
+  };
+
+  $("refreshWalletBtn").onclick = async () => {
+    try { await loadAll(); }
+    catch(e) { show(e.message, "err"); }
+  };
+
+  async function health() {
+    try {
+      const r = await fetch(API_BASE + "/api/health");
+      const data = await r.json();
+      $("system").textContent = JSON.stringify(data, null, 2);
+    } catch(e) {
+      $("system").textContent = "Backend not reachable:\n" + e.message;
+    }
+  }
+
+  health();
 </script>
 </body>
 </html>
