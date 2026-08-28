@@ -3,19 +3,30 @@
 /*
  * ============================================================
  * ALBERTO MARKETPLACE TOKEN (AMT)
- * PI TESTNET MINING BACKEND
+ * PI TESTNET MINING + ADMIN PET MARKETPLACE BACKEND
  *
- * server.js
+ * IMPORTANT
+ * ------------------------------------------------------------
+ * Existing systems preserved:
+ * - Pi authentication
+ * - AMT mining
+ * - AMT testnet ledger
+ * - Wallet
+ * - Referral
+ * - Security Circle
  *
- * IMPORTANT:
- * - AMT mining/ledger work here is TESTNET application testing.
- * - Pi user authentication is verified server-side.
- * - Pi /v2/me uses the USER ACCESS TOKEN:
+ * Added:
+ * - Admin-only Pet Marketplace
+ * - Admin-only Buy flow
+ * - Pi payment approval
+ * - Pi payment completion
+ * - Pet purchase records
  *
- *   Authorization: Bearer <accessToken>
+ * ADMIN:
+ * @utoy0913
  *
- * - The Pi Server API Key is NOT required for /v2/me.
- * - No fake blockchain AMT balance or wallet address is created.
+ * PET/PAYMENT FEATURE:
+ * TESTNET ONLY
  * ============================================================
  */
 
@@ -47,7 +58,7 @@ const PORT = Number(
 
 /*
  * ============================================================
- * CONFIGURATION
+ * PI CONFIGURATION
  * ============================================================
  */
 
@@ -61,9 +72,11 @@ const PI_API_BASE =
 
 
 /*
- * Optional server API key.
+ * Server API Key
  *
- * It is intentionally NOT used by verifyPiAccessToken().
+ * Used ONLY for Pi payment server-side APIs.
+ *
+ * Never expose this key in frontend code.
  */
 
 const PI_API_KEY =
@@ -74,12 +87,9 @@ const PI_API_KEY =
 
 
 /*
- * AMT Testnet mining configuration.
- *
- * Default:
- * 0.01 AMT per hour
- *
- * 24 hours = 0.24 AMT maximum base reward
+ * ============================================================
+ * AMT CONFIGURATION
+ * ============================================================
  */
 
 const AMT_MINING_RATE = Number(
@@ -98,26 +108,77 @@ const MAXIMUM_BASE_REWARD =
 
 
 /*
- * Referral configuration.
+ * ============================================================
+ * REFERRAL / SECURITY CIRCLE
+ * ============================================================
  */
 
 const MAX_DIRECT_REFERRALS = 5;
-
-
-/*
- * Security Circle configuration.
- */
 
 const MAX_SECURITY_CIRCLE_MEMBERS = 5;
 
 
 /*
  * ============================================================
- * VALIDATE CONFIGURATION
+ * ADMIN CONFIGURATION
+ * ============================================================
+ *
+ * Backend checks the username returned by Pi.
+ *
+ * Default admin:
+ *
+ * @utoy0913
+ *
+ * You can override with:
+ *
+ * AMT_ADMIN_PI_USERNAME
+ *
+ * in Render environment variables.
  * ============================================================
  */
 
-if (!Number.isFinite(AMT_MINING_RATE)) {
+const ADMIN_PI_USERNAME =
+  (
+    process.env.AMT_ADMIN_PI_USERNAME ||
+    "@utoy0913"
+  )
+    .trim()
+    .toLowerCase();
+
+
+/*
+ * ============================================================
+ * ADMIN PET
+ * ============================================================
+ */
+
+const ADMIN_PET_ID =
+  "AMT-GENESIS-PET-001";
+
+const ADMIN_PET_NAME =
+  "AMT Genesis Pet";
+
+const ADMIN_PET_PRICE_PI =
+  Number(
+    process.env.ADMIN_PET_PRICE_PI || "0.01"
+  );
+
+const ADMIN_PET_IMAGE =
+  process.env.ADMIN_PET_IMAGE ||
+  "images/amt-genesis-pet.png";
+
+
+/*
+ * ============================================================
+ * VALIDATION
+ * ============================================================
+ */
+
+if (
+  !Number.isFinite(
+    AMT_MINING_RATE
+  )
+) {
 
   console.error(
     "AMT_MINING_RATE must be a valid number."
@@ -127,7 +188,10 @@ if (!Number.isFinite(AMT_MINING_RATE)) {
 
 }
 
-if (AMT_MINING_RATE < 0) {
+
+if (
+  AMT_MINING_RATE < 0
+) {
 
   console.error(
     "AMT_MINING_RATE cannot be negative."
@@ -137,7 +201,26 @@ if (AMT_MINING_RATE < 0) {
 
 }
 
-if (!process.env.DATABASE_URL) {
+
+if (
+  !Number.isFinite(
+    ADMIN_PET_PRICE_PI
+  ) ||
+  ADMIN_PET_PRICE_PI <= 0
+) {
+
+  console.error(
+    "ADMIN_PET_PRICE_PI must be greater than zero."
+  );
+
+  process.exit(1);
+
+}
+
+
+if (
+  !process.env.DATABASE_URL
+) {
 
   console.error(
     "DATABASE_URL is missing."
@@ -168,7 +251,7 @@ const pool = new Pool({
 
 /*
  * ============================================================
- * EXPRESS MIDDLEWARE
+ * EXPRESS
  * ============================================================
  */
 
@@ -191,12 +274,9 @@ app.use(
  * ============================================================
  */
 
-
-/*
- * Safe JSON parser for fetch responses.
- */
-
-async function readJsonResponse(response) {
+async function readJsonResponse(
+  response
+) {
 
   const text =
     await response.text();
@@ -209,7 +289,9 @@ async function readJsonResponse(response) {
 
     return JSON.parse(text);
 
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     return {
       raw: text
@@ -219,10 +301,6 @@ async function readJsonResponse(response) {
 
 }
 
-
-/*
- * Return a standard API error.
- */
 
 function sendError(
   res,
@@ -234,12 +312,16 @@ function sendError(
   const response = {
 
     success: false,
+
     error
 
   };
 
   if (code) {
-    response.code = code;
+
+    response.code =
+      code;
+
   }
 
   return res
@@ -249,251 +331,34 @@ function sendError(
 }
 
 
-/*
- * ============================================================
- * DATABASE INITIALIZATION
- * ============================================================
- */
+function normalizeUsername(
+  username
+) {
 
-async function initializeDatabase() {
+  if (
+    typeof username !== "string"
+  ) {
 
-  /*
-   * ----------------------------------------------------------
-   * MEMBERS
-   * ----------------------------------------------------------
-   */
+    return "";
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS members (
-      id SERIAL PRIMARY KEY,
+  }
 
-      pi_uid TEXT UNIQUE NOT NULL,
+  return username
+    .trim()
+    .toLowerCase();
 
-      username TEXT,
-
-      kyc_status TEXT NOT NULL
-        DEFAULT 'UNVERIFIED'
-        CHECK (
-          kyc_status IN (
-            'UNVERIFIED',
-            'PENDING',
-            'VERIFIED',
-            'REJECTED'
-          )
-        ),
-
-      created_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW(),
-
-      updated_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW()
-    );
-  `);
+}
 
 
-  /*
-   * ----------------------------------------------------------
-   * AMT WALLETS
-   * ----------------------------------------------------------
-   */
+function isAdmin(
+  member
+) {
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS amt_wallets (
-      id SERIAL PRIMARY KEY,
-
-      member_id INTEGER UNIQUE NOT NULL
-        REFERENCES members(id)
-        ON DELETE CASCADE,
-
-      wallet_status TEXT NOT NULL
-        DEFAULT 'NOT_CONNECTED',
-
-      wallet_address TEXT UNIQUE,
-
-      created_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW(),
-
-      updated_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW()
-    );
-  `);
-
-
-  /*
-   * ----------------------------------------------------------
-   * MINING SESSIONS
-   * ----------------------------------------------------------
-   */
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS mining_sessions (
-      id SERIAL PRIMARY KEY,
-
-      member_id INTEGER NOT NULL
-        REFERENCES members(id)
-        ON DELETE CASCADE,
-
-      started_at TIMESTAMPTZ NOT NULL,
-
-      ends_at TIMESTAMPTZ NOT NULL,
-
-      status TEXT NOT NULL
-        DEFAULT 'ACTIVE'
-        CHECK (
-          status IN (
-            'ACTIVE',
-            'COMPLETED',
-            'CANCELLED'
-          )
-        ),
-
-      rate NUMERIC(30,8) NOT NULL,
-
-      claimed_amount NUMERIC(30,8)
-        NOT NULL DEFAULT 0,
-
-      created_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW()
-    );
-  `);
-
-
-  /*
-   * ----------------------------------------------------------
-   * AMT TESTNET LEDGER
-   * ----------------------------------------------------------
-   */
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS amt_ledger (
-      id SERIAL PRIMARY KEY,
-
-      member_id INTEGER NOT NULL
-        REFERENCES members(id)
-        ON DELETE CASCADE,
-
-      amount NUMERIC(30,8) NOT NULL,
-
-      type TEXT NOT NULL,
-
-      reference TEXT UNIQUE NOT NULL,
-
-      created_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW()
-    );
-  `);
-
-
-  /*
-   * ----------------------------------------------------------
-   * REFERRALS
-   * ----------------------------------------------------------
-   */
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS referrals (
-      id SERIAL PRIMARY KEY,
-
-      referrer_member_id INTEGER NOT NULL
-        REFERENCES members(id)
-        ON DELETE CASCADE,
-
-      referred_member_id INTEGER UNIQUE NOT NULL
-        REFERENCES members(id)
-        ON DELETE CASCADE,
-
-      status TEXT NOT NULL
-        DEFAULT 'ACTIVE'
-        CHECK (
-          status IN (
-            'ACTIVE',
-            'INACTIVE'
-          )
-        ),
-
-      created_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW()
-    );
-  `);
-
-
-  /*
-   * ----------------------------------------------------------
-   * SECURITY CIRCLE
-   * ----------------------------------------------------------
-   */
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS security_circle (
-      id SERIAL PRIMARY KEY,
-
-      owner_member_id INTEGER NOT NULL
-        REFERENCES members(id)
-        ON DELETE CASCADE,
-
-      member_id INTEGER NOT NULL
-        REFERENCES members(id)
-        ON DELETE CASCADE,
-
-      status TEXT NOT NULL
-        DEFAULT 'ACTIVE'
-        CHECK (
-          status IN (
-            'ACTIVE',
-            'INACTIVE'
-          )
-        ),
-
-      created_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW(),
-
-      UNIQUE (
-        owner_member_id,
-        member_id
-      )
-    );
-  `);
-
-
-  /*
-   * ----------------------------------------------------------
-   * INDEXES
-   * ----------------------------------------------------------
-   */
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS
-    idx_mining_member_status
-    ON mining_sessions(
-      member_id,
-      status
-    );
-  `);
-
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS
-    idx_ledger_member
-    ON amt_ledger(member_id);
-  `);
-
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS
-    idx_referral_referrer
-    ON referrals(referrer_member_id);
-  `);
-
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS
-    idx_security_owner
-    ON security_circle(owner_member_id);
-  `);
-
-
-  console.log(
-    "AMT PostgreSQL database initialized."
+  return (
+    normalizeUsername(
+      member?.username
+    ) ===
+    ADMIN_PI_USERNAME
   );
 
 }
@@ -501,7 +366,7 @@ async function initializeDatabase() {
 
 /*
  * ============================================================
- * PI ACCESS TOKEN VERIFICATION
+ * PI ACCESS TOKEN
  * ============================================================
  */
 
@@ -541,16 +406,21 @@ async function verifyPiAccessToken(
           method: "GET",
 
           headers: {
+
             "Authorization":
               `Bearer ${accessToken}`,
 
             "Accept":
               "application/json"
+
           }
+
         }
       );
 
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     console.error(
       "Pi API connection error:",
@@ -575,18 +445,9 @@ async function verifyPiAccessToken(
     );
 
 
-  console.log(
-    "Pi API verification endpoint:",
-    endpoint
-  );
-
-  console.log(
-    "Pi API verification HTTP status:",
-    response.status
-  );
-
-
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     const error =
       new Error(
@@ -647,7 +508,7 @@ async function verifyPiAccessToken(
 
 /*
  * ============================================================
- * MEMBER AUTHENTICATION
+ * AUTHENTICATED MEMBER
  * ============================================================
  */
 
@@ -733,13 +594,479 @@ async function getAuthenticatedMember(
 
 /*
  * ============================================================
- * HEALTH CHECK
+ * REQUIRE ADMIN
+ * ============================================================
+ */
+
+async function requireAdmin(
+  accessToken
+) {
+
+  const member =
+    await getAuthenticatedMember(
+      accessToken
+    );
+
+
+  if (
+    !isAdmin(member)
+  ) {
+
+    const error =
+      new Error(
+        "Admin-only feature."
+      );
+
+    error.statusCode = 403;
+
+    error.code =
+      "ADMIN_ONLY";
+
+    throw error;
+
+  }
+
+
+  return member;
+
+}
+
+
+/*
+ * ============================================================
+ * DATABASE INITIALIZATION
+ * ============================================================
+ */
+
+async function initializeDatabase() {
+
+  /*
+   * MEMBERS
+   */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS members (
+      id SERIAL PRIMARY KEY,
+
+      pi_uid TEXT UNIQUE NOT NULL,
+
+      username TEXT,
+
+      kyc_status TEXT NOT NULL
+        DEFAULT 'UNVERIFIED'
+
+        CHECK (
+          kyc_status IN (
+            'UNVERIFIED',
+            'PENDING',
+            'VERIFIED',
+            'REJECTED'
+          )
+        ),
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+      updated_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW()
+    );
+  `);
+
+
+  /*
+   * AMT WALLETS
+   */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS amt_wallets (
+      id SERIAL PRIMARY KEY,
+
+      member_id INTEGER UNIQUE NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      wallet_status TEXT NOT NULL
+        DEFAULT 'NOT_CONNECTED',
+
+      wallet_address TEXT UNIQUE,
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+      updated_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW()
+    );
+  `);
+
+
+  /*
+   * MINING
+   */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS mining_sessions (
+      id SERIAL PRIMARY KEY,
+
+      member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      started_at TIMESTAMPTZ NOT NULL,
+
+      ends_at TIMESTAMPTZ NOT NULL,
+
+      status TEXT NOT NULL
+        DEFAULT 'ACTIVE'
+
+        CHECK (
+          status IN (
+            'ACTIVE',
+            'COMPLETED',
+            'CANCELLED'
+          )
+        ),
+
+      rate NUMERIC(30,8) NOT NULL,
+
+      claimed_amount NUMERIC(30,8)
+        NOT NULL DEFAULT 0,
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW()
+    );
+  `);
+
+
+  /*
+   * LEDGER
+   */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS amt_ledger (
+      id SERIAL PRIMARY KEY,
+
+      member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      amount NUMERIC(30,8) NOT NULL,
+
+      type TEXT NOT NULL,
+
+      reference TEXT UNIQUE NOT NULL,
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW()
+    );
+  `);
+
+
+  /*
+   * REFERRALS
+   */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS referrals (
+      id SERIAL PRIMARY KEY,
+
+      referrer_member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      referred_member_id INTEGER UNIQUE NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      status TEXT NOT NULL
+        DEFAULT 'ACTIVE'
+
+        CHECK (
+          status IN (
+            'ACTIVE',
+            'INACTIVE'
+          )
+        ),
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW()
+    );
+  `);
+
+
+  /*
+   * SECURITY CIRCLE
+   */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS security_circle (
+      id SERIAL PRIMARY KEY,
+
+      owner_member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      status TEXT NOT NULL
+        DEFAULT 'ACTIVE'
+
+        CHECK (
+          status IN (
+            'ACTIVE',
+            'INACTIVE'
+          )
+        ),
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+      UNIQUE (
+        owner_member_id,
+        member_id
+      )
+    );
+  `);
+
+
+  /*
+   * ==========================================================
+   * PET ITEMS
+   * ==========================================================
+   */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pet_items (
+      id TEXT PRIMARY KEY,
+
+      name TEXT NOT NULL,
+
+      description TEXT,
+
+      image_url TEXT,
+
+      price_pi NUMERIC(30,8) NOT NULL,
+
+      currency TEXT NOT NULL
+        DEFAULT 'PI',
+
+      active BOOLEAN NOT NULL
+        DEFAULT TRUE,
+
+      admin_only BOOLEAN NOT NULL
+        DEFAULT TRUE,
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+      updated_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW()
+    );
+  `);
+
+
+  /*
+   * ==========================================================
+   * PET ORDERS
+   * ==========================================================
+   */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pet_orders (
+      id SERIAL PRIMARY KEY,
+
+      order_id TEXT UNIQUE NOT NULL,
+
+      member_id INTEGER NOT NULL
+        REFERENCES members(id)
+        ON DELETE CASCADE,
+
+      pet_id TEXT NOT NULL
+        REFERENCES pet_items(id)
+        ON DELETE RESTRICT,
+
+      payment_id TEXT UNIQUE,
+
+      transaction_id TEXT,
+
+      amount_pi NUMERIC(30,8) NOT NULL,
+
+      status TEXT NOT NULL
+        DEFAULT 'CREATED'
+
+        CHECK (
+          status IN (
+            'CREATED',
+            'APPROVED',
+            'COMPLETED',
+            'CANCELLED',
+            'FAILED'
+          )
+        ),
+
+      payment_response JSONB,
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+      updated_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW()
+    );
+  `);
+
+
+  /*
+   * INDEXES
+   */
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS
+    idx_mining_member_status
+    ON mining_sessions(
+      member_id,
+      status
+    );
+  `);
+
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS
+    idx_ledger_member
+    ON amt_ledger(member_id);
+  `);
+
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS
+    idx_referral_referrer
+    ON referrals(referrer_member_id);
+  `);
+
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS
+    idx_security_owner
+    ON security_circle(owner_member_id);
+  `);
+
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS
+    idx_pet_orders_member
+    ON pet_orders(member_id);
+  `);
+
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS
+    idx_pet_orders_status
+    ON pet_orders(status);
+  `);
+
+
+  /*
+   * ==========================================================
+   * DEFAULT ADMIN PET
+   * ==========================================================
+   */
+
+  await pool.query(
+    `
+    INSERT INTO pet_items
+    (
+      id,
+      name,
+      description,
+      image_url,
+      price_pi,
+      currency,
+      active,
+      admin_only
+    )
+
+    VALUES
+    (
+      $1,
+      $2,
+      $3,
+      $4,
+      $5,
+      'PI',
+      TRUE,
+      TRUE
+    )
+
+    ON CONFLICT (id)
+
+    DO UPDATE SET
+
+      name =
+        EXCLUDED.name,
+
+      description =
+        EXCLUDED.description,
+
+      image_url =
+        EXCLUDED.image_url,
+
+      price_pi =
+        EXCLUDED.price_pi,
+
+      active =
+        EXCLUDED.active,
+
+      admin_only =
+        EXCLUDED.admin_only,
+
+      updated_at =
+        NOW()
+    `,
+    [
+      ADMIN_PET_ID,
+      ADMIN_PET_NAME,
+      "AMT Genesis Pet - Pi Testnet checklist payment test.",
+      ADMIN_PET_IMAGE,
+      ADMIN_PET_PRICE_PI
+    ]
+  );
+
+
+  console.log(
+    "AMT PostgreSQL database initialized."
+  );
+
+  console.log(
+    "Admin:",
+    ADMIN_PI_USERNAME
+  );
+
+  console.log(
+    "Admin pet:",
+    ADMIN_PET_NAME
+  );
+
+  console.log(
+    "Admin pet price:",
+    ADMIN_PET_PRICE_PI,
+    "PI"
+  );
+
+}
+
+
+/*
+ * ============================================================
+ * HEALTH
  * ============================================================
  */
 
 app.get(
   "/api/health",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
@@ -761,21 +1088,19 @@ app.get(
         database:
           "connected",
 
-        piApiBase:
-          PI_API_BASE,
-
         status:
           "healthy"
 
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
 
       console.error(
-        "Database health error:",
+        "Health error:",
         error.message
       );
-
 
       return res
         .status(500)
@@ -785,9 +1110,6 @@ app.get(
 
           service:
             "AMT Backend",
-
-          network:
-            "Pi Testnet",
 
           database:
             "error",
@@ -811,7 +1133,10 @@ app.get(
 
 app.get(
   "/",
-  (req, res) => {
+  (
+    req,
+    res
+  ) => {
 
     return res.json({
 
@@ -845,6 +1170,9 @@ app.get(
       maximumSecurityCircleMembers:
         MAX_SECURITY_CIRCLE_MEMBERS,
 
+      adminPet:
+        true,
+
       status:
         "ONLINE"
 
@@ -856,19 +1184,23 @@ app.get(
 
 /*
  * ============================================================
- * PI AUTHENTICATION
+ * PI AUTH
  * ============================================================
  */
 
 app.post(
   "/api/auth/verify",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
       const {
         accessToken
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       const member =
@@ -891,6 +1223,9 @@ app.post(
 
         },
 
+        admin:
+          isAdmin(member),
+
         kyc: {
 
           status:
@@ -900,10 +1235,12 @@ app.post(
 
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
 
       console.error(
-        "Pi authentication verification error:",
+        "Auth error:",
         error.message
       );
 
@@ -911,10 +1248,7 @@ app.post(
       return sendError(
         res,
         error.statusCode || 401,
-        "Pi account verification failed.",
-        error.piStatus
-          ? `PI_HTTP_${error.piStatus}`
-          : null
+        "Pi account verification failed."
       );
 
     }
@@ -931,13 +1265,17 @@ app.post(
 
 app.post(
   "/api/profile",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
       const {
         accessToken
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       const member =
@@ -964,7 +1302,8 @@ app.post(
 
 
       const wallet =
-        walletResult.rows[0] || null;
+        walletResult.rows[0] ||
+        null;
 
 
       return res.json({
@@ -982,6 +1321,9 @@ app.post(
           kycStatus:
             member.kyc_status,
 
+          isAdmin:
+            isAdmin(member),
+
           walletStatus:
             wallet?.wallet_status ||
             "NOT_CONNECTED",
@@ -994,13 +1336,9 @@ app.post(
 
       });
 
-    } catch (error) {
-
-      console.error(
-        "Profile error:",
-        error.message
-      );
-
+    } catch (
+      error
+    ) {
 
       return sendError(
         res,
@@ -1016,19 +1354,23 @@ app.post(
 
 /*
  * ============================================================
- * KYC STATUS
+ * KYC
  * ============================================================
  */
 
 app.post(
   "/api/kyc/status",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
       const {
         accessToken
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       const member =
@@ -1061,13 +1403,9 @@ app.post(
 
       });
 
-    } catch (error) {
-
-      console.error(
-        "KYC status error:",
-        error.message
-      );
-
+    } catch (
+      error
+    ) {
 
       return sendError(
         res,
@@ -1089,13 +1427,17 @@ app.post(
 
 app.post(
   "/api/wallet",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
       const {
         accessToken
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       const member =
@@ -1148,7 +1490,8 @@ app.post(
 
 
       const wallet =
-        walletResult.rows[0] || null;
+        walletResult.rows[0] ||
+        null;
 
 
       return res.json({
@@ -1177,13 +1520,9 @@ app.post(
 
       });
 
-    } catch (error) {
-
-      console.error(
-        "Wallet error:",
-        error.message
-      );
-
+    } catch (
+      error
+    ) {
 
       return sendError(
         res,
@@ -1205,7 +1544,10 @@ app.post(
 
 app.post(
   "/api/mining/start",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     let client = null;
     let transactionStarted = false;
@@ -1214,7 +1556,8 @@ app.post(
 
       const {
         accessToken
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       const member =
@@ -1268,7 +1611,7 @@ app.post(
         transactionStarted = false;
 
 
-        const currentSession =
+        const session =
           active.rows[0];
 
 
@@ -1282,17 +1625,17 @@ app.post(
           session: {
 
             id:
-              currentSession.id,
+              session.id,
 
             startedAt:
-              currentSession.started_at,
+              session.started_at,
 
             endsAt:
-              currentSession.ends_at,
+              session.ends_at,
 
             rate:
               Number(
-                currentSession.rate
+                session.rate
               )
 
           }
@@ -1316,7 +1659,7 @@ app.post(
         );
 
 
-      const sessionResult =
+      const result =
         await client.query(
           `
           INSERT INTO mining_sessions
@@ -1360,7 +1703,7 @@ app.post(
 
 
       const session =
-        sessionResult.rows[0];
+        result.rows[0];
 
 
       return res.json({
@@ -1396,7 +1739,9 @@ app.post(
 
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
 
       if (
         client &&
@@ -1411,14 +1756,7 @@ app.post(
 
         } catch (
           rollbackError
-        ) {
-
-          console.error(
-            "Mining rollback error:",
-            rollbackError.message
-          );
-
-        }
+        ) {}
 
       }
 
@@ -1438,7 +1776,9 @@ app.post(
     } finally {
 
       if (client) {
+
         client.release();
+
       }
 
     }
@@ -1455,13 +1795,17 @@ app.post(
 
 app.post(
   "/api/mining/status",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
       const {
         accessToken
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       const member =
@@ -1605,13 +1949,9 @@ app.post(
 
       });
 
-    } catch (error) {
-
-      console.error(
-        "Mining status error:",
-        error.message
-      );
-
+    } catch (
+      error
+    ) {
 
       return sendError(
         res,
@@ -1627,13 +1967,16 @@ app.post(
 
 /*
  * ============================================================
- * CLAIM MINING REWARD
+ * CLAIM MINING
  * ============================================================
  */
 
 app.post(
   "/api/mining/claim",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     let client = null;
     let transactionStarted = false;
@@ -1642,7 +1985,8 @@ app.post(
 
       const {
         accessToken
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       const member =
@@ -1714,23 +2058,15 @@ app.post(
         Date.now();
 
 
-      const start =
-        new Date(
-          session.started_at
-        ).getTime();
-
-
       const end =
         new Date(
           session.ends_at
         ).getTime();
 
 
-      /*
-       * HARD 24-HOUR LOCK
-       */
-
-      if (now < end) {
+      if (
+        now < end
+      ) {
 
         await client.query(
           "ROLLBACK"
@@ -1790,7 +2126,9 @@ app.post(
         );
 
 
-      if (claimable <= 0) {
+      if (
+        claimable <= 0
+      ) {
 
         await client.query(
           "ROLLBACK"
@@ -1845,17 +2183,6 @@ app.post(
       );
 
 
-      const newClaimed =
-        Number(
-          (
-            Number(
-              session.claimed_amount
-            ) +
-            claimable
-          ).toFixed(8)
-        );
-
-
       await client.query(
         `
         UPDATE mining_sessions
@@ -1869,7 +2196,7 @@ app.post(
         WHERE id = $2
         `,
         [
-          newClaimed,
+          grossEarned,
           session.id
         ]
       );
@@ -1897,7 +2224,9 @@ app.post(
 
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
 
       if (
         client &&
@@ -1912,22 +2241,9 @@ app.post(
 
         } catch (
           rollbackError
-        ) {
-
-          console.error(
-            "Claim rollback error:",
-            rollbackError.message
-          );
-
-        }
+        ) {}
 
       }
-
-
-      console.error(
-        "Claim reward error:",
-        error.message
-      );
 
 
       return sendError(
@@ -1939,7 +2255,9 @@ app.post(
     } finally {
 
       if (client) {
+
         client.release();
+
       }
 
     }
@@ -1950,13 +2268,16 @@ app.post(
 
 /*
  * ============================================================
- * REFERRAL - MANUAL LINK
+ * REFERRAL LINK
  * ============================================================
  */
 
 app.post(
   "/api/referral/link",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     let client = null;
     let transactionStarted = false;
@@ -1966,10 +2287,13 @@ app.post(
       const {
         accessToken,
         referralMemberId
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
-      if (!referralMemberId) {
+      if (
+        !referralMemberId
+      ) {
 
         return sendError(
           res,
@@ -1986,42 +2310,13 @@ app.post(
         );
 
 
-      const referrer =
-        await pool.query(
-          `
-          SELECT
-            id,
-            pi_uid,
-            username
-
-          FROM members
-
-          WHERE id = $1
-
-          LIMIT 1
-          `,
-          [
-            referralMemberId
-          ]
-        );
-
-
       if (
-        referrer.rows.length === 0
-      ) {
-
-        return sendError(
-          res,
-          404,
-          "Referral member not found."
-        );
-
-      }
-
-
-      if (
-        referrer.rows[0].id ===
-        member.id
+        Number(
+          referralMemberId
+        ) ===
+        Number(
+          member.id
+        )
       ) {
 
         return sendError(
@@ -2044,10 +2339,6 @@ app.post(
       transactionStarted = true;
 
 
-      /*
-       * Lock referrer before counting direct referrals.
-       */
-
       await client.query(
         `
         SELECT id
@@ -2059,7 +2350,7 @@ app.post(
         FOR UPDATE
         `,
         [
-          referrer.rows[0].id
+          referralMemberId
         ]
       );
 
@@ -2067,8 +2358,7 @@ app.post(
       const existing =
         await client.query(
           `
-          SELECT
-            id
+          SELECT id
 
           FROM referrals
 
@@ -2112,19 +2402,19 @@ app.post(
           WHERE referrer_member_id = $1
           `,
           [
-            referrer.rows[0].id
+            referralMemberId
           ]
         );
 
 
-      const referralCount =
+      const count =
         Number(
           countResult.rows[0].count
         );
 
 
       if (
-        referralCount >=
+        count >=
         MAX_DIRECT_REFERRALS
       ) {
 
@@ -2144,10 +2434,8 @@ app.post(
           status:
             "REFERRER_LIMIT_REACHED",
 
-          message:
-            "The referral Pioneer has reached the 5 direct-referral limit.",
-
-          referralCount,
+          referralCount:
+            count,
 
           maximumDirectReferrals:
             MAX_DIRECT_REFERRALS
@@ -2174,7 +2462,7 @@ app.post(
         )
         `,
         [
-          referrer.rows[0].id,
+          referralMemberId,
           member.id
         ]
       );
@@ -2197,17 +2485,16 @@ app.post(
           "REFERRAL_LINKED",
 
         referralCount:
-          referralCount + 1,
+          count + 1,
 
         maximumDirectReferrals:
-          MAX_DIRECT_REFERRALS,
-
-        message:
-          "Referral relationship recorded for Testnet."
+          MAX_DIRECT_REFERRALS
 
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
 
       if (
         client &&
@@ -2222,22 +2509,9 @@ app.post(
 
         } catch (
           rollbackError
-        ) {
-
-          console.error(
-            "Referral rollback error:",
-            rollbackError.message
-          );
-
-        }
+        ) {}
 
       }
-
-
-      console.error(
-        "Referral error:",
-        error.message
-      );
 
 
       return sendError(
@@ -2249,7 +2523,9 @@ app.post(
     } finally {
 
       if (client) {
+
         client.release();
+
       }
 
     }
@@ -2260,27 +2536,16 @@ app.post(
 
 /*
  * ============================================================
- * AUTOMATIC REFERRAL LINK
- * ============================================================
- *
- * Frontend sends:
- *
- * {
- *   accessToken,
- *   referralUsername
- * }
- *
- * The referral username comes from:
- *
- * ?ref=PiUsername
- *
- * Maximum direct referrals = 5.
+ * AUTOMATIC REFERRAL
  * ============================================================
  */
 
 app.post(
   "/api/referral/auto-link",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     let client = null;
     let transactionStarted = false;
@@ -2290,7 +2555,8 @@ app.post(
       const {
         accessToken,
         referralUsername
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       if (
@@ -2313,39 +2579,16 @@ app.post(
           .slice(0, 100);
 
 
-      if (!cleanUsername) {
-
-        return sendError(
-          res,
-          400,
-          "Invalid referral username."
-        );
-
-      }
-
-
-      /*
-       * Authenticate the signed-in Pioneer.
-       */
-
       const member =
         await getAuthenticatedMember(
           accessToken
         );
 
 
-      /*
-       * Check whether this Pioneer
-       * already has a referral relationship.
-       */
-
       const existing =
         await pool.query(
           `
-          SELECT
-            id,
-            referrer_member_id,
-            status
+          SELECT id
 
           FROM referrals
 
@@ -2370,19 +2613,12 @@ app.post(
           linked: false,
 
           status:
-            "ALREADY_LINKED",
-
-          message:
-            "This Pioneer already has a referral relationship."
+            "ALREADY_LINKED"
 
         });
 
       }
 
-
-      /*
-       * Find referrer by Pi username.
-       */
 
       const referrerResult =
         await pool.query(
@@ -2416,10 +2652,7 @@ app.post(
           linked: false,
 
           status:
-            "REFERRER_NOT_FOUND",
-
-          message:
-            "Referral Pioneer has not joined AMT yet."
+            "REFERRER_NOT_FOUND"
 
         });
 
@@ -2429,10 +2662,6 @@ app.post(
       const referrer =
         referrerResult.rows[0];
 
-
-      /*
-       * Prevent self-referral.
-       */
 
       if (
         Number(referrer.id) ===
@@ -2446,19 +2675,12 @@ app.post(
           linked: false,
 
           status:
-            "SELF_REFERRAL",
-
-          message:
-            "A Pioneer cannot refer themselves."
+            "SELF_REFERRAL"
 
         });
 
       }
 
-
-      /*
-       * Start transaction.
-       */
 
       client =
         await pool.connect();
@@ -2471,61 +2693,21 @@ app.post(
       transactionStarted = true;
 
 
-      /*
-       * Lock the referrer row.
-       *
-       * This prevents simultaneous requests
-       * from bypassing the 5-referral limit.
-       */
+      await client.query(
+        `
+        SELECT id
 
-      const lockedReferrer =
-        await client.query(
-          `
-          SELECT
-            id,
-            pi_uid,
-            username
+        FROM members
 
-          FROM members
+        WHERE id = $1
 
-          WHERE id = $1
+        FOR UPDATE
+        `,
+        [
+          referrer.id
+        ]
+      );
 
-          FOR UPDATE
-          `,
-          [
-            referrer.id
-          ]
-        );
-
-
-      if (
-        lockedReferrer.rows.length === 0
-      ) {
-
-        await client.query(
-          "ROLLBACK"
-        );
-
-        transactionStarted = false;
-
-
-        return res.json({
-
-          success: false,
-
-          linked: false,
-
-          status:
-            "REFERRER_NOT_FOUND"
-
-        });
-
-      }
-
-
-      /*
-       * Count active direct referrals.
-       */
 
       const countResult =
         await client.query(
@@ -2544,18 +2726,14 @@ app.post(
         );
 
 
-      const referralCount =
+      const count =
         Number(
           countResult.rows[0].count
         );
 
 
-      /*
-       * HARD LIMIT = 5
-       */
-
       if (
-        referralCount >=
+        count >=
         MAX_DIRECT_REFERRALS
       ) {
 
@@ -2575,10 +2753,8 @@ app.post(
           status:
             "REFERRER_LIMIT_REACHED",
 
-          message:
-            "The referral Pioneer has reached the 5 direct-referral limit.",
-
-          referralCount,
+          referralCount:
+            count,
 
           maximumDirectReferrals:
             MAX_DIRECT_REFERRALS
@@ -2587,10 +2763,6 @@ app.post(
 
       }
 
-
-      /*
-       * Create relationship.
-       */
 
       await client.query(
         `
@@ -2633,23 +2805,22 @@ app.post(
 
         referrer: {
 
-          id:
-            referrer.id,
-
           username:
             referrer.username
 
         },
 
         referralCount:
-          referralCount + 1,
+          count + 1,
 
         maximumDirectReferrals:
           MAX_DIRECT_REFERRALS
 
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
 
       if (
         client &&
@@ -2664,22 +2835,9 @@ app.post(
 
         } catch (
           rollbackError
-        ) {
-
-          console.error(
-            "Referral rollback error:",
-            rollbackError.message
-          );
-
-        }
+        ) {}
 
       }
-
-
-      console.error(
-        "Automatic referral error:",
-        error.message
-      );
 
 
       return sendError(
@@ -2691,7 +2849,9 @@ app.post(
     } finally {
 
       if (client) {
+
         client.release();
+
       }
 
     }
@@ -2704,15 +2864,14 @@ app.post(
  * ============================================================
  * SECURITY CIRCLE ADD
  * ============================================================
- *
- * HARD LIMIT:
- * Maximum 5 Security Circle members per Pioneer.
- * ============================================================
  */
 
 app.post(
   "/api/security-circle/add",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     let client = null;
     let transactionStarted = false;
@@ -2722,10 +2881,13 @@ app.post(
       const {
         accessToken,
         memberId
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
-      if (!memberId) {
+      if (
+        !memberId
+      ) {
 
         return sendError(
           res,
@@ -2750,7 +2912,7 @@ app.post(
         return sendError(
           res,
           400,
-          "A member cannot add themselves to their Security Circle."
+          "A member cannot add themselves."
         );
 
       }
@@ -2766,13 +2928,6 @@ app.post(
 
       transactionStarted = true;
 
-
-      /*
-       * Lock owner row.
-       *
-       * This makes the 5-member limit safe
-       * against simultaneous requests.
-       */
 
       await client.query(
         `
@@ -2790,16 +2945,10 @@ app.post(
       );
 
 
-      /*
-       * Verify target member exists.
-       */
-
       const target =
         await client.query(
           `
-          SELECT
-            id,
-            username
+          SELECT id, username
 
           FROM members
 
@@ -2832,10 +2981,6 @@ app.post(
 
       }
 
-
-      /*
-       * Check existing relationship.
-       */
 
       const existing =
         await client.query(
@@ -2872,8 +3017,8 @@ app.post(
         transactionStarted = false;
 
 
-        const currentCount =
-          await client.query(
+        const count =
+          await pool.query(
             `
             SELECT COUNT(*) AS count
 
@@ -2898,7 +3043,7 @@ app.post(
 
           count:
             Number(
-              currentCount.rows[0].count
+              count.rows[0].count
             ),
 
           limit:
@@ -2908,10 +3053,6 @@ app.post(
 
       }
 
-
-      /*
-       * Count active Security Circle members.
-       */
 
       const countResult =
         await client.query(
@@ -2930,21 +3071,14 @@ app.post(
         );
 
 
-      const memberCount =
+      const count =
         Number(
           countResult.rows[0].count
         );
 
 
-      /*
-       * HARD LIMIT = 5
-       *
-       * If reactivating an inactive existing
-       * relationship, it still needs a free slot.
-       */
-
       if (
-        memberCount >=
+        count >=
         MAX_SECURITY_CIRCLE_MEMBERS
       ) {
 
@@ -2962,11 +3096,7 @@ app.post(
           status:
             "SECURITY_CIRCLE_LIMIT_REACHED",
 
-          message:
-            "Security Circle is full. Maximum 5 members are allowed.",
-
-          count:
-            memberCount,
+          count,
 
           limit:
             MAX_SECURITY_CIRCLE_MEMBERS
@@ -2975,10 +3105,6 @@ app.post(
 
       }
 
-
-      /*
-       * Insert new relationship or reactivate.
-       */
 
       if (
         existing.rows.length > 0
@@ -3038,18 +3164,17 @@ app.post(
         status:
           "SECURITY_CIRCLE_ADDED",
 
-        message:
-          "Security Circle member recorded.",
-
         count:
-          memberCount + 1,
+          count + 1,
 
         limit:
           MAX_SECURITY_CIRCLE_MEMBERS
 
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
 
       if (
         client &&
@@ -3064,22 +3189,9 @@ app.post(
 
         } catch (
           rollbackError
-        ) {
-
-          console.error(
-            "Security Circle rollback error:",
-            rollbackError.message
-          );
-
-        }
+        ) {}
 
       }
-
-
-      console.error(
-        "Security Circle add error:",
-        error.message
-      );
 
 
       return sendError(
@@ -3091,7 +3203,9 @@ app.post(
     } finally {
 
       if (client) {
+
         client.release();
+
       }
 
     }
@@ -3108,13 +3222,17 @@ app.post(
 
 app.post(
   "/api/security-circle/status",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
       const {
         accessToken
-      } = req.body || {};
+      } =
+        req.body || {};
 
 
       const owner =
@@ -3127,17 +3245,13 @@ app.post(
         await pool.query(
           `
           SELECT
-
             sc.member_id,
-
             m.username,
-
             m.kyc_status
 
           FROM security_circle sc
 
           JOIN members m
-
             ON m.id = sc.member_id
 
           WHERE sc.owner_member_id = $1
@@ -3174,10 +3288,147 @@ app.post(
 
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        "Could not load Security Circle."
+      );
+
+    }
+
+  }
+);
+
+
+/*
+ * ============================================================
+ * ADMIN PET MARKETPLACE
+ * ============================================================
+ *
+ * IMPORTANT:
+ *
+ * Other Pioneers receive:
+ *
+ * pets: []
+ * admin: false
+ *
+ * Only @utoy0913 receives the pet.
+ * ============================================================
+ */
+
+app.post(
+  "/api/pets",
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const {
+        accessToken
+      } =
+        req.body || {};
+
+
+      const member =
+        await getAuthenticatedMember(
+          accessToken
+        );
+
+
+      if (
+        !isAdmin(member)
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          admin: false,
+
+          pets: []
+
+        });
+
+      }
+
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+            id,
+            name,
+            description,
+            image_url,
+            price_pi,
+            currency,
+            active,
+            admin_only
+
+          FROM pet_items
+
+          WHERE active = TRUE
+
+          AND admin_only = TRUE
+
+          ORDER BY created_at ASC
+          `
+        );
+
+
+      return res.json({
+
+        success: true,
+
+        admin: true,
+
+        username:
+          member.username,
+
+        pets:
+          result.rows.map(
+            pet => ({
+
+              id:
+                pet.id,
+
+              name:
+                pet.name,
+
+              description:
+                pet.description,
+
+              image:
+                pet.image_url,
+
+              pricePi:
+                Number(
+                  pet.price_pi
+                ),
+
+              currency:
+                pet.currency,
+
+              buyEnabled:
+                true
+
+            })
+          )
+
+      });
+
+    } catch (
+      error
+    ) {
 
       console.error(
-        "Security Circle status error:",
+        "Pet marketplace error:",
         error.message
       );
 
@@ -3185,7 +3436,1382 @@ app.post(
       return sendError(
         res,
         error.statusCode || 500,
-        "Could not load Security Circle."
+        "Could not load pet marketplace."
+      );
+
+    }
+
+  }
+);
+
+
+/*
+ * ============================================================
+ * ADMIN PET ORDER
+ * ============================================================
+ *
+ * Creates the internal order BEFORE Pi.createPayment().
+ *
+ * Frontend then uses:
+ *
+ * Pi.createPayment({
+ *   amount,
+ *   memo,
+ *   metadata
+ * })
+ *
+ * ============================================================
+ */
+
+app.post(
+  "/api/pets/order",
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const {
+        accessToken,
+        petId
+      } =
+        req.body || {};
+
+
+      const member =
+        await requireAdmin(
+          accessToken
+        );
+
+
+      if (
+        !petId
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "petId is required."
+        );
+
+      }
+
+
+      const petResult =
+        await pool.query(
+          `
+          SELECT *
+
+          FROM pet_items
+
+          WHERE id = $1
+
+          AND active = TRUE
+
+          AND admin_only = TRUE
+
+          LIMIT 1
+          `,
+          [
+            petId
+          ]
+        );
+
+
+      if (
+        petResult.rows.length === 0
+      ) {
+
+        return sendError(
+          res,
+          404,
+          "Pet not found."
+        );
+
+      }
+
+
+      const pet =
+        petResult.rows[0];
+
+
+      const orderId =
+        `AMT-PET-${Date.now()}-${crypto
+          .randomBytes(6)
+          .toString("hex")}`;
+
+
+      await pool.query(
+        `
+        INSERT INTO pet_orders
+        (
+          order_id,
+          member_id,
+          pet_id,
+          amount_pi,
+          status
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          $3,
+          $4,
+          'CREATED'
+        )
+        `,
+        [
+          orderId,
+          member.id,
+          pet.id,
+          pet.price_pi
+        ]
+      );
+
+
+      return res.json({
+
+        success: true,
+
+        order: {
+
+          orderId,
+
+          petId:
+            pet.id,
+
+          name:
+            pet.name,
+
+          amount:
+            Number(
+              pet.price_pi
+            ),
+
+          currency:
+            "PI",
+
+          memo:
+            `AMT Testnet Pet: ${pet.name}`,
+
+          metadata: {
+
+            orderId,
+
+            petId:
+              pet.id,
+
+            adminTest:
+              true
+
+          }
+
+        }
+
+      });
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Create pet order error:",
+        error.message
+      );
+
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        error.message ===
+          "Admin-only feature."
+          ? "This pet purchase is admin-only."
+          : "Could not create pet order.",
+        error.code || null
+      );
+
+    }
+
+  }
+);
+
+
+/*
+ * ============================================================
+ * PI PAYMENT APPROVAL
+ * ============================================================
+ *
+ * Frontend calls this from:
+ *
+ * onReadyForServerApproval(paymentId)
+ *
+ * Server:
+ *
+ * 1. Authenticates @utoy0913
+ * 2. Finds order
+ * 3. Verifies payment with Pi
+ * 4. Verifies amount
+ * 5. Verifies metadata/order
+ * 6. Approves payment
+ * ============================================================
+ */
+
+app.post(
+  "/api/payments/approve",
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      if (
+        !PI_API_KEY
+      ) {
+
+        return sendError(
+          res,
+          500,
+          "PI_API_KEY is not configured on the server.",
+          "PI_API_KEY_MISSING"
+        );
+
+      }
+
+
+      const {
+        accessToken,
+        paymentId,
+        orderId
+      } =
+        req.body || {};
+
+
+      const member =
+        await requireAdmin(
+          accessToken
+        );
+
+
+      if (
+        !paymentId ||
+        !orderId
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "paymentId and orderId are required."
+        );
+
+      }
+
+
+      const orderResult =
+        await pool.query(
+          `
+          SELECT
+            po.*,
+            p.name AS pet_name,
+            p.price_pi AS pet_price
+
+          FROM pet_orders po
+
+          JOIN pet_items p
+            ON p.id = po.pet_id
+
+          WHERE po.order_id = $1
+
+          AND po.member_id = $2
+
+          LIMIT 1
+          `,
+          [
+            orderId,
+            member.id
+          ]
+        );
+
+
+      if (
+        orderResult.rows.length === 0
+      ) {
+
+        return sendError(
+          res,
+          404,
+          "Pet order not found."
+        );
+
+      }
+
+
+      const order =
+        orderResult.rows[0];
+
+
+      /*
+       * Ask Pi for payment details.
+       */
+
+      const paymentResponse =
+        await fetch(
+          `${PI_API_BASE}/v2/payments/${encodeURIComponent(paymentId)}`,
+          {
+
+            method:
+              "GET",
+
+            headers: {
+
+              "Authorization":
+                `key ${PI_API_KEY}`,
+
+              "Accept":
+                "application/json"
+
+            }
+
+          }
+        );
+
+
+      const payment =
+        await readJsonResponse(
+          paymentResponse
+        );
+
+
+      if (
+        !paymentResponse.ok
+      ) {
+
+        console.error(
+          "Pi payment lookup failed:",
+          payment
+        );
+
+
+        return sendError(
+          res,
+          502,
+          "Unable to verify Pi payment.",
+          "PI_PAYMENT_LOOKUP_FAILED"
+        );
+
+      }
+
+
+      /*
+       * SECURITY CHECK:
+       *
+       * Payment must belong to this app user.
+       */
+
+      if (
+        payment.user_uid &&
+        String(
+          payment.user_uid
+        ) !==
+        String(
+          member.pi_uid
+        )
+      ) {
+
+        return sendError(
+          res,
+          403,
+          "Pi payment user does not match the authenticated Pioneer.",
+          "PAYMENT_USER_MISMATCH"
+        );
+
+      }
+
+
+      /*
+       * SECURITY CHECK:
+       *
+       * Amount must match the pet price.
+       */
+
+      const paymentAmount =
+        Number(
+          payment.amount
+        );
+
+
+      const expectedAmount =
+        Number(
+          order.amount_pi
+        );
+
+
+      if (
+        !Number.isFinite(
+          paymentAmount
+        ) ||
+        paymentAmount !==
+        expectedAmount
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "Pi payment amount does not match the pet price.",
+          "PAYMENT_AMOUNT_MISMATCH"
+        );
+
+      }
+
+
+      /*
+       * SECURITY CHECK:
+       *
+       * Metadata must contain our order ID
+       * when available.
+       */
+
+      const metadata =
+        payment.metadata || {};
+
+
+      if (
+        metadata.orderId &&
+        String(
+          metadata.orderId
+        ) !==
+        String(
+          order.order_id
+        )
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "Pi payment metadata does not match this order.",
+          "PAYMENT_METADATA_MISMATCH"
+        );
+
+      }
+
+
+      /*
+       * Approve payment.
+       */
+
+      const approveResponse =
+        await fetch(
+          `${PI_API_BASE}/v2/payments/${encodeURIComponent(paymentId)}/approve`,
+          {
+
+            method:
+              "POST",
+
+            headers: {
+
+              "Authorization":
+                `key ${PI_API_KEY}`,
+
+              "Accept":
+                "application/json"
+
+            }
+
+          }
+        );
+
+
+      const approvedPayment =
+        await readJsonResponse(
+          approveResponse
+        );
+
+
+      if (
+        !approveResponse.ok
+      ) {
+
+        console.error(
+          "Pi payment approval failed:",
+          approvedPayment
+        );
+
+
+        return sendError(
+          res,
+          502,
+          "Pi payment approval failed.",
+          "PI_PAYMENT_APPROVAL_FAILED"
+        );
+
+      }
+
+
+      await pool.query(
+        `
+        UPDATE pet_orders
+
+        SET
+
+          payment_id = $1,
+
+          status = 'APPROVED',
+
+          payment_response = $2,
+
+          updated_at = NOW()
+
+        WHERE order_id = $3
+        `,
+        [
+          paymentId,
+          JSON.stringify(
+            approvedPayment
+          ),
+          orderId
+        ]
+      );
+
+
+      return res.json({
+
+        success: true,
+
+        approved: true,
+
+        orderId,
+
+        paymentId,
+
+        status:
+          "APPROVED"
+
+      });
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Payment approval error:",
+        error.message
+      );
+
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        error.message ===
+          "Admin-only feature."
+          ? "This payment is admin-only."
+          : "Could not approve Pi payment.",
+        error.code || null
+      );
+
+    }
+
+  }
+);
+
+
+/*
+ * ============================================================
+ * PI PAYMENT COMPLETION
+ * ============================================================
+ *
+ * Frontend calls this from:
+ *
+ * onReadyForServerCompletion(paymentId, txid)
+ *
+ * The server:
+ *
+ * 1. Verifies payment with Pi
+ * 2. Verifies transaction
+ * 3. Completes payment
+ * 4. Marks pet order COMPLETED
+ *
+ * ============================================================
+ */
+
+app.post(
+  "/api/payments/complete",
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      if (
+        !PI_API_KEY
+      ) {
+
+        return sendError(
+          res,
+          500,
+          "PI_API_KEY is not configured on the server.",
+          "PI_API_KEY_MISSING"
+        );
+
+      }
+
+
+      const {
+        accessToken,
+        paymentId,
+        txid,
+        orderId
+      } =
+        req.body || {};
+
+
+      const member =
+        await requireAdmin(
+          accessToken
+        );
+
+
+      if (
+        !paymentId ||
+        !txid ||
+        !orderId
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "paymentId, txid and orderId are required."
+        );
+
+      }
+
+
+      const orderResult =
+        await pool.query(
+          `
+          SELECT
+            po.*,
+            p.name AS pet_name
+
+          FROM pet_orders po
+
+          JOIN pet_items p
+            ON p.id = po.pet_id
+
+          WHERE po.order_id = $1
+
+          AND po.member_id = $2
+
+          LIMIT 1
+          `,
+          [
+            orderId,
+            member.id
+          ]
+        );
+
+
+      if (
+        orderResult.rows.length === 0
+      ) {
+
+        return sendError(
+          res,
+          404,
+          "Pet order not found."
+        );
+
+      }
+
+
+      const order =
+        orderResult.rows[0];
+
+
+      /*
+       * Verify current payment from Pi.
+       */
+
+      const lookupResponse =
+        await fetch(
+          `${PI_API_BASE}/v2/payments/${encodeURIComponent(paymentId)}`,
+          {
+
+            method:
+              "GET",
+
+            headers: {
+
+              "Authorization":
+                `key ${PI_API_KEY}`,
+
+              "Accept":
+                "application/json"
+
+            }
+
+          }
+        );
+
+
+      const payment =
+        await readJsonResponse(
+          lookupResponse
+        );
+
+
+      if (
+        !lookupResponse.ok
+      ) {
+
+        return sendError(
+          res,
+          502,
+          "Unable to verify Pi payment before completion.",
+          "PI_PAYMENT_VERIFY_FAILED"
+        );
+
+      }
+
+
+      if (
+        payment.user_uid &&
+        String(
+          payment.user_uid
+        ) !==
+        String(
+          member.pi_uid
+        )
+      ) {
+
+        return sendError(
+          res,
+          403,
+          "Payment user mismatch.",
+          "PAYMENT_USER_MISMATCH"
+        );
+
+      }
+
+
+      if (
+        payment.amount !== undefined &&
+        Number(
+          payment.amount
+        ) !==
+        Number(
+          order.amount_pi
+        )
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "Payment amount mismatch.",
+          "PAYMENT_AMOUNT_MISMATCH"
+        );
+
+      }
+
+
+      /*
+       * Complete payment through Pi.
+       */
+
+      const completeResponse =
+        await fetch(
+          `${PI_API_BASE}/v2/payments/${encodeURIComponent(paymentId)}/complete`,
+          {
+
+            method:
+              "POST",
+
+            headers: {
+
+              "Authorization":
+                `key ${PI_API_KEY}`,
+
+              "Content-Type":
+                "application/json",
+
+              "Accept":
+                "application/json"
+
+            },
+
+            body:
+              JSON.stringify({
+                txid
+              })
+
+          }
+        );
+
+
+      const completedPayment =
+        await readJsonResponse(
+          completeResponse
+        );
+
+
+      if (
+        !completeResponse.ok
+      ) {
+
+        console.error(
+          "Pi completion failed:",
+          completedPayment
+        );
+
+
+        return sendError(
+          res,
+          502,
+          "Pi payment completion failed.",
+          "PI_PAYMENT_COMPLETION_FAILED"
+        );
+
+      }
+
+
+      /*
+       * Only after successful Pi completion:
+       * mark the order as completed.
+       */
+
+      await pool.query(
+        `
+        UPDATE pet_orders
+
+        SET
+
+          transaction_id = $1,
+
+          status = 'COMPLETED',
+
+          payment_response = $2,
+
+          updated_at = NOW()
+
+        WHERE order_id = $3
+        `,
+        [
+          txid,
+          JSON.stringify(
+            completedPayment
+          ),
+          orderId
+        ]
+      );
+
+
+      return res.json({
+
+        success: true,
+
+        completed: true,
+
+        orderId,
+
+        paymentId,
+
+        txid,
+
+        pet: {
+
+          id:
+            order.pet_id,
+
+          name:
+            order.pet_name
+
+        },
+
+        status:
+          "COMPLETED"
+
+      });
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Payment completion error:",
+        error.message
+      );
+
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        error.message ===
+          "Admin-only feature."
+          ? "This payment is admin-only."
+          : "Could not complete Pi payment.",
+        error.code || null
+      );
+
+    }
+
+  }
+);
+
+
+/*
+ * ============================================================
+ * PAYMENT CANCEL
+ * ============================================================
+ */
+
+app.post(
+  "/api/payments/cancel",
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const {
+        accessToken,
+        orderId
+      } =
+        req.body || {};
+
+
+      const member =
+        await requireAdmin(
+          accessToken
+        );
+
+
+      if (
+        !orderId
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "orderId is required."
+        );
+
+      }
+
+
+      const result =
+        await pool.query(
+          `
+          UPDATE pet_orders
+
+          SET
+
+            status = 'CANCELLED',
+
+            updated_at = NOW()
+
+          WHERE order_id = $1
+
+          AND member_id = $2
+
+          AND status NOT IN (
+            'COMPLETED'
+          )
+
+          RETURNING
+            order_id,
+            status
+          `,
+          [
+            orderId,
+            member.id
+          ]
+        );
+
+
+      return res.json({
+
+        success: true,
+
+        cancelled:
+          result.rows.length > 0,
+
+        order:
+          result.rows[0] || null
+
+      });
+
+    } catch (
+      error
+    ) {
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        "Could not cancel pet order."
+      );
+
+    }
+
+  }
+);
+
+
+/*
+ * ============================================================
+ * INCOMPLETE PAYMENT HANDLER
+ * ============================================================
+ *
+ * Called by frontend when Pi.authenticate()
+ * reports an incomplete payment.
+ * ============================================================
+ */
+
+app.post(
+  "/api/payments/incomplete",
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const {
+        accessToken,
+        paymentId,
+        txid
+      } =
+        req.body || {};
+
+
+      const member =
+        await requireAdmin(
+          accessToken
+        );
+
+
+      if (
+        !paymentId ||
+        !txid
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "paymentId and txid are required."
+        );
+
+      }
+
+
+      const orderResult =
+        await pool.query(
+          `
+          SELECT *
+
+          FROM pet_orders
+
+          WHERE payment_id = $1
+
+          AND member_id = $2
+
+          LIMIT 1
+          `,
+          [
+            paymentId,
+            member.id
+          ]
+        );
+
+
+      if (
+        orderResult.rows.length === 0
+      ) {
+
+        return sendError(
+          res,
+          404,
+          "Incomplete payment order not found."
+        );
+
+      }
+
+
+      const order =
+        orderResult.rows[0];
+
+
+      if (
+        order.status ===
+        "COMPLETED"
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          alreadyCompleted:
+            true,
+
+          orderId:
+            order.order_id
+
+        });
+
+      }
+
+
+      /*
+       * Ask Pi to complete the payment.
+       */
+
+      if (
+        !PI_API_KEY
+      ) {
+
+        return sendError(
+          res,
+          500,
+          "PI_API_KEY is not configured.",
+          "PI_API_KEY_MISSING"
+        );
+
+      }
+
+
+      const completeResponse =
+        await fetch(
+          `${PI_API_BASE}/v2/payments/${encodeURIComponent(paymentId)}/complete`,
+          {
+
+            method:
+              "POST",
+
+            headers: {
+
+              "Authorization":
+                `key ${PI_API_KEY}`,
+
+              "Content-Type":
+                "application/json",
+
+              "Accept":
+                "application/json"
+
+            },
+
+            body:
+              JSON.stringify({
+                txid
+              })
+
+          }
+        );
+
+
+      const completedPayment =
+        await readJsonResponse(
+          completeResponse
+        );
+
+
+      if (
+        !completeResponse.ok
+      ) {
+
+        return sendError(
+          res,
+          502,
+          "Could not complete incomplete Pi payment.",
+          "PI_PAYMENT_COMPLETION_FAILED"
+        );
+
+      }
+
+
+      await pool.query(
+        `
+        UPDATE pet_orders
+
+        SET
+
+          transaction_id = $1,
+
+          status = 'COMPLETED',
+
+          payment_response = $2,
+
+          updated_at = NOW()
+
+        WHERE order_id = $3
+        `,
+        [
+          txid,
+          JSON.stringify(
+            completedPayment
+          ),
+          order.order_id
+        ]
+      );
+
+
+      return res.json({
+
+        success: true,
+
+        completed: true,
+
+        orderId:
+          order.order_id,
+
+        paymentId,
+
+        txid,
+
+        status:
+          "COMPLETED"
+
+      });
+
+    } catch (
+      error
+    ) {
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        "Could not process incomplete payment."
+      );
+
+    }
+
+  }
+);
+
+
+/*
+ * ============================================================
+ * ADMIN PET PURCHASE HISTORY
+ * ============================================================
+ */
+
+app.post(
+  "/api/pets/orders",
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const {
+        accessToken
+      } =
+        req.body || {};
+
+
+      const member =
+        await requireAdmin(
+          accessToken
+        );
+
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+
+            po.order_id,
+
+            po.payment_id,
+
+            po.transaction_id,
+
+            po.amount_pi,
+
+            po.status,
+
+            po.created_at,
+
+            po.updated_at,
+
+            p.id AS pet_id,
+
+            p.name AS pet_name
+
+          FROM pet_orders po
+
+          JOIN pet_items p
+            ON p.id = po.pet_id
+
+          WHERE po.member_id = $1
+
+          ORDER BY
+            po.id DESC
+
+          LIMIT 50
+          `,
+          [
+            member.id
+          ]
+        );
+
+
+      return res.json({
+
+        success: true,
+
+        admin:
+          true,
+
+        orders:
+          result.rows.map(
+            row => ({
+
+              orderId:
+                row.order_id,
+
+              paymentId:
+                row.payment_id,
+
+              transactionId:
+                row.transaction_id,
+
+              petId:
+                row.pet_id,
+
+              petName:
+                row.pet_name,
+
+              amountPi:
+                Number(
+                  row.amount_pi
+                ),
+
+              status:
+                row.status,
+
+              createdAt:
+                row.created_at,
+
+              updatedAt:
+                row.updated_at
+
+            })
+          )
+
+      });
+
+    } catch (
+      error
+    ) {
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        "Could not load pet orders."
       );
 
     }
@@ -3234,7 +4860,7 @@ async function startServer() {
         );
 
         console.log(
-          "Pi /me endpoint:",
+          "Pi /me:",
           `${PI_API_BASE}/v2/me`
         );
 
@@ -3273,8 +4899,24 @@ async function startServer() {
         );
 
         console.log(
-          "KYC required for mining:",
-          "NO"
+          "Admin:",
+          ADMIN_PI_USERNAME
+        );
+
+        console.log(
+          "Admin pet:",
+          ADMIN_PET_NAME
+        );
+
+        console.log(
+          "Admin pet price:",
+          ADMIN_PET_PRICE_PI,
+          "PI"
+        );
+
+        console.log(
+          "Pet marketplace:",
+          "ADMIN ONLY"
         );
 
         console.log(
@@ -3284,7 +4926,9 @@ async function startServer() {
       }
     );
 
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     console.error(
       "Server startup failed:",
