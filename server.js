@@ -3,16 +3,19 @@
 /*
  * ============================================================
  * ALBERTO MARKETPLACE TOKEN (AMT)
- * PI TESTNET BACKEND
+ * PI TESTNET MINING BACKEND
  *
  * server.js
  *
  * IMPORTANT:
- * - AMT mining/ledger is TESTNET application accounting.
- * - Pi authentication is verified server-side.
- * - /v2/me uses the user's Pi access token.
- * - This server does NOT invent a blockchain wallet address.
- * - This server does NOT falsely mark users as KYC VERIFIED.
+ * - AMT mining/ledger work here is TESTNET application testing.
+ * - Pi user authentication is verified server-side.
+ * - Pi /v2/me uses the USER ACCESS TOKEN:
+ *
+ *   Authorization: Bearer <accessToken>
+ *
+ * - The Pi Server API Key is NOT required for /v2/me.
+ * - No fake blockchain AMT balance or wallet address is created.
  * ============================================================
  */
 
@@ -58,9 +61,9 @@ const PI_API_BASE =
 
 
 /*
- * Optional Pi Server API key.
+ * Optional server API key.
  *
- * Not used for /v2/me.
+ * It is intentionally NOT used by verifyPiAccessToken().
  */
 
 const PI_API_KEY =
@@ -71,7 +74,12 @@ const PI_API_KEY =
 
 
 /*
- * AMT Testnet mining rate.
+ * AMT Testnet mining configuration.
+ *
+ * Default:
+ * 0.01 AMT per hour
+ *
+ * 24 hours = 0.24 AMT maximum base reward
  */
 
 const AMT_MINING_RATE = Number(
@@ -87,6 +95,20 @@ const MAXIMUM_BASE_REWARD =
       AMT_MINING_RATE * 24
     ).toFixed(8)
   );
+
+
+/*
+ * Referral configuration.
+ */
+
+const MAX_DIRECT_REFERRALS = 5;
+
+
+/*
+ * Security Circle configuration.
+ */
+
+const MAX_SECURITY_CIRCLE_MEMBERS = 5;
 
 
 /*
@@ -146,7 +168,7 @@ const pool = new Pool({
 
 /*
  * ============================================================
- * EXPRESS
+ * EXPRESS MIDDLEWARE
  * ============================================================
  */
 
@@ -167,6 +189,11 @@ app.use(
  * ============================================================
  * HELPERS
  * ============================================================
+ */
+
+
+/*
+ * Safe JSON parser for fetch responses.
  */
 
 async function readJsonResponse(response) {
@@ -193,6 +220,10 @@ async function readJsonResponse(response) {
 }
 
 
+/*
+ * Return a standard API error.
+ */
+
 function sendError(
   res,
   status,
@@ -201,8 +232,10 @@ function sendError(
 ) {
 
   const response = {
+
     success: false,
     error
+
   };
 
   if (code) {
@@ -225,7 +258,9 @@ function sendError(
 async function initializeDatabase() {
 
   /*
+   * ----------------------------------------------------------
    * MEMBERS
+   * ----------------------------------------------------------
    */
 
   await pool.query(`
@@ -257,7 +292,9 @@ async function initializeDatabase() {
 
 
   /*
-   * AMT APPLICATION WALLET
+   * ----------------------------------------------------------
+   * AMT WALLETS
+   * ----------------------------------------------------------
    */
 
   await pool.query(`
@@ -283,7 +320,9 @@ async function initializeDatabase() {
 
 
   /*
+   * ----------------------------------------------------------
    * MINING SESSIONS
+   * ----------------------------------------------------------
    */
 
   await pool.query(`
@@ -320,7 +359,9 @@ async function initializeDatabase() {
 
 
   /*
-   * AMT LEDGER
+   * ----------------------------------------------------------
+   * AMT TESTNET LEDGER
+   * ----------------------------------------------------------
    */
 
   await pool.query(`
@@ -344,7 +385,9 @@ async function initializeDatabase() {
 
 
   /*
+   * ----------------------------------------------------------
    * REFERRALS
+   * ----------------------------------------------------------
    */
 
   await pool.query(`
@@ -375,7 +418,9 @@ async function initializeDatabase() {
 
 
   /*
+   * ----------------------------------------------------------
    * SECURITY CIRCLE
+   * ----------------------------------------------------------
    */
 
   await pool.query(`
@@ -411,7 +456,9 @@ async function initializeDatabase() {
 
 
   /*
+   * ----------------------------------------------------------
    * INDEXES
+   * ----------------------------------------------------------
    */
 
   await pool.query(`
@@ -423,17 +470,20 @@ async function initializeDatabase() {
     );
   `);
 
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS
     idx_ledger_member
     ON amt_ledger(member_id);
   `);
 
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS
     idx_referral_referrer
     ON referrals(referrer_member_id);
   `);
+
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS
@@ -491,10 +541,10 @@ async function verifyPiAccessToken(
           method: "GET",
 
           headers: {
-            Authorization:
+            "Authorization":
               `Bearer ${accessToken}`,
 
-            Accept:
+            "Accept":
               "application/json"
           }
         }
@@ -597,7 +647,7 @@ async function verifyPiAccessToken(
 
 /*
  * ============================================================
- * AUTHENTICATED MEMBER
+ * MEMBER AUTHENTICATION
  * ============================================================
  */
 
@@ -653,10 +703,6 @@ async function getAuthenticatedMember(
     result.rows[0];
 
 
-  /*
-   * Create application wallet record.
-   */
-
   await pool.query(
     `
     INSERT INTO amt_wallets
@@ -687,7 +733,7 @@ async function getAuthenticatedMember(
 
 /*
  * ============================================================
- * HEALTH
+ * HEALTH CHECK
  * ============================================================
  */
 
@@ -729,6 +775,7 @@ app.get(
         "Database health error:",
         error.message
       );
+
 
       return res
         .status(500)
@@ -792,6 +839,12 @@ app.get(
       maximumBaseReward:
         MAXIMUM_BASE_REWARD,
 
+      maximumDirectReferrals:
+        MAX_DIRECT_REFERRALS,
+
+      maximumSecurityCircleMembers:
+        MAX_SECURITY_CIRCLE_MEMBERS,
+
       status:
         "ONLINE"
 
@@ -803,7 +856,7 @@ app.get(
 
 /*
  * ============================================================
- * PI AUTH VERIFY
+ * PI AUTHENTICATION
  * ============================================================
  */
 
@@ -850,7 +903,7 @@ app.post(
     } catch (error) {
 
       console.error(
-        "Pi authentication error:",
+        "Pi authentication verification error:",
         error.message
       );
 
@@ -891,57 +944,6 @@ app.post(
         await getAuthenticatedMember(
           accessToken
         );
-
-
-      /*
-       * Count direct referrals.
-       */
-
-      const referralCount =
-        await pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-
-          FROM referrals
-
-          WHERE referrer_member_id = $1
-
-          AND status = 'ACTIVE'
-          `,
-          [
-            member.id
-          ]
-        );
-
-
-      const count =
-        Number(
-          referralCount.rows[0].count
-        );
-
-
-      /*
-       * Simple application referral tier.
-       */
-
-      let referralTier = "PIONEER";
-
-      if (count >= 10) {
-        referralTier = "LEGEND";
-      } else if (count >= 5) {
-        referralTier = "ELITE";
-      } else if (count >= 1) {
-        referralTier = "BUILDER";
-      }
-
-
-      /*
-       * Reputation is an application value,
-       * not Pi KYC verification.
-       */
-
-      const reputationScore =
-        count * 10;
 
 
       const walletResult =
@@ -986,11 +988,7 @@ app.post(
 
           walletAddress:
             wallet?.wallet_address ||
-            null,
-
-          reputationScore,
-
-          referralTier
+            null
 
         }
 
@@ -1019,13 +1017,6 @@ app.post(
 /*
  * ============================================================
  * KYC STATUS
- * ============================================================
- *
- * This reads the stored AMT KYC state.
- *
- * It does NOT pretend that Pi /v2/me proves Full KYC.
- *
- * Mining is allowed on Testnet.
  * ============================================================
  */
 
@@ -1058,7 +1049,11 @@ app.post(
           miningAllowed:
             true,
 
-          mainnetTransactionEligible:
+          migrationEligible:
+            member.kyc_status ===
+            "VERIFIED",
+
+          protectedTransactionsEligible:
             member.kyc_status ===
             "VERIFIED"
 
@@ -1314,7 +1309,10 @@ app.post(
       const endsAt =
         new Date(
           startedAt.getTime() +
-          MINING_DURATION_SECONDS * 1000
+          (
+            MINING_DURATION_SECONDS *
+            1000
+          )
         );
 
 
@@ -1406,12 +1404,20 @@ app.post(
       ) {
 
         try {
-          await client.query("ROLLBACK");
-        } catch (rollbackError) {
+
+          await client.query(
+            "ROLLBACK"
+          );
+
+        } catch (
+          rollbackError
+        ) {
+
           console.error(
-            "Rollback error:",
+            "Mining rollback error:",
             rollbackError.message
           );
+
         }
 
       }
@@ -1708,6 +1714,12 @@ app.post(
         Date.now();
 
 
+      const start =
+        new Date(
+          session.started_at
+        ).getTime();
+
+
       const end =
         new Date(
           session.ends_at
@@ -1715,7 +1727,7 @@ app.post(
 
 
       /*
-       * 24-HOUR LOCK
+       * HARD 24-HOUR LOCK
        */
 
       if (now < end) {
@@ -1729,7 +1741,9 @@ app.post(
 
         const remainingSeconds =
           Math.ceil(
-            (end - now) / 1000
+            (
+              end - now
+            ) / 1000
           );
 
 
@@ -1847,7 +1861,9 @@ app.post(
         UPDATE mining_sessions
 
         SET
+
           claimed_amount = $1,
+
           status = 'COMPLETED'
 
         WHERE id = $2
@@ -1889,12 +1905,20 @@ app.post(
       ) {
 
         try {
-          await client.query("ROLLBACK");
-        } catch (rollbackError) {
+
+          await client.query(
+            "ROLLBACK"
+          );
+
+        } catch (
+          rollbackError
+        ) {
+
           console.error(
             "Claim rollback error:",
             rollbackError.message
           );
+
         }
 
       }
@@ -1926,13 +1950,16 @@ app.post(
 
 /*
  * ============================================================
- * REFERRAL LINK
+ * REFERRAL - MANUAL LINK
  * ============================================================
  */
 
 app.post(
   "/api/referral/link",
   async (req, res) => {
+
+    let client = null;
+    let transactionStarted = false;
 
     try {
 
@@ -2006,10 +2033,42 @@ app.post(
       }
 
 
+      client =
+        await pool.connect();
+
+
+      await client.query(
+        "BEGIN"
+      );
+
+      transactionStarted = true;
+
+
+      /*
+       * Lock referrer before counting direct referrals.
+       */
+
+      await client.query(
+        `
+        SELECT id
+
+        FROM members
+
+        WHERE id = $1
+
+        FOR UPDATE
+        `,
+        [
+          referrer.rows[0].id
+        ]
+      );
+
+
       const existing =
-        await pool.query(
+        await client.query(
           `
-          SELECT id
+          SELECT
+            id
 
           FROM referrals
 
@@ -2027,6 +2086,13 @@ app.post(
         existing.rows.length > 0
       ) {
 
+        await client.query(
+          "ROLLBACK"
+        );
+
+        transactionStarted = false;
+
+
         return sendError(
           res,
           409,
@@ -2036,18 +2102,75 @@ app.post(
       }
 
 
-      await pool.query(
+      const countResult =
+        await client.query(
+          `
+          SELECT COUNT(*) AS count
+
+          FROM referrals
+
+          WHERE referrer_member_id = $1
+          `,
+          [
+            referrer.rows[0].id
+          ]
+        );
+
+
+      const referralCount =
+        Number(
+          countResult.rows[0].count
+        );
+
+
+      if (
+        referralCount >=
+        MAX_DIRECT_REFERRALS
+      ) {
+
+        await client.query(
+          "ROLLBACK"
+        );
+
+        transactionStarted = false;
+
+
+        return res.json({
+
+          success: false,
+
+          linked: false,
+
+          status:
+            "REFERRER_LIMIT_REACHED",
+
+          message:
+            "The referral Pioneer has reached the 5 direct-referral limit.",
+
+          referralCount,
+
+          maximumDirectReferrals:
+            MAX_DIRECT_REFERRALS
+
+        });
+
+      }
+
+
+      await client.query(
         `
         INSERT INTO referrals
         (
           referrer_member_id,
-          referred_member_id
+          referred_member_id,
+          status
         )
 
         VALUES
         (
           $1,
-          $2
+          $2,
+          'ACTIVE'
         )
         `,
         [
@@ -2057,12 +2180,27 @@ app.post(
       );
 
 
+      await client.query(
+        "COMMIT"
+      );
+
+      transactionStarted = false;
+
+
       return res.json({
 
         success: true,
 
+        linked: true,
+
         status:
           "REFERRAL_LINKED",
+
+        referralCount:
+          referralCount + 1,
+
+        maximumDirectReferrals:
+          MAX_DIRECT_REFERRALS,
 
         message:
           "Referral relationship recorded for Testnet."
@@ -2070,6 +2208,31 @@ app.post(
       });
 
     } catch (error) {
+
+      if (
+        client &&
+        transactionStarted
+      ) {
+
+        try {
+
+          await client.query(
+            "ROLLBACK"
+          );
+
+        } catch (
+          rollbackError
+        ) {
+
+          console.error(
+            "Referral rollback error:",
+            rollbackError.message
+          );
+
+        }
+
+      }
+
 
       console.error(
         "Referral error:",
@@ -2083,6 +2246,12 @@ app.post(
         "Could not create referral relationship."
       );
 
+    } finally {
+
+      if (client) {
+        client.release();
+      }
+
     }
 
   }
@@ -2091,22 +2260,73 @@ app.post(
 
 /*
  * ============================================================
- * REFERRAL STATUS
+ * AUTOMATIC REFERRAL LINK
+ * ============================================================
  *
- * Required by the current index.html.
+ * Frontend sends:
+ *
+ * {
+ *   accessToken,
+ *   referralUsername
+ * }
+ *
+ * The referral username comes from:
+ *
+ * ?ref=PiUsername
+ *
+ * Maximum direct referrals = 5.
  * ============================================================
  */
 
 app.post(
-  "/api/referral/status",
+  "/api/referral/auto-link",
   async (req, res) => {
+
+    let client = null;
+    let transactionStarted = false;
 
     try {
 
       const {
-        accessToken
+        accessToken,
+        referralUsername
       } = req.body || {};
 
+
+      if (
+        !referralUsername ||
+        typeof referralUsername !== "string"
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "referralUsername is required."
+        );
+
+      }
+
+
+      const cleanUsername =
+        referralUsername
+          .trim()
+          .slice(0, 100);
+
+
+      if (!cleanUsername) {
+
+        return sendError(
+          res,
+          400,
+          "Invalid referral username."
+        );
+
+      }
+
+
+      /*
+       * Authenticate the signed-in Pioneer.
+       */
 
       const member =
         await getAuthenticatedMember(
@@ -2114,30 +2334,24 @@ app.post(
         );
 
 
-      const result =
+      /*
+       * Check whether this Pioneer
+       * already has a referral relationship.
+       */
+
+      const existing =
         await pool.query(
           `
           SELECT
-            COUNT(*)::int AS count,
+            id,
+            referrer_member_id,
+            status
 
-            COUNT(
-              CASE
-                WHEN EXISTS (
-                  SELECT 1
-                  FROM mining_sessions ms
-                  WHERE ms.member_id =
-                    r.referred_member_id
-                  AND ms.status = 'ACTIVE'
-                )
-                THEN 1
-              END
-            )::int AS active_miners
+          FROM referrals
 
-          FROM referrals r
+          WHERE referred_member_id = $1
 
-          WHERE r.referrer_member_id = $1
-
-          AND r.status = 'ACTIVE'
+          LIMIT 1
           `,
           [
             member.id
@@ -2145,61 +2359,325 @@ app.post(
         );
 
 
-      const count =
-        Number(
-          result.rows[0].count
-        );
+      if (
+        existing.rows.length > 0
+      ) {
 
+        return res.json({
 
-      const activeMiners =
-        Number(
-          result.rows[0].active_miners
-        );
+          success: true,
 
+          linked: false,
 
-      let tier = "PIONEER";
-      let limit = 5;
+          status:
+            "ALREADY_LINKED",
 
-      if (count >= 10) {
+          message:
+            "This Pioneer already has a referral relationship."
 
-        tier = "LEGEND";
-        limit = 999999;
-
-      } else if (count >= 5) {
-
-        tier = "ELITE";
-        limit = 10;
-
-      } else if (count >= 1) {
-
-        tier = "BUILDER";
-        limit = 5;
+        });
 
       }
+
+
+      /*
+       * Find referrer by Pi username.
+       */
+
+      const referrerResult =
+        await pool.query(
+          `
+          SELECT
+            id,
+            pi_uid,
+            username
+
+          FROM members
+
+          WHERE LOWER(username) =
+                LOWER($1)
+
+          LIMIT 1
+          `,
+          [
+            cleanUsername
+          ]
+        );
+
+
+      if (
+        referrerResult.rows.length === 0
+      ) {
+
+        return res.json({
+
+          success: false,
+
+          linked: false,
+
+          status:
+            "REFERRER_NOT_FOUND",
+
+          message:
+            "Referral Pioneer has not joined AMT yet."
+
+        });
+
+      }
+
+
+      const referrer =
+        referrerResult.rows[0];
+
+
+      /*
+       * Prevent self-referral.
+       */
+
+      if (
+        Number(referrer.id) ===
+        Number(member.id)
+      ) {
+
+        return res.json({
+
+          success: false,
+
+          linked: false,
+
+          status:
+            "SELF_REFERRAL",
+
+          message:
+            "A Pioneer cannot refer themselves."
+
+        });
+
+      }
+
+
+      /*
+       * Start transaction.
+       */
+
+      client =
+        await pool.connect();
+
+
+      await client.query(
+        "BEGIN"
+      );
+
+      transactionStarted = true;
+
+
+      /*
+       * Lock the referrer row.
+       *
+       * This prevents simultaneous requests
+       * from bypassing the 5-referral limit.
+       */
+
+      const lockedReferrer =
+        await client.query(
+          `
+          SELECT
+            id,
+            pi_uid,
+            username
+
+          FROM members
+
+          WHERE id = $1
+
+          FOR UPDATE
+          `,
+          [
+            referrer.id
+          ]
+        );
+
+
+      if (
+        lockedReferrer.rows.length === 0
+      ) {
+
+        await client.query(
+          "ROLLBACK"
+        );
+
+        transactionStarted = false;
+
+
+        return res.json({
+
+          success: false,
+
+          linked: false,
+
+          status:
+            "REFERRER_NOT_FOUND"
+
+        });
+
+      }
+
+
+      /*
+       * Count active direct referrals.
+       */
+
+      const countResult =
+        await client.query(
+          `
+          SELECT COUNT(*) AS count
+
+          FROM referrals
+
+          WHERE referrer_member_id = $1
+
+          AND status = 'ACTIVE'
+          `,
+          [
+            referrer.id
+          ]
+        );
+
+
+      const referralCount =
+        Number(
+          countResult.rows[0].count
+        );
+
+
+      /*
+       * HARD LIMIT = 5
+       */
+
+      if (
+        referralCount >=
+        MAX_DIRECT_REFERRALS
+      ) {
+
+        await client.query(
+          "ROLLBACK"
+        );
+
+        transactionStarted = false;
+
+
+        return res.json({
+
+          success: false,
+
+          linked: false,
+
+          status:
+            "REFERRER_LIMIT_REACHED",
+
+          message:
+            "The referral Pioneer has reached the 5 direct-referral limit.",
+
+          referralCount,
+
+          maximumDirectReferrals:
+            MAX_DIRECT_REFERRALS
+
+        });
+
+      }
+
+
+      /*
+       * Create relationship.
+       */
+
+      await client.query(
+        `
+        INSERT INTO referrals
+        (
+          referrer_member_id,
+          referred_member_id,
+          status
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          'ACTIVE'
+        )
+        `,
+        [
+          referrer.id,
+          member.id
+        ]
+      );
+
+
+      await client.query(
+        "COMMIT"
+      );
+
+      transactionStarted = false;
 
 
       return res.json({
 
         success: true,
 
-        referral: {
+        linked: true,
 
-          tier,
+        status:
+          "REFERRAL_LINKED",
 
-          count,
+        referrer: {
 
-          limit,
+          id:
+            referrer.id,
 
-          activeMiners
+          username:
+            referrer.username
 
-        }
+        },
+
+        referralCount:
+          referralCount + 1,
+
+        maximumDirectReferrals:
+          MAX_DIRECT_REFERRALS
 
       });
 
     } catch (error) {
 
+      if (
+        client &&
+        transactionStarted
+      ) {
+
+        try {
+
+          await client.query(
+            "ROLLBACK"
+          );
+
+        } catch (
+          rollbackError
+        ) {
+
+          console.error(
+            "Referral rollback error:",
+            rollbackError.message
+          );
+
+        }
+
+      }
+
+
       console.error(
-        "Referral status error:",
+        "Automatic referral error:",
         error.message
       );
 
@@ -2207,8 +2685,14 @@ app.post(
       return sendError(
         res,
         error.statusCode || 500,
-        "Could not load referral status."
+        "Could not create automatic referral relationship."
       );
+
+    } finally {
+
+      if (client) {
+        client.release();
+      }
 
     }
 
@@ -2220,11 +2704,18 @@ app.post(
  * ============================================================
  * SECURITY CIRCLE ADD
  * ============================================================
+ *
+ * HARD LIMIT:
+ * Maximum 5 Security Circle members per Pioneer.
+ * ============================================================
  */
 
 app.post(
   "/api/security-circle/add",
   async (req, res) => {
+
+    let client = null;
+    let transactionStarted = false;
 
     try {
 
@@ -2265,10 +2756,50 @@ app.post(
       }
 
 
+      client =
+        await pool.connect();
+
+
+      await client.query(
+        "BEGIN"
+      );
+
+      transactionStarted = true;
+
+
+      /*
+       * Lock owner row.
+       *
+       * This makes the 5-member limit safe
+       * against simultaneous requests.
+       */
+
+      await client.query(
+        `
+        SELECT id
+
+        FROM members
+
+        WHERE id = $1
+
+        FOR UPDATE
+        `,
+        [
+          owner.id
+        ]
+      );
+
+
+      /*
+       * Verify target member exists.
+       */
+
       const target =
-        await pool.query(
+        await client.query(
           `
-          SELECT id
+          SELECT
+            id,
+            username
 
           FROM members
 
@@ -2286,6 +2817,13 @@ app.post(
         target.rows.length === 0
       ) {
 
+        await client.query(
+          "ROLLBACK"
+        );
+
+        transactionStarted = false;
+
+
         return sendError(
           res,
           404,
@@ -2295,34 +2833,202 @@ app.post(
       }
 
 
-      await pool.query(
-        `
-        INSERT INTO security_circle
-        (
-          owner_member_id,
-          member_id
-        )
+      /*
+       * Check existing relationship.
+       */
 
-        VALUES
-        (
-          $1,
-          $2
-        )
+      const existing =
+        await client.query(
+          `
+          SELECT
+            id,
+            status
 
-        ON CONFLICT
-        (
-          owner_member_id,
-          member_id
-        )
+          FROM security_circle
 
-        DO UPDATE SET
-          status = 'ACTIVE'
-        `,
-        [
-          owner.id,
-          memberId
-        ]
+          WHERE owner_member_id = $1
+
+          AND member_id = $2
+
+          LIMIT 1
+          `,
+          [
+            owner.id,
+            memberId
+          ]
+        );
+
+
+      if (
+        existing.rows.length > 0 &&
+        existing.rows[0].status ===
+        "ACTIVE"
+      ) {
+
+        await client.query(
+          "COMMIT"
+        );
+
+        transactionStarted = false;
+
+
+        const currentCount =
+          await client.query(
+            `
+            SELECT COUNT(*) AS count
+
+            FROM security_circle
+
+            WHERE owner_member_id = $1
+
+            AND status = 'ACTIVE'
+            `,
+            [
+              owner.id
+            ]
+          );
+
+
+        return res.json({
+
+          success: true,
+
+          status:
+            "ALREADY_IN_SECURITY_CIRCLE",
+
+          count:
+            Number(
+              currentCount.rows[0].count
+            ),
+
+          limit:
+            MAX_SECURITY_CIRCLE_MEMBERS
+
+        });
+
+      }
+
+
+      /*
+       * Count active Security Circle members.
+       */
+
+      const countResult =
+        await client.query(
+          `
+          SELECT COUNT(*) AS count
+
+          FROM security_circle
+
+          WHERE owner_member_id = $1
+
+          AND status = 'ACTIVE'
+          `,
+          [
+            owner.id
+          ]
+        );
+
+
+      const memberCount =
+        Number(
+          countResult.rows[0].count
+        );
+
+
+      /*
+       * HARD LIMIT = 5
+       *
+       * If reactivating an inactive existing
+       * relationship, it still needs a free slot.
+       */
+
+      if (
+        memberCount >=
+        MAX_SECURITY_CIRCLE_MEMBERS
+      ) {
+
+        await client.query(
+          "ROLLBACK"
+        );
+
+        transactionStarted = false;
+
+
+        return res.json({
+
+          success: false,
+
+          status:
+            "SECURITY_CIRCLE_LIMIT_REACHED",
+
+          message:
+            "Security Circle is full. Maximum 5 members are allowed.",
+
+          count:
+            memberCount,
+
+          limit:
+            MAX_SECURITY_CIRCLE_MEMBERS
+
+        });
+
+      }
+
+
+      /*
+       * Insert new relationship or reactivate.
+       */
+
+      if (
+        existing.rows.length > 0
+      ) {
+
+        await client.query(
+          `
+          UPDATE security_circle
+
+          SET status = 'ACTIVE'
+
+          WHERE id = $1
+          `,
+          [
+            existing.rows[0].id
+          ]
+        );
+
+      } else {
+
+        await client.query(
+          `
+          INSERT INTO security_circle
+          (
+            owner_member_id,
+            member_id,
+            status
+          )
+
+          VALUES
+          (
+            $1,
+            $2,
+            'ACTIVE'
+          )
+          `,
+          [
+            owner.id,
+            memberId
+          ]
+        );
+
+      }
+
+
+      await client.query(
+        "COMMIT"
       );
+
+      transactionStarted = false;
 
 
       return res.json({
@@ -2333,14 +3039,45 @@ app.post(
           "SECURITY_CIRCLE_ADDED",
 
         message:
-          "Security Circle member recorded."
+          "Security Circle member recorded.",
+
+        count:
+          memberCount + 1,
+
+        limit:
+          MAX_SECURITY_CIRCLE_MEMBERS
 
       });
 
     } catch (error) {
 
+      if (
+        client &&
+        transactionStarted
+      ) {
+
+        try {
+
+          await client.query(
+            "ROLLBACK"
+          );
+
+        } catch (
+          rollbackError
+        ) {
+
+          console.error(
+            "Security Circle rollback error:",
+            rollbackError.message
+          );
+
+        }
+
+      }
+
+
       console.error(
-        "Security Circle error:",
+        "Security Circle add error:",
         error.message
       );
 
@@ -2350,6 +3087,12 @@ app.post(
         error.statusCode || 500,
         "Could not update Security Circle."
       );
+
+    } finally {
+
+      if (client) {
+        client.release();
+      }
 
     }
 
@@ -2389,19 +3132,12 @@ app.post(
 
             m.username,
 
-            m.kyc_status,
-
-            EXISTS (
-              SELECT 1
-              FROM mining_sessions ms
-              WHERE ms.member_id =
-                sc.member_id
-              AND ms.status = 'ACTIVE'
-            ) AS mining
+            m.kyc_status
 
           FROM security_circle sc
 
           JOIN members m
+
             ON m.id = sc.member_id
 
           WHERE sc.owner_member_id = $1
@@ -2427,6 +3163,9 @@ app.post(
 
           count:
             result.rows.length,
+
+          limit:
+            MAX_SECURITY_CIRCLE_MEMBERS,
 
           members:
             result.rows
@@ -2481,7 +3220,7 @@ async function startServer() {
         );
 
         console.log(
-          "Pi Testnet Backend"
+          "Pi Testnet Mining Backend"
         );
 
         console.log(
@@ -2524,7 +3263,17 @@ async function startServer() {
         );
 
         console.log(
-          "KYC required for Testnet mining:",
+          "Maximum direct referrals:",
+          MAX_DIRECT_REFERRALS
+        );
+
+        console.log(
+          "Maximum Security Circle members:",
+          MAX_SECURITY_CIRCLE_MEMBERS
+        );
+
+        console.log(
+          "KYC required for mining:",
           "NO"
         );
 
