@@ -1900,3 +1900,62 @@ app.post(
       });
 
     }
+    } catch (error) {
+
+      console.error(
+        "Referral link error:",
+        error.message
+      );
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        "Could not create referral relationship."
+      );
+    }
+  }
+);
+
+/*
+============================================================
+SERVER START
+============================================================
+*/
+
+async function startServer() {
+
+  try {
+
+    await initializeDatabase();
+
+    app.listen(
+      PORT,
+      "0.0.0.0",
+      () => {
+
+        console.log(
+          `AMT Backend listening on port ${PORT}`
+        );
+
+        console.log(
+          `Pi API Base: ${PI_API_BASE}`
+        );
+
+        console.log(
+          "AMT Backend status: ONLINE"
+        );
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "AMT Backend startup failed:",
+      error
+    );
+
+    process.exit(1);
+  }
+}
+
+startServer();
