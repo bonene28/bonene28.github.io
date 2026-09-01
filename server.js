@@ -50,25 +50,16 @@ const PI_API_BASE = (
   .trim()
   .replace(/\/+$/, "");
 
-/*
-Optional Pi Server API key.
-
-Currently not required for /v2/me.
-*/
-
 const PI_API_KEY = (
   process.env.PI_API_KEY || ""
 ).trim();
-
-/*
-AMT Testnet mining rate.
-*/
 
 const AMT_MINING_RATE = Number(
   process.env.AMT_MINING_RATE || "0.01"
 );
 
-const MINING_DURATION_SECONDS = 24 * 60 * 60;
+const MINING_DURATION_SECONDS =
+  24 * 60 * 60;
 
 const MAXIMUM_BASE_REWARD = Number(
   (AMT_MINING_RATE * 24).toFixed(8)
@@ -111,7 +102,8 @@ DATABASE
 */
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString:
+    process.env.DATABASE_URL,
 
   ssl: {
     rejectUnauthorized: false
@@ -143,7 +135,8 @@ HELPERS
 */
 
 async function readJsonResponse(response) {
-  const text = await response.text();
+  const text =
+    await response.text();
 
   if (!text) {
     return null;
@@ -186,10 +179,6 @@ DATABASE INITIALIZATION
 
 async function initializeDatabase() {
 
-  /*
-  MEMBERS
-  */
-
   await pool.query(`
     CREATE TABLE IF NOT EXISTS members (
       id SERIAL PRIMARY KEY,
@@ -218,10 +207,6 @@ async function initializeDatabase() {
     );
   `);
 
-  /*
-  AMT APPLICATION WALLET
-  */
-
   await pool.query(`
     CREATE TABLE IF NOT EXISTS amt_wallets (
       id SERIAL PRIMARY KEY,
@@ -242,10 +227,6 @@ async function initializeDatabase() {
         DEFAULT NOW()
     );
   `);
-
-  /*
-  MINING SESSIONS
-  */
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS mining_sessions (
@@ -280,10 +261,6 @@ async function initializeDatabase() {
     );
   `);
 
-  /*
-  AMT LEDGER
-  */
-
   await pool.query(`
     CREATE TABLE IF NOT EXISTS amt_ledger (
       id SERIAL PRIMARY KEY,
@@ -302,10 +279,6 @@ async function initializeDatabase() {
         DEFAULT NOW()
     );
   `);
-
-  /*
-  REFERRALS
-  */
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS referrals (
@@ -333,10 +306,6 @@ async function initializeDatabase() {
         DEFAULT NOW()
     );
   `);
-
-  /*
-  SECURITY CIRCLE
-  */
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS security_circle (
@@ -369,10 +338,6 @@ async function initializeDatabase() {
       )
     );
   `);
-
-  /*
-  INDEXES
-  */
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS
@@ -588,10 +553,6 @@ async function getAuthenticatedMember(
 
   const member =
     result.rows[0];
-
-  /*
-  Create application wallet record.
-  */
 
   await pool.query(
     `
@@ -812,10 +773,6 @@ app.post(
           accessToken
         );
 
-      /*
-      Count direct referrals.
-      */
-
       const referralCount =
         await pool.query(
           `
@@ -838,10 +795,6 @@ app.post(
           referralCount.rows[0].count
         );
 
-      /*
-      Simple application referral tier.
-      */
-
       let referralTier =
         "PIONEER";
 
@@ -860,11 +813,6 @@ app.post(
         referralTier =
           "BUILDER";
       }
-
-      /*
-      Reputation is an application value,
-      not Pi KYC verification.
-      */
 
       const reputationScore =
         count * 10;
@@ -938,13 +886,6 @@ app.post(
 /*
 ============================================================
 KYC STATUS
-============================================================
-
-This reads the stored AMT KYC state.
-
-It does NOT pretend that Pi /v2/me proves Full KYC.
-
-Mining is allowed on Testnet.
 ============================================================
 */
 
@@ -1024,7 +965,6 @@ app.post(
         await pool.query(
           `
           SELECT
-
             COALESCE(
               SUM(amount),
               0
@@ -1573,10 +1513,6 @@ app.post(
           session.ends_at
         ).getTime();
 
-      /*
-      24-HOUR LOCK
-      */
-
       if (now < end) {
 
         await client.query(
@@ -1899,7 +1835,6 @@ app.post(
 
       });
 
-    }
     } catch (error) {
 
       console.error(
