@@ -1,15 +1,16 @@
 {
-  "name": "amt-pi-testnet-backend",
-  "version": "1.2.0",
-  "description": "Alberto Marketplace Token Pi Testnet mining backend",
-  "main": "server.js",
+  "name": "alberto-amt-testnet",
+  "version": "1.0.0",
+  "description": "AMT Pi Testnet Trustline and Minting Backend",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^14.5.0",
-    "express": "^4.21.2",
-    "cors": "^2.8.5",
-    "pg": "^8.16.3"
+    "@stellar/stellar-sdk": "^13.0.0",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
