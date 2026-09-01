@@ -1,0 +1,67 @@
+"use strict";
+
+const express = require("express");
+const StellarSDK = require("@stellar/stellar-sdk");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+const SERVER_URL = process.env.HORIZON_URL || "https://api.testnet.minepi.com";
+const NETWORK_PASSPHRASE = "Pi Testnet";
+const TOKEN_CODE = "AMT";
+
+app.get("/", (req, res) => {
+  res.send("AMT Pi Testnet Server is Running! Go to /setup-trustline to trigger trustline.");
+});
+
+app.get("/setup-trustline", async (req, res) => {
+  try {
+    const ISSUER_PUBLIC = process.env.AMT_ISSUER_PUBLIC;
+    const DISTRIBUTOR_PUBLIC = process.env.AMT_DISTRIBUTOR_PUBLIC;
+    const DISTRIBUTOR_SECRET = process.env.AMT_DISTRIBUTOR_SECRET;
+
+    if (!ISSUER_PUBLIC || !DISTRIBUTOR_PUBLIC || !DISTRIBUTOR_SECRET) {
+      return res.status(400).json({ 
+        error: "Missing Environment Variables! Siguraduhing nakalagay sa Render ang AMT_ISSUER_PUBLIC, AMT_DISTRIBUTOR_PUBLIC, at AMT_DISTRIBUTOR_SECRET." 
+      });
+    }
+
+    const distributorKeypair = StellarSDK.Keypair.fromSecret(DISTRIBUTOR_SECRET);
+    const asset = new StellarSDK.Asset(TOKEN_CODE, ISSUER_PUBLIC);
+    const server = new StellarSDK.Horizon.Server(SERVER_URL);
+
+    const distributorAccount = await server.loadAccount(DISTRIBUTOR_PUBLIC);
+    const latestLedger = await server.ledgers().order("desc").limit(1).call();
+    const baseFee = latestLedger.records[0].base_fee_in_stroops;
+
+    const transaction = new StellarSDK.TransactionBuilder(distributorAccount, {
+      fee: String(baseFee),
+      networkPassphrase: NETWORK_PASSPHRASE,
+      timebounds: await server.fetchTimebounds(90)
+    })
+      .addOperation(
+        StellarSDK.Operation.changeTrust({ asset: asset })
+      )
+      .build();
+
+    transaction.sign(distributorKeypair);
+    const result = await server.submitTransaction(transaction);
+
+    return res.json({
+      status: "SUCCESS",
+      message: "AMT Trustline Successfully Established!",
+      hash: result.hash
+    });
+
+  } catch (error) {
+    console.error("Trustline Error:", error);
+    return res.status(500).json({
+      status: "FAILED",
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
