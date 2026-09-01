@@ -1,7 +1,7 @@
 {
   "name": "alberto-amt-testnet",
   "version": "1.0.0",
-  "description": "AMT Pi Testnet Trustline and Minting Backend",
+  "description": "AMT Pi Testnet Trustline Backend",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
