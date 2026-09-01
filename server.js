@@ -6,17 +6,25 @@ ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
 server.js
 
+TESTNET APPLICATION ACCOUNTING
+
+Includes:
+- Pi authentication
+- PostgreSQL
+- AMT wallet ledger
+- 24-hour mining
+- Mining claim
+- Profile
+- KYC status
+- Referral system
+- Referral status
+- Referral auto-link by username
+- Security Circle status
+- Health endpoint
+
 IMPORTANT:
-AMT mining/ledger is TESTNET application accounting.
-
-Pi authentication is verified server-side.
-
-This server uses the user's Pi access token
-against the Pi Platform /v2/me endpoint.
-
-This server does NOT invent a blockchain wallet address.
-
-This server does NOT falsely mark users as KYC VERIFIED.
+This backend does NOT invent a blockchain wallet address.
+This backend does NOT falsely mark KYC as verified.
 ============================================================
 */
 
@@ -39,7 +47,7 @@ const PORT = Number(
 
 /*
 ============================================================
-CONFIGURATION
+CONFIG
 ============================================================
 */
 
@@ -49,10 +57,6 @@ const PI_API_BASE = (
 )
   .trim()
   .replace(/\/+$/, "");
-
-const PI_API_KEY = (
-  process.env.PI_API_KEY || ""
-).trim();
 
 const AMT_MINING_RATE = Number(
   process.env.AMT_MINING_RATE || "0.01"
@@ -67,7 +71,7 @@ const MAXIMUM_BASE_REWARD = Number(
 
 /*
 ============================================================
-VALIDATE CONFIGURATION
+VALIDATE CONFIG
 ============================================================
 */
 
@@ -75,7 +79,6 @@ if (!Number.isFinite(AMT_MINING_RATE)) {
   console.error(
     "AMT_MINING_RATE must be a valid number."
   );
-
   process.exit(1);
 }
 
@@ -83,7 +86,6 @@ if (AMT_MINING_RATE < 0) {
   console.error(
     "AMT_MINING_RATE cannot be negative."
   );
-
   process.exit(1);
 }
 
@@ -91,7 +93,6 @@ if (!process.env.DATABASE_URL) {
   console.error(
     "DATABASE_URL is missing."
   );
-
   process.exit(1);
 }
 
@@ -135,6 +136,7 @@ HELPERS
 */
 
 async function readJsonResponse(response) {
+
   const text =
     await response.text();
 
@@ -144,7 +146,7 @@ async function readJsonResponse(response) {
 
   try {
     return JSON.parse(text);
-  } catch (error) {
+  } catch {
     return {
       raw: text
     };
@@ -157,6 +159,7 @@ function sendError(
   error,
   code = null
 ) {
+
   const response = {
     success: false,
     error
@@ -391,6 +394,7 @@ async function verifyPiAccessToken(
     !accessToken ||
     typeof accessToken !== "string"
   ) {
+
     const error = new Error(
       "Missing Pi access token."
     );
@@ -487,7 +491,9 @@ async function verifyPiAccessToken(
   }
 
   return {
-    uid: data.uid,
+
+    uid:
+      data.uid,
 
     username:
       typeof data.username === "string"
@@ -1235,18 +1241,10 @@ app.post(
       ) {
 
         try {
-
           await client.query(
             "ROLLBACK"
           );
-
-        } catch (rollbackError) {
-
-          console.error(
-            "Rollback error:",
-            rollbackError.message
-          );
-        }
+        } catch {}
       }
 
       console.error(
@@ -1576,7 +1574,8 @@ app.post(
 
           success: true,
 
-          claimed: 0,
+          claimed:
+            0,
 
           message:
             "No new AMT reward is available."
@@ -1669,18 +1668,10 @@ app.post(
       ) {
 
         try {
-
           await client.query(
             "ROLLBACK"
           );
-
-        } catch (rollbackError) {
-
-          console.error(
-            "Claim rollback error:",
-            rollbackError.message
-          );
-        }
+        } catch {}
       }
 
       console.error(
@@ -1706,6 +1697,12 @@ app.post(
 /*
 ============================================================
 REFERRAL LINK
+============================================================
+
+This endpoint accepts a member ID.
+
+The frontend's auto-link endpoint below accepts
+the username from ?ref=username.
 ============================================================
 */
 
@@ -1779,7 +1776,9 @@ app.post(
       const existing =
         await pool.query(
           `
-          SELECT id
+          SELECT
+            id,
+            referrer_member_id
 
           FROM referrals
 
@@ -1808,13 +1807,15 @@ app.post(
         INSERT INTO referrals
         (
           referrer_member_id,
-          referred_member_id
+          referred_member_id,
+          status
         )
 
         VALUES
         (
           $1,
-          $2
+          $2,
+          'ACTIVE'
         )
         `,
         [
@@ -1829,6 +1830,16 @@ app.post(
 
         status:
           "REFERRAL_LINKED",
+
+        referrer: {
+
+          id:
+            referrer.rows[0].id,
+
+          username:
+            referrer.rows[0].username
+
+        },
 
         message:
           "Referral relationship recorded for Testnet."
@@ -1846,6 +1857,546 @@ app.post(
         res,
         error.statusCode || 500,
         "Could not create referral relationship."
+      );
+    }
+  }
+);
+
+/*
+============================================================
+REFERRAL AUTO-LINK
+============================================================
+
+Frontend sends:
+
+{
+  accessToken,
+  referralUsername: "username"
+}
+
+This looks up the referrer by Pi username.
+============================================================
+*/
+
+app.post(
+  "/api/referral/auto-link",
+  async (req, res) => {
+
+    try {
+
+      const {
+        accessToken,
+        referralUsername
+      } = req.body || {};
+
+      if (
+        !referralUsername ||
+        typeof referralUsername !== "string"
+      ) {
+
+        return sendError(
+          res,
+          400,
+          "referralUsername is required.",
+          "REFERRAL_USERNAME_REQUIRED"
+        );
+      }
+
+      const member =
+        await getAuthenticatedMember(
+          accessToken
+        );
+
+      const cleanUsername =
+        referralUsername
+          .trim()
+          .replace(/^@/, "");
+
+      if (!cleanUsername) {
+
+        return sendError(
+          res,
+          400,
+          "Invalid referral username.",
+          "INVALID_REFERRAL_USERNAME"
+        );
+      }
+
+      const referrer =
+        await pool.query(
+          `
+          SELECT
+            id,
+            pi_uid,
+            username
+
+          FROM members
+
+          WHERE LOWER(username) =
+                LOWER($1)
+
+          LIMIT 1
+          `,
+          [
+            cleanUsername
+          ]
+        );
+
+      if (
+        referrer.rows.length === 0
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          linked:
+            false,
+
+          status:
+            "REFERRER_NOT_FOUND",
+
+          message:
+            "The referral account has not been registered with AMT yet."
+
+        });
+      }
+
+      const referrerMember =
+        referrer.rows[0];
+
+      if (
+        referrerMember.id ===
+        member.id
+      ) {
+
+        return res.json({
+
+          success: true,
+
+          linked:
+            false,
+
+          status:
+            "SELF_REFERRAL",
+
+          message:
+            "You cannot use your own referral link."
+
+        });
+      }
+
+      const existing =
+        await pool.query(
+          `
+          SELECT
+            id,
+            referrer_member_id
+
+          FROM referrals
+
+          WHERE referred_member_id = $1
+
+          LIMIT 1
+          `,
+          [
+            member.id
+          ]
+        );
+
+      if (
+        existing.rows.length > 0
+      ) {
+
+        const currentReferrer =
+          await pool.query(
+            `
+            SELECT
+              username
+
+            FROM members
+
+            WHERE id = $1
+
+            LIMIT 1
+            `,
+            [
+              existing.rows[0]
+                .referrer_member_id
+            ]
+          );
+
+        return res.json({
+
+          success: true,
+
+          linked:
+            false,
+
+          status:
+            "ALREADY_LINKED",
+
+          referrer: {
+
+            username:
+              currentReferrer
+                .rows[0]
+                ?.username ||
+              null
+
+          },
+
+          message:
+            "This account already has a referral relationship."
+
+        });
+      }
+
+      await pool.query(
+        `
+        INSERT INTO referrals
+        (
+          referrer_member_id,
+          referred_member_id,
+          status
+        )
+
+        VALUES
+        (
+          $1,
+          $2,
+          'ACTIVE'
+        )
+        `,
+        [
+          referrerMember.id,
+          member.id
+        ]
+      );
+
+      return res.json({
+
+        success: true,
+
+        linked:
+          true,
+
+        status:
+          "REFERRAL_LINKED",
+
+        referrer: {
+
+          id:
+            referrerMember.id,
+
+          username:
+            referrerMember.username
+
+        },
+
+        message:
+          "Referral successfully linked."
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Referral auto-link error:",
+        error.message
+      );
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        "Could not process referral link."
+      );
+    }
+  }
+);
+
+/*
+============================================================
+REFERRAL STATUS
+============================================================
+
+This is the endpoint the frontend uses to display:
+
+- Invite link
+- Referral count
+- Active miners
+- Referral team
+- Username
+============================================================
+*/
+
+app.post(
+  "/api/referral/status",
+  async (req, res) => {
+
+    try {
+
+      const {
+        accessToken
+      } = req.body || {};
+
+      const member =
+        await getAuthenticatedMember(
+          accessToken
+        );
+
+      const referralResult =
+        await pool.query(
+          `
+          SELECT
+            r.id,
+            r.referred_member_id,
+            r.status,
+            m.username,
+            m.pi_uid
+
+          FROM referrals r
+
+          INNER JOIN members m
+            ON m.id =
+               r.referred_member_id
+
+          WHERE r.referrer_member_id = $1
+
+          AND r.status = 'ACTIVE'
+
+          ORDER BY r.created_at ASC
+          `,
+          [
+            member.id
+          ]
+        );
+
+      const referrals =
+        referralResult.rows;
+
+      let activeMiners = 0;
+
+      const team = [];
+
+      for (
+        const referral
+        of referrals
+      ) {
+
+        const miningResult =
+          await pool.query(
+            `
+            SELECT
+              id
+
+            FROM mining_sessions
+
+            WHERE member_id = $1
+
+            AND status = 'ACTIVE'
+
+            ORDER BY id DESC
+
+            LIMIT 1
+            `,
+            [
+              referral.referred_member_id
+            ]
+          );
+
+        const mining =
+          miningResult.rows.length > 0;
+
+        if (mining) {
+          activeMiners++;
+        }
+
+        team.push({
+
+          id:
+            referral.referred_member_id,
+
+          username:
+            referral.username,
+
+          uid:
+            referral.pi_uid,
+
+          mining,
+
+          status:
+            referral.status
+
+        });
+      }
+
+      return res.json({
+
+        success: true,
+
+        referral: {
+
+          memberId:
+            member.id,
+
+          username:
+            member.username,
+
+          count:
+            referrals.length,
+
+          activeMiners,
+
+          referrals:
+            team
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Referral status error:",
+        error.message
+      );
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        "Could not load referral status."
+      );
+    }
+  }
+);
+
+/*
+============================================================
+SECURITY CIRCLE STATUS
+============================================================
+*/
+
+app.post(
+  "/api/security-circle/status",
+  async (req, res) => {
+
+    try {
+
+      const {
+        accessToken
+      } = req.body || {};
+
+      const member =
+        await getAuthenticatedMember(
+          accessToken
+        );
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+            sc.member_id,
+            sc.status,
+            m.username,
+            m.pi_uid
+
+          FROM security_circle sc
+
+          INNER JOIN members m
+            ON m.id =
+               sc.member_id
+
+          WHERE sc.owner_member_id = $1
+
+          AND sc.status = 'ACTIVE'
+
+          ORDER BY sc.created_at ASC
+
+          LIMIT 5
+          `,
+          [
+            member.id
+          ]
+        );
+
+      const members = [];
+
+      for (
+        const row
+        of result.rows
+      ) {
+
+        const mining =
+          await pool.query(
+            `
+            SELECT
+              id
+
+            FROM mining_sessions
+
+            WHERE member_id = $1
+
+            AND status = 'ACTIVE'
+
+            ORDER BY id DESC
+
+            LIMIT 1
+            `,
+            [
+              row.member_id
+            ]
+          );
+
+        members.push({
+
+          id:
+            row.member_id,
+
+          username:
+            row.username,
+
+          uid:
+            row.pi_uid,
+
+          mining:
+            mining.rows.length > 0,
+
+          status:
+            row.status
+
+        });
+      }
+
+      return res.json({
+
+        success: true,
+
+        securityCircle: {
+
+          count:
+            members.length,
+
+          limit:
+            5,
+
+          members
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Security Circle status error:",
+        error.message
+      );
+
+      return sendError(
+        res,
+        error.statusCode || 500,
+        "Could not load Security Circle."
       );
     }
   }
@@ -1877,8 +2428,13 @@ async function startServer() {
         );
 
         console.log(
+          `AMT Mining Rate: ${AMT_MINING_RATE} AMT/hour`
+        );
+
+        console.log(
           "AMT Backend status: ONLINE"
         );
+
       }
     );
 
