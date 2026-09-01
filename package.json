@@ -9,8 +9,5 @@
   "dependencies": {
     "@stellar/stellar-sdk": "^13.0.0",
     "express": "^4.19.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
