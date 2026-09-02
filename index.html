@@ -762,10 +762,10 @@ async function loadTestMarket(){
     history.classList.remove("hidden");
 
     document.getElementById("testPetPrice").textContent=
-      `${Number(product.pricePi).toFixed(2)} Pi`;
+      `${Number(product.amountPi).toFixed(2)} Pi`;
 
     document.getElementById("testBuyButton").textContent=
-      `🐾 TEST BUY — ${Number(product.pricePi).toFixed(2)} PI`;
+      `🐾 TEST BUY — ${Number(product.amountPi).toFixed(2)} PI`;
 
     if(product.description){
       document.getElementById("testPetDescription").textContent=product.description;
@@ -826,7 +826,7 @@ async function buyTestPet(){
 
     Pi.createPayment(
       {
-        amount:Number(product.pricePi),
+        amount:Number(product.amountPi),
         memo:product.name,
         metadata:{productId:product.id,testOnly:true}
       },
