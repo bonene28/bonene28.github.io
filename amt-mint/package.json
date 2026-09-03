@@ -1,0 +1,12 @@
+{
+  "name": "amt-testnet-mint",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "mint": "node mint.js"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.3.0",
+    "dotenv": "^16.4.7"
+  }
+}
