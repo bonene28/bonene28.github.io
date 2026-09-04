@@ -1,0 +1,1 @@
+https://api.testnet.minepi.com
