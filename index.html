@@ -1,985 +1,4578 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alberto Marketplace Token — AMT</title>
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#08060f">
+<title>Alberto Marketplace Token — AMT</title>
 
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    html{background:#000}
-    body{
-      font-family:Arial,Helvetica,sans-serif;
-      background:
-        radial-gradient(circle at 50% 8%,rgba(113,64,190,.28),transparent 34%),
-        radial-gradient(circle at 50% 48%,rgba(78,38,126,.12),transparent 44%),
-        linear-gradient(180deg,#0b0812 0%,#08070e 100%);
-      color:#fff;min-height:100vh;padding-bottom:92px
-    }
-    .app{
-      width:100%;max-width:560px;margin:auto;min-height:100vh;
-      background:
-        linear-gradient(180deg,rgba(255,255,255,.025),transparent 20%),
-        repeating-linear-gradient(90deg,transparent 0,transparent 49%,rgba(166,108,255,.018) 50%,transparent 51%)
-    }
-    header{padding:18px 16px 10px;text-align:center;position:relative}
-    .logo{
-      width:72px;height:72px;margin:auto;border-radius:50%;display:flex;
-      align-items:center;justify-content:center;font-size:27px;font-weight:900;
-      background:radial-gradient(circle at 35% 30%,#ffeaa2,#d19a38 40%,#5f3b9e 100%);
-      color:#160d2c;box-shadow:0 0 18px rgba(246,211,108,.34),0 0 42px rgba(168,108,255,.30);
-      border:2px solid rgba(255,225,137,.75);position:relative
-    }
-    .logo:after{
-      content:"CORE";position:absolute;bottom:-13px;font-size:8px;letter-spacing:2px;color:#bda9d5
-    }
-    h1{
-      margin-top:12px;font-size:22px;letter-spacing:1.8px;
-      text-shadow:0 0 16px rgba(202,155,255,.28)
-    }
-    .subtitle{color:#bbb4cc;font-size:12px;margin-top:5px;letter-spacing:1px}
-    .testnet{
-      display:inline-block;margin-top:10px;padding:7px 14px;border-radius:20px;
-      background:rgba(246,211,108,.08);border:1px solid rgba(246,211,108,.5);
-      color:#ffe28b;font-size:11px;font-weight:bold;letter-spacing:.7px;
-      box-shadow:0 0 16px rgba(246,211,108,.08)
-    }
-    .message{
-      margin:10px 14px;padding:13px;border-radius:14px;background:rgba(20,15,34,.72);
-      border:1px solid rgba(168,108,255,.22);color:#d9d1e4;font-size:12px;
-      text-align:center;line-height:1.5;box-shadow:inset 0 0 18px rgba(168,108,255,.05)
-    }
-    .card{
-      margin:12px 14px;padding:18px;border-radius:22px;
-      background:linear-gradient(145deg,rgba(42,32,61,.82),rgba(11,9,18,.92));
-      border:1px solid rgba(192,153,255,.18);
-      box-shadow:0 16px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.045);
-      backdrop-filter:blur(12px)
-    }
-    #mining .card:nth-child(3){
-      padding:18px 14px 20px;border-color:rgba(185,129,255,.28);
-      box-shadow:0 18px 45px rgba(0,0,0,.46),0 0 35px rgba(126,70,190,.11),inset 0 0 30px rgba(126,70,190,.05)
-    }
-    .balance-label{color:#aaa3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px}
-    .balance{font-size:34px;font-weight:900;margin-top:5px;word-break:break-word;color:#fff;text-shadow:0 0 18px rgba(255,255,255,.08)}
-    .amt{color:#f6d36c;font-size:14px;font-weight:bold;margin-top:3px}
-    .kyc-box,.user-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .kyc-title{font-weight:bold}
-    .kyc-text{color:#aaa3b8;font-size:12px;margin-top:5px;line-height:1.5}
-    .status{padding:7px 11px;border-radius:20px;font-size:11px;font-weight:bold;white-space:nowrap}
-    .status.off{background:rgba(255,80,80,.13);color:#ff8d8d;border:1px solid rgba(255,80,80,.15)}
-    .status.on{background:rgba(70,220,130,.13);color:#79e6a1;border:1px solid rgba(70,220,130,.15)}
-    .mining-circle{
-      width:min(76vw,300px);height:min(76vw,300px);max-width:300px;max-height:300px;
-      margin:22px auto;border-radius:50%;position:relative;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
-      background:
-        radial-gradient(circle at 50% 45%,rgba(77,47,111,.34),rgba(7,6,14,.98) 64%),
-        repeating-radial-gradient(circle,transparent 0 27px,rgba(246,211,108,.035) 28px 29px);
-      border:4px solid rgba(189,133,255,.62);
-      box-shadow:0 0 22px rgba(168,108,255,.34),0 0 70px rgba(168,108,255,.18),inset 0 0 55px rgba(168,108,255,.16)
-    }
-    .mining-circle:before{
-      content:"";position:absolute;inset:9px;border-radius:50%;
-      border:2px solid rgba(246,211,108,.22);
-      box-shadow:inset 0 0 30px rgba(168,108,255,.13),0 0 15px rgba(246,211,108,.06)
-    }
-    .mining-circle:after{
-      content:"";position:absolute;width:112%;height:112%;border-radius:50%;
-      border:3px solid transparent;border-top-color:#f6d36c;border-right-color:#a86cff;
-      opacity:.85;box-shadow:0 0 16px rgba(168,108,255,.45);
-      animation:miningGlow 3s linear infinite
-    }
-    .mining-icon{
-      position:relative;z-index:2;font-size:54px;
-      filter:drop-shadow(0 0 12px rgba(246,211,108,.32))
-    }
-    .timer{
-      position:relative;z-index:2;font-size:34px;font-weight:900;margin-top:9px;
-      letter-spacing:1.5px;text-shadow:0 0 18px rgba(210,165,255,.35)
-    }
-    .rate{position:relative;z-index:2;color:#ddd4e8;font-size:13px;margin-top:7px;letter-spacing:.4px}
-    @keyframes miningGlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    button{
-      width:100%;min-height:54px;border:none;border-radius:15px;padding:15px;font-size:15px;
-      font-weight:900;cursor:pointer;color:#160d2c;
-      background:linear-gradient(135deg,#f6d36c 0%,#c89a55 38%,#9f69e9 100%);
-      box-shadow:0 9px 24px rgba(168,108,255,.24),inset 0 1px 0 rgba(255,255,255,.28);
-      letter-spacing:.3px
-    }
-    button:active{transform:scale(.985)}
-    button:disabled{opacity:.45;cursor:not-allowed}
-    .secondary{
-      background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.045));
-      color:white;box-shadow:none;margin-top:10px;border:1px solid rgba(192,153,255,.18)
-    }
-    .kyc-button{margin-top:14px}
-    .hidden{display:none!important}
-    .section{display:none}
-    .section.active{display:block}
-    .row{
-      display:flex;justify-content:space-between;gap:15px;padding:13px 0;
-      border-bottom:1px solid rgba(192,153,255,.10)
-    }
-    .row:last-child{border-bottom:none}
-    .muted{color:#aaa3b8;font-size:12px}
-    .value{font-weight:bold;text-align:right;color:#f5efff}
-    .warning{color:#ffd17b;font-size:12px;line-height:1.5}
-    .success{color:#7ff0aa}
-    .danger{color:#ff8d8d}
-    .info{color:#cbb4ff;font-size:12px;line-height:1.5}
-    .ref-link{
-      word-break:break-all;padding:12px;border-radius:12px;background:rgba(0,0,0,.22);
-      color:#f3d36e;font-size:12px;margin-top:10px
-    }
-    .member{padding:12px 0;border-bottom:1px solid rgba(192,153,255,.10)}
-    .member:last-child{border-bottom:none}
-    .member-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .member-name{font-weight:900}
-    .member-status{font-size:11px;font-weight:900}
-    nav{
-      position:fixed;bottom:0;left:0;right:0;min-height:76px;background:rgba(7,6,12,.96);
-      border-top:1px solid rgba(192,153,255,.18);display:flex;justify-content:center;
-      z-index:10;backdrop-filter:blur(14px);box-shadow:0 -10px 30px rgba(0,0,0,.28)
-    }
-    .nav-inner{width:100%;max-width:560px;display:grid;grid-template-columns:repeat(7,1fr)}
-    nav button{
-      background:transparent;color:#8e879c;box-shadow:none;border-radius:0;
-      padding:8px 2px;font-size:9px;min-height:0
-    }
-    nav button.active{color:#f6d36c;text-shadow:0 0 12px rgba(246,211,108,.3)}
-    nav span{
-      display:block;font-size:21px;margin-bottom:3px;
-      filter:drop-shadow(0 0 5px rgba(168,108,255,.18))
-    }
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
 
-    @media(max-width:380px){
-      .timer{font-size:29px}
-      .balance{font-size:30px}
-      h1{font-size:19px}
-      nav span{font-size:18px}
-    }
-  </style>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+html{
+  background:#000;
+  scroll-behavior:smooth
+}
+
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  background:
+    radial-gradient(circle at 50% 5%,rgba(128,67,220,.30),transparent 32%),
+    radial-gradient(circle at 15% 45%,rgba(92,47,150,.13),transparent 30%),
+    radial-gradient(circle at 90% 70%,rgba(246,211,108,.07),transparent 30%),
+    linear-gradient(180deg,#0b0812 0%,#07060c 100%);
+  color:#fff;
+  min-height:100vh;
+  padding-bottom:96px
+}
+
+body:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);
+  background-size:42px 42px;
+  mask-image:linear-gradient(to bottom,#000,transparent 90%);
+  z-index:-1
+}
+
+.app{
+  width:100%;
+  max-width:600px;
+  margin:auto;
+  min-height:100vh
+}
+
+header{
+  padding:18px 14px 10px;
+  text-align:center;
+  position:relative
+}
+
+.logo{
+  width:76px;
+  height:76px;
+  margin:auto;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  font-weight:900;
+  background:
+    radial-gradient(circle at 32% 25%,#fff2b7,#e4b95b 35%,#9d69df 72%,#291542 100%);
+  color:#160d2c;
+  border:2px solid rgba(255,226,137,.85);
+  box-shadow:
+    0 0 18px rgba(246,211,108,.35),
+    0 0 50px rgba(168,108,255,.35),
+    inset 0 0 20px rgba(255,255,255,.18);
+  position:relative
+}
+
+.logo:after{
+  content:"CORE MACHINE";
+  position:absolute;
+  bottom:-15px;
+  font-size:7px;
+  letter-spacing:2px;
+  color:#bda9d5;
+  white-space:nowrap
+}
+
+h1{
+  margin-top:14px;
+  font-size:21px;
+  letter-spacing:1.6px;
+  text-shadow:0 0 18px rgba(202,155,255,.3)
+}
+
+.subtitle{
+  color:#bbb4cc;
+  font-size:11px;
+  margin-top:5px;
+  letter-spacing:1px
+}
+
+.testnet{
+  display:inline-block;
+  margin-top:10px;
+  padding:7px 14px;
+  border-radius:20px;
+  background:rgba(246,211,108,.08);
+  border:1px solid rgba(246,211,108,.5);
+  color:#ffe28b;
+  font-size:10px;
+  font-weight:bold;
+  letter-spacing:.8px;
+  box-shadow:0 0 16px rgba(246,211,108,.08)
+}
+
+.login-panel{
+  margin:10px 14px;
+  padding:12px;
+  border-radius:17px;
+  background:linear-gradient(145deg,rgba(48,35,70,.78),rgba(12,9,19,.9));
+  border:1px solid rgba(192,153,255,.22);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  box-shadow:0 12px 28px rgba(0,0,0,.3)
+}
+
+.login-user{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:10px
+}
+
+.login-avatar{
+  width:42px;
+  height:42px;
+  min-width:42px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#f6d36c,#9f69e9);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#160d2c;
+  font-weight:900;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.2)
+}
+
+.login-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
+
+.login-name{
+  font-weight:900;
+  font-size:14px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+
+.login-state{
+  font-size:10px;
+  color:#8d859b;
+  margin-top:3px
+}
+
+.login-actions{
+  display:flex;
+  gap:7px;
+  flex-shrink:0
+}
+
+.small-btn{
+  width:auto;
+  min-height:40px;
+  padding:9px 12px;
+  border-radius:11px;
+  font-size:11px
+}
+
+.message{
+  margin:10px 14px;
+  padding:12px;
+  border-radius:14px;
+  background:rgba(20,15,34,.75);
+  border:1px solid rgba(168,108,255,.22);
+  color:#d9d1e4;
+  font-size:12px;
+  text-align:center;
+  line-height:1.5;
+  box-shadow:inset 0 0 18px rgba(168,108,255,.05)
+}
+
+.card{
+  margin:12px 14px;
+  padding:18px;
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(42,32,61,.84),rgba(11,9,18,.93));
+  border:1px solid rgba(192,153,255,.18);
+  box-shadow:
+    0 16px 38px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.045);
+  backdrop-filter:blur(12px)
+}
+
+.balance-label{
+  color:#aaa3b8;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:1px
+}
+
+.balance{
+  font-size:34px;
+  font-weight:900;
+  margin-top:5px;
+  word-break:break-word;
+  color:#fff;
+  text-shadow:0 0 18px rgba(255,255,255,.08)
+}
+
+.amt{
+  color:#f6d36c;
+  font-size:13px;
+  font-weight:bold;
+  margin-top:3px
+}
+
+.kyc-box,
+.user-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px
+}
+
+.kyc-title{
+  font-weight:bold
+}
+
+.kyc-text{
+  color:#aaa3b8;
+  font-size:12px;
+  margin-top:5px;
+  line-height:1.55
+}
+
+.status{
+  padding:7px 11px;
+  border-radius:20px;
+  font-size:10px;
+  font-weight:bold;
+  white-space:nowrap
+}
+
+.status.off{
+  background:rgba(255,80,80,.13);
+  color:#ff8d8d;
+  border:1px solid rgba(255,80,80,.15)
+}
+
+.status.on{
+  background:rgba(70,220,130,.13);
+  color:#79e6a1;
+  border:1px solid rgba(70,220,130,.15)
+}
+
+.status.gold{
+  background:rgba(246,211,108,.12);
+  color:#f6d36c;
+  border:1px solid rgba(246,211,108,.25)
+}
+
+.mining-circle{
+  width:min(76vw,300px);
+  height:min(76vw,300px);
+  max-width:300px;
+  max-height:300px;
+  margin:22px auto;
+  border-radius:50%;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 45%,rgba(77,47,111,.34),rgba(7,6,14,.98) 64%),
+    repeating-radial-gradient(circle,transparent 0 27px,rgba(246,211,108,.035) 28px 29px);
+  border:4px solid rgba(189,133,255,.62);
+  box-shadow:
+    0 0 22px rgba(168,108,255,.34),
+    0 0 70px rgba(168,108,255,.18),
+    inset 0 0 55px rgba(168,108,255,.16)
+}
+
+.mining-circle:before{
+  content:"";
+  position:absolute;
+  inset:9px;
+  border-radius:50%;
+  border:2px solid rgba(246,211,108,.22);
+  box-shadow:
+    inset 0 0 30px rgba(168,108,255,.13),
+    0 0 15px rgba(246,211,108,.06)
+}
+
+.mining-circle:after{
+  content:"";
+  position:absolute;
+  width:112%;
+  height:112%;
+  border-radius:50%;
+  border:3px solid transparent;
+  border-top-color:#f6d36c;
+  border-right-color:#a86cff;
+  opacity:.85;
+  box-shadow:0 0 16px rgba(168,108,255,.45);
+  animation:miningGlow 3s linear infinite
+}
+
+.mining-icon{
+  position:relative;
+  z-index:2;
+  font-size:54px;
+  filter:drop-shadow(0 0 12px rgba(246,211,108,.32))
+}
+
+.timer{
+  position:relative;
+  z-index:2;
+  font-size:34px;
+  font-weight:900;
+  margin-top:9px;
+  letter-spacing:1.5px;
+  text-shadow:0 0 18px rgba(210,165,255,.35)
+}
+
+.rate{
+  position:relative;
+  z-index:2;
+  color:#ddd4e8;
+  font-size:13px;
+  margin-top:7px;
+  letter-spacing:.4px
+}
+
+@keyframes miningGlow{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+
+button{
+  width:100%;
+  min-height:52px;
+  border:none;
+  border-radius:15px;
+  padding:14px;
+  font-size:14px;
+  font-weight:900;
+  cursor:pointer;
+  color:#160d2c;
+  background:linear-gradient(135deg,#f6d36c 0%,#c89a55 38%,#9f69e9 100%);
+  box-shadow:
+    0 9px 24px rgba(168,108,255,.24),
+    inset 0 1px 0 rgba(255,255,255,.28);
+  letter-spacing:.3px
+}
+
+button:active{
+  transform:scale(.985)
+}
+
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed
+}
+
+.secondary{
+  background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.045));
+  color:white;
+  box-shadow:none;
+  margin-top:10px;
+  border:1px solid rgba(192,153,255,.18)
+}
+
+.danger-btn{
+  background:linear-gradient(145deg,rgba(255,80,80,.14),rgba(255,255,255,.04));
+  color:#ff9a9a;
+  border:1px solid rgba(255,80,80,.22);
+  box-shadow:none
+}
+
+.kyc-button{
+  margin-top:14px
+}
+
+.hidden{
+  display:none!important
+}
+
+.section{
+  display:none
+}
+
+.section.active{
+  display:block
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  padding:13px 0;
+  border-bottom:1px solid rgba(192,153,255,.10)
+}
+
+.row:last-child{
+  border-bottom:none
+}
+
+.muted{
+  color:#aaa3b8;
+  font-size:12px
+}
+
+.value{
+  font-weight:bold;
+  text-align:right;
+  color:#f5efff;
+  word-break:break-word
+}
+
+.warning{
+  color:#ffd17b;
+  font-size:12px;
+  line-height:1.55
+}
+
+.success{
+  color:#7ff0aa!important
+}
+
+.danger{
+  color:#ff8d8d!important
+}
+
+.info{
+  color:#cbb4ff;
+  font-size:12px;
+  line-height:1.55
+}
+
+.address-box{
+  padding:13px;
+  border-radius:13px;
+  background:rgba(0,0,0,.28);
+  border:1px solid rgba(192,153,255,.12);
+  color:#f6d36c;
+  font-family:monospace;
+  font-size:11px;
+  line-height:1.5;
+  word-break:break-all;
+  margin-top:10px
+}
+
+.input{
+  width:100%;
+  min-height:50px;
+  border-radius:13px;
+  border:1px solid rgba(192,153,255,.18);
+  outline:none;
+  background:rgba(0,0,0,.28);
+  color:#fff;
+  padding:13px;
+  font-size:13px;
+  margin-top:8px
+}
+
+.input:focus{
+  border-color:rgba(246,211,108,.55);
+  box-shadow:0 0 16px rgba(168,108,255,.12)
+}
+
+textarea.input{
+  min-height:75px;
+  resize:vertical
+}
+
+.form-label{
+  color:#aaa3b8;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  margin-top:13px;
+  display:block
+}
+
+.wallet-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:11px
+}
+
+.wallet-actions button{
+  min-height:47px;
+  font-size:12px
+}
+
+.ref-link{
+  word-break:break-all;
+  padding:12px;
+  border-radius:12px;
+  background:rgba(0,0,0,.22);
+  color:#f3d36e;
+  font-size:11px;
+  margin-top:10px
+}
+
+.member{
+  padding:12px 0;
+  border-bottom:1px solid rgba(192,153,255,.10)
+}
+
+.member:last-child{
+  border-bottom:none
+}
+
+.member-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px
+}
+
+.member-name{
+  font-weight:900;
+  word-break:break-word
+}
+
+.member-status{
+  font-size:10px;
+  font-weight:900;
+  white-space:nowrap
+}
+
+.tx{
+  padding:13px 0;
+  border-bottom:1px solid rgba(192,153,255,.10)
+}
+
+.tx:last-child{
+  border-bottom:none
+}
+
+.tx-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center
+}
+
+.tx-type{
+  font-weight:900;
+  font-size:12px
+}
+
+.tx-amount{
+  font-weight:900;
+  color:#f6d36c
+}
+
+.tx-meta{
+  margin-top:5px;
+  color:#8f879d;
+  font-size:10px;
+  line-height:1.5;
+  word-break:break-word
+}
+
+.profile-avatar-wrap{
+  display:flex;
+  align-items:center;
+  gap:14px
+}
+
+.profile-avatar{
+  width:78px;
+  height:78px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#f6d36c,#9f69e9);
+  border:2px solid rgba(255,226,137,.55);
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#160d2c;
+  font-size:27px;
+  font-weight:900;
+  box-shadow:0 0 25px rgba(168,108,255,.18)
+}
+
+.profile-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover
+}
+
+.profile-actions{
+  flex:1
+}
+
+.file-input{
+  display:none
+}
+
+.airdrop-hero{
+  text-align:center;
+  padding:10px 0 5px
+}
+
+.airdrop-icon{
+  font-size:70px;
+  filter:drop-shadow(0 0 22px rgba(246,211,108,.28))
+}
+
+.airdrop-amount{
+  font-size:32px;
+  font-weight:900;
+  color:#f6d36c;
+  margin-top:6px
+}
+
+.market-pet{
+  text-align:center;
+  font-size:74px;
+  line-height:1
+}
+
+.empty{
+  text-align:center;
+  color:#8e879c;
+  font-size:12px;
+  padding:14px 0
+}
+
+.nav-wrap{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  min-height:78px;
+  background:rgba(7,6,12,.97);
+  border-top:1px solid rgba(192,153,255,.18);
+  z-index:10;
+  backdrop-filter:blur(15px);
+  box-shadow:0 -10px 30px rgba(0,0,0,.32);
+  overflow-x:auto
+}
+
+.nav-inner{
+  width:100%;
+  max-width:600px;
+  min-width:560px;
+  margin:auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr)
+}
+
+nav button{
+  background:transparent;
+  color:#8e879c;
+  box-shadow:none;
+  border-radius:0;
+  padding:7px 2px;
+  font-size:8px;
+  min-height:74px;
+  border-top:2px solid transparent
+}
+
+nav button.active{
+  color:#f6d36c;
+  text-shadow:0 0 12px rgba(246,211,108,.3);
+  border-top-color:#f6d36c
+}
+
+nav span{
+  display:block;
+  font-size:20px;
+  margin-bottom:3px;
+  filter:drop-shadow(0 0 5px rgba(168,108,255,.18))
+}
+
+@media(max-width:380px){
+  .timer{font-size:28px}
+  .balance{font-size:29px}
+  h1{font-size:18px}
+  .nav-inner{min-width:540px}
+  nav span{font-size:18px}
+}
+</style>
 </head>
 
 <body>
+
 <div class="app">
 
-  <header>
-    <div class="logo">AMT</div>
-    <h1>ALBERTO MARKETPLACE TOKEN</h1>
-    <div class="subtitle">Alberto Ecosystem Mining</div>
-    <div class="testnet">PI TESTNET</div>
-  </header>
+<header>
+  <div class="logo">AMT</div>
+  <h1>ALBERTO MARKETPLACE TOKEN</h1>
+  <div class="subtitle">Alberto Ecosystem Mining • Core Machine</div>
+  <div class="testnet">PI TESTNET • TESTNET ONLY</div>
+</header>
 
-  <div id="message" class="message">AMT Testnet — connecting to Pi...</div>
+<div class="login-panel">
 
-  <section id="mining" class="section active">
-    <div class="card">
-      <div class="balance-label">Available AMT</div>
-      <div id="amtBalance" class="balance">0.00000000</div>
-      <div class="amt">AMT Testnet</div>
-    </div>
+  <div class="login-user">
+    <div id="loginAvatar" class="login-avatar">AMT</div>
 
-    <div class="card">
-      <div class="kyc-box">
-        <div>
-          <div class="kyc-title">KYC Verification</div>
-          <div id="kycText" class="kyc-text">Checking Pi KYC status...</div>
-        </div>
-        <div id="kycStatus" class="status off">UNVERIFIED</div>
-      </div>
-      <button id="kycButton" class="secondary kyc-button hidden" onclick="openKycInfo()">🛡️ CHECK PI KYC</button>
+    <div style="min-width:0">
+      <div id="loginName" class="login-name">Not signed in</div>
+      <div id="loginState" class="login-state">Pi account disconnected</div>
     </div>
+  </div>
 
-    <div class="card">
-      <div style="text-align:center"><div class="balance-label">MINING SESSION • CORE MACHINE V4</div></div>
-      <div class="mining-circle">
-        <div class="mining-icon">⛏️</div>
-        <div id="timer" class="timer">00:00:00</div>
-        <div class="rate"><span id="rate">0.01</span> AMT / hour</div>
-      </div>
-      <button id="mineButton" onclick="startMining()">⛏️ START AMT MINING</button>
-      <button id="claimButton" class="secondary hidden" onclick="claimMining()">CLAIM AMT REWARD</button>
-    </div>
+  <div class="login-actions">
+    <button id="loginButton"
+            class="small-btn"
+            onclick="authenticatePi()">
+      🔐 LOGIN
+    </button>
 
-    <div class="card">
-      <div class="row"><div class="muted">Current Earned</div><div id="earned" class="value">0.00000000 AMT</div></div>
-      <div class="row"><div class="muted">Mining Status</div><div id="miningStatus" class="value danger">NOT MINING</div></div>
-      <div class="row"><div class="muted">Network</div><div class="value">Pi Testnet</div></div>
-    </div>
+    <button id="logoutButton"
+            class="small-btn secondary hidden"
+            onclick="logoutApp()">
+      LOGOUT
+    </button>
+  </div>
 
-    <div class="card">
-      <div class="info">
-        ⛏️ <strong>AMT Testnet Mining</strong><br><br>
-        KYC is not required to participate in AMT Testnet mining.
-        <br><br>
-        KYC verification will be required for eligible Mainnet migration,
-        wallet transfer, and supported ecosystem transactions.
-      </div>
-    </div>
-  </section>
-
-  <section id="wallet" class="section">
-    <div class="card">
-      <div class="balance-label">AMT Wallet</div>
-      <div id="walletBalance" class="balance">0.00000000</div>
-      <div class="amt">AMT Testnet</div>
-    </div>
-    <div class="card">
-      <div class="row"><div class="muted">Network</div><div class="value">Pi Testnet</div></div>
-      <div class="row"><div class="muted">Ledger</div><div class="value success">Backend Controlled</div></div>
-      <div class="row"><div class="muted">On-chain AMT</div><div class="value">Not connected</div></div>
-    </div>
-    <div class="card"><div class="warning">Testnet wallet balances shown here come from the AMT backend ledger.<br><br>No fake on-chain balance is displayed.</div></div>
-  </section>
-
-  <section id="profile" class="section">
-    <div class="card">
-      <div class="user-row">
-        <div>
-          <div class="balance-label">Pioneer</div>
-          <div id="username" style="font-size:22px;font-weight:900;margin-top:5px">Not signed in</div>
-        </div>
-        <div id="profileStatus" class="status off">OFFLINE</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="row"><div class="muted">Pi UID</div><div id="uid" class="value">—</div></div>
-      <div class="row"><div class="muted">KYC</div><div id="profileKyc" class="value">UNVERIFIED</div></div>
-      <div class="row"><div class="muted">Network</div><div class="value">Pi Testnet</div></div>
-    </div>
-  </section>
-
-  <section id="referral" class="section">
-    <div class="card">
-      <div class="balance-label">My Referral</div>
-      <div id="myReferralUsername" style="font-size:24px;font-weight:900;margin-top:6px">—</div>
-      <div class="kyc-text">Your Pi username is your AMT referral identifier.</div>
-      <div id="referralLink" class="ref-link">Sign in to generate your referral link.</div>
-      <button class="secondary" onclick="copyReferralLink()">📋 COPY REFERRAL LINK</button>
-    </div>
-    <div class="card">
-      <div class="row"><div class="muted">Direct Referrals</div><div id="referralCount" class="value">0 / 5</div></div>
-      <div class="row"><div class="muted">Active Miners</div><div id="activeReferralCount" class="value success">0</div></div>
-      <div class="row"><div class="muted">Reward</div><div class="value">Mainnet Pending</div></div>
-    </div>
-    <div class="card"><div class="balance-label">My Referrals</div><div id="referralMembers" class="kyc-text">No referrals yet.</div></div>
-    <div class="card"><div class="warning">Referral rewards are not credited on AMT Testnet.<br><br>Referral activity is recorded for future Mainnet rules.<br><br>Maximum direct referrals: 5.</div></div>
-  </section>
-
-  <section id="security" class="section">
-    <div class="card">
-      <div style="font-size:24px;font-weight:900">🛡️ AMT Security Circle</div>
-      <p class="kyc-text">Your invited Pioneers are automatically shown here. Their mining status comes from the AMT backend.</p>
-    </div>
-    <div class="card">
-      <div class="row"><div class="muted">Members</div><div id="securityCount" class="value">0 / 5</div></div>
-      <div id="securityMembers" class="kyc-text">No Security Circle members yet.</div>
-    </div>
-    <div class="card"><div class="info">🟢 <strong>Mining</strong> means the Pioneer currently has an active AMT mining session.<br><br>⚪ <strong>Not Mining</strong> means there is no active mining session at the moment.</div></div>
-  </section>
-
-  <section id="market" class="section">
-    <div class="card">
-      <div style="font-size:24px;font-weight:900">🛒 AMT Marketplace</div>
-      <p class="kyc-text" style="margin-top:7px">Private Pi Testnet purchase — visible only to the configured test account.</p>
-    </div>
-
-    <div id="privateMarketCard" class="card hidden">
-      <div style="text-align:center;font-size:74px;line-height:1">🐾</div>
-      <div style="text-align:center;font-size:20px;font-weight:900;margin-top:12px">Alberto Test Pet</div>
-      <p id="testPetDescription" class="kyc-text" style="text-align:center;margin-top:7px">Private marketplace test item.</p>
-      <div class="row" style="margin-top:10px"><div class="muted">Test Price</div><div id="testPetPrice" class="value">0.10 Pi</div></div>
-      <button id="testBuyButton" onclick="buyTestPet()">🐾 TEST BUY — 0.10 PI</button>
-      <div id="testBuyStatus" class="info" style="margin-top:12px;text-align:center">Pi Testnet payment required. This is a real Pi Testnet transaction, not an AMT balance transfer.</div>
-    </div>
-
-    <div id="marketLockedCard" class="card">
-      <div class="warning" style="text-align:center">🔒 Private test marketplace is not enabled for this account.</div>
-    </div>
-
-    <div id="testPurchaseHistory" class="card hidden">
-      <div class="balance-label">Test Purchase History</div>
-      <div id="testPurchaseList" class="kyc-text" style="margin-top:8px">No completed test purchase yet.</div>
-    </div>
-  </section>
-
-  <section id="kyc" class="section">
-    <div class="card">
-      <div style="font-size:24px">🛡️ KYC Verification</div>
-      <p class="kyc-text">AMT Testnet mining does not require verified KYC.</p>
-    </div>
-    <div class="card">
-      <div id="kycLargeStatus" style="font-size:22px;font-weight:900">UNVERIFIED</div>
-      <p id="kycLargeText" class="kyc-text">Checking Pi KYC status...</p>
-      <button id="kycInfoButton" class="secondary" onclick="openKycInfo()">🛡️ PI KYC INFORMATION</button>
-      <p class="warning" style="margin-top:14px">
-        AMT does not collect passports, National IDs, driver's licenses, or other identity documents directly.
-        <br><br>
-        Complete identity verification only through the approved Pi verification process.
-        <br><br>
-        KYC will be required for applicable Mainnet migration, wallet transfer, and supported ecosystem swap functions.
-      </p>
-    </div>
-  </section>
 </div>
 
-<nav>
-  <div class="nav-inner">
-    <button class="active" onclick="showSection('mining',this)"><span>⛏️</span>Mining</button>
-    <button onclick="showSection('wallet',this);loadWallet()"><span>👛</span>Wallet</button>
-    <button onclick="showSection('profile',this);loadProfile()"><span>👤</span>Profile</button>
-    <button onclick="showSection('referral',this);loadReferral()"><span>👥</span>Referral</button>
-    <button onclick="showSection('security',this);loadSecurityCircle()"><span>🛡️</span>Circle</button>
-    <button onclick="showSection('market',this);loadTestMarket()"><span>🛒</span>Market</button>
-    <button onclick="showSection('kyc',this);loadKyc()"><span>🛡️</span>KYC</button>
+<div id="message" class="message">
+  AMT Testnet — connecting to Pi...
+</div>
+
+
+<!-- ======================================================
+     MINING
+====================================================== -->
+
+<section id="mining" class="section active">
+
+  <div class="card">
+    <div class="balance-label">Available AMT</div>
+    <div id="amtBalance" class="balance">0.00000000</div>
+    <div class="amt">AMT Testnet</div>
   </div>
+
+  <div class="card">
+
+    <div class="kyc-box">
+
+      <div>
+        <div class="kyc-title">KYC Verification</div>
+
+        <div id="kycText" class="kyc-text">
+          Sign in with Pi to check your AMT KYC status.
+        </div>
+      </div>
+
+      <div id="kycStatus" class="status off">
+        UNVERIFIED
+      </div>
+
+    </div>
+
+    <button id="kycButton"
+            class="secondary kyc-button hidden"
+            onclick="openKycInfo()">
+      🛡️ KYC INFORMATION
+    </button>
+
+  </div>
+
+
+  <div class="card">
+
+    <div style="text-align:center">
+      <div class="balance-label">
+        MINING SESSION • CORE MACHINE V4
+      </div>
+    </div>
+
+    <div class="mining-circle">
+
+      <div class="mining-icon">⛏️</div>
+
+      <div id="timer" class="timer">
+        00:00:00
+      </div>
+
+      <div class="rate">
+        <span id="rate">0.01</span> AMT / hour
+      </div>
+
+    </div>
+
+    <button id="mineButton"
+            onclick="startMining()">
+      🔐 LOGIN TO START MINING
+    </button>
+
+    <button id="claimButton"
+            class="secondary hidden"
+            onclick="claimMining()">
+      💎 CLAIM AMT REWARD
+    </button>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="row">
+      <div class="muted">Current Earned</div>
+      <div id="earned" class="value">
+        0.00000000 AMT
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">Mining Status</div>
+      <div id="miningStatus" class="value danger">
+        NOT MINING
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">Network</div>
+      <div class="value">Pi Testnet</div>
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="info">
+      ⛏️ <strong>AMT Testnet Mining</strong>
+      <br><br>
+
+      KYC is not required to participate in AMT Testnet mining.
+
+      <br><br>
+
+      Mining rewards are recorded in the AMT Testnet backend ledger.
+
+      <br><br>
+
+      Mainnet migration and future on-chain functions may have
+      separate eligibility requirements.
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+     WALLET
+====================================================== -->
+
+<section id="wallet" class="section">
+
+  <div class="card">
+
+    <div class="balance-label">AMT TESTNET WALLET</div>
+
+    <div id="walletBalance" class="balance">
+      0.00000000
+    </div>
+
+    <div class="amt">
+      AMT Testnet
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="row">
+      <div class="muted">Wallet Status</div>
+      <div id="walletStatus" class="value success">
+        —
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">Wallet Type</div>
+      <div id="walletType" class="value">
+        AMT Testnet Ledger
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">Network</div>
+      <div class="value">
+        Pi Testnet
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="balance-label">
+      AMT TESTNET LEDGER ADDRESS
+    </div>
+
+    <div id="walletAddress"
+         class="address-box">
+      Sign in to generate your AMT Testnet ledger address.
+    </div>
+
+    <div class="wallet-actions">
+
+      <button class="secondary"
+              onclick="copyWalletAddress()">
+        📋 COPY
+      </button>
+
+      <button class="secondary"
+              onclick="receiveAMT()">
+        📥 RECEIVE
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="balance-label">
+      SEND AMT
+    </div>
+
+    <label class="form-label">
+      Recipient AMT Ledger Address
+    </label>
+
+    <input id="sendAddress"
+           class="input"
+           type="text"
+           maxlength="160"
+           placeholder="AMT-XXXXXXXX">
+
+    <label class="form-label">
+      Amount
+    </label>
+
+    <input id="sendAmount"
+           class="input"
+           type="number"
+           min="0"
+           step="0.00000001"
+           placeholder="0.00000000">
+
+    <label class="form-label">
+      Memo — optional
+    </label>
+
+    <textarea id="sendMemo"
+              class="input"
+              maxlength="200"
+              placeholder="AMT Testnet transfer"></textarea>
+
+    <button id="sendButton"
+            style="margin-top:12px"
+            onclick="sendAMT()">
+      🚀 SEND AMT
+    </button>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="balance-label">
+      TRANSACTION HISTORY
+    </div>
+
+    <div id="transactionHistory"
+         style="margin-top:8px">
+      <div class="empty">
+        Sign in to view transactions.
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="warning">
+      ⚠️ <strong>Testnet Wallet Notice</strong>
+      <br><br>
+
+      The address shown here is an
+      <strong>AMT application/Testnet ledger address</strong>.
+
+      <br><br>
+
+      It is not presented as a Pi blockchain or Stellar
+      blockchain wallet address.
+
+      <br><br>
+
+      Actual on-chain AMT transfers require the proper
+      blockchain keypair, trustline and transaction infrastructure.
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+     AIRDROP
+====================================================== -->
+
+<section id="airdrop" class="section">
+
+  <div class="card">
+
+    <div class="airdrop-hero">
+
+      <div class="airdrop-icon">
+        🎁
+      </div>
+
+      <div class="balance-label">
+        AMT TESTNET AIRDROP
+      </div>
+
+      <div id="airdropAmount"
+           class="airdrop-amount">
+        1.00000000 AMT
+      </div>
+
+      <p id="airdropText"
+         class="kyc-text">
+        Sign in to check your airdrop eligibility.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="row">
+      <div class="muted">Airdrop Status</div>
+      <div id="airdropStatus"
+           class="value">
+        NOT CHECKED
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">Network</div>
+      <div class="value">
+        Pi Testnet
+      </div>
+    </div>
+
+    <button id="airdropButton"
+            onclick="claimAirdrop()">
+      🎁 CLAIM TESTNET AIRDROP
+    </button>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="info">
+      🎁 The AMT Testnet airdrop is a one-time
+      application reward.
+
+      <br><br>
+
+      Airdrop amounts are recorded in the AMT Testnet
+      backend ledger.
+
+      <br><br>
+
+      Testnet tokens have no Mainnet monetary value.
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+     PROFILE
+====================================================== -->
+
+<section id="profile" class="section">
+
+  <div class="card">
+
+    <div class="profile-avatar-wrap">
+
+      <div id="profileAvatar"
+           class="profile-avatar">
+        AMT
+      </div>
+
+      <div class="profile-actions">
+
+        <div class="balance-label">
+          PIONEER PROFILE
+        </div>
+
+        <div id="username"
+             style="font-size:21px;font-weight:900;margin-top:5px">
+          Not signed in
+        </div>
+
+        <div id="profileStatus"
+             class="status off"
+             style="display:inline-block;margin-top:7px">
+          OFFLINE
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="balance-label">
+      PROFILE PICTURE
+    </div>
+
+    <p class="kyc-text">
+      Upload a profile picture for your AMT account.
+    </p>
+
+    <input id="profileImageInput"
+           class="file-input"
+           type="file"
+           accept="image/*"
+           onchange="uploadProfilePicture(event)">
+
+    <button class="secondary"
+            onclick="document.getElementById('profileImageInput').click()">
+      📷 UPLOAD PROFILE PICTURE
+    </button>
+
+    <button id="removePhotoButton"
+            class="danger-btn"
+            onclick="removeProfilePicture()">
+      🗑️ REMOVE PICTURE
+    </button>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="row">
+      <div class="muted">Pi Username</div>
+      <div id="profileUsername"
+           class="value">
+        —
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">Pi UID</div>
+      <div id="uid"
+           class="value">
+        —
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">KYC</div>
+      <div id="profileKyc"
+           class="value">
+        UNVERIFIED
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">Network</div>
+      <div class="value">
+        Pi Testnet
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+     REFERRAL
+====================================================== -->
+
+<section id="referral" class="section">
+
+  <div class="card">
+
+    <div class="balance-label">
+      MY REFERRAL
+    </div>
+
+    <div id="myReferralUsername"
+         style="font-size:24px;font-weight:900;margin-top:6px">
+      —
+    </div>
+
+    <div class="kyc-text">
+      Your Pi username is your AMT referral identifier.
+    </div>
+
+    <div id="referralLink"
+         class="ref-link">
+      Sign in to generate your referral link.
+    </div>
+
+    <button class="secondary"
+            onclick="copyReferralLink()">
+      📋 COPY REFERRAL LINK
+    </button>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="row">
+      <div class="muted">
+        Direct Referrals
+      </div>
+
+      <div id="referralCount"
+           class="value">
+        0 / UNLIMITED
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">
+        Active Miners
+      </div>
+
+      <div id="activeReferralCount"
+           class="value success">
+        0
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="muted">
+        Reward
+      </div>
+
+      <div class="value">
+        Mainnet Pending
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="balance-label">
+      MY REFERRALS
+    </div>
+
+    <div id="referralMembers"
+         class="kyc-text">
+      No referrals yet.
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="info">
+
+      👥 Direct referrals are recorded by the
+      AMT backend.
+
+      <br><br>
+
+      There is currently no fixed 5-person direct
+      referral limit in the AMT Testnet backend.
+
+      <br><br>
+
+      Referral rewards are not credited on AMT Testnet.
+      Future Mainnet rules may be different.
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+     SECURITY CIRCLE
+====================================================== -->
+
+<section id="security" class="section">
+
+  <div class="card">
+
+    <div style="font-size:24px;font-weight:900">
+      🛡️ AMT SECURITY CIRCLE
+    </div>
+
+    <p class="kyc-text">
+      Your invited Pioneers can appear here automatically.
+      Their mining status comes from the AMT backend.
+    </p>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="row">
+
+      <div class="muted">
+        Security Circle
+      </div>
+
+      <div id="securityCount"
+           class="value">
+        0 / 5
+      </div>
+
+    </div>
+
+    <div id="securityMembers"
+         class="kyc-text">
+      No Security Circle members yet.
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="info">
+
+      🟢 <strong>MINING</strong>
+      means the Pioneer currently has an active
+      AMT mining session.
+
+      <br><br>
+
+      ⚪ <strong>NOT MINING</strong>
+      means there is no active mining session.
+
+      <br><br>
+
+      Maximum Security Circle slots:
+      <strong>5</strong>.
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+     MARKET
+====================================================== -->
+
+<section id="market" class="section">
+
+  <div class="card">
+
+    <div style="font-size:24px;font-weight:900">
+      🛒 AMT MARKETPLACE
+    </div>
+
+    <p class="kyc-text">
+      Private Pi Testnet purchase environment.
+      This section uses Pi Testnet Payments.
+    </p>
+
+  </div>
+
+
+  <div id="privateMarketCard"
+       class="card hidden">
+
+    <div class="market-pet">
+      🐾
+    </div>
+
+    <div style="text-align:center;font-size:20px;font-weight:900;margin-top:12px">
+      Alberto Test Pet
+    </div>
+
+    <p id="testPetDescription"
+       class="kyc-text"
+       style="text-align:center;margin-top:7px">
+      Private marketplace test item.
+    </p>
+
+    <div class="row" style="margin-top:10px">
+
+      <div class="muted">
+        Test Price
+      </div>
+
+      <div id="testPetPrice"
+           class="value">
+        0.10 Pi
+      </div>
+
+    </div>
+
+    <button id="testBuyButton"
+            onclick="buyTestPet()">
+      🐾 TEST BUY
+    </button>
+
+    <div id="testBuyStatus"
+         class="info"
+         style="margin-top:12px;text-align:center">
+      Pi Testnet payment required.
+    </div>
+
+  </div>
+
+
+  <div id="marketLockedCard"
+       class="card">
+
+    <div class="warning"
+         style="text-align:center">
+
+      🔒 Private test marketplace is not enabled
+      for this account.
+
+    </div>
+
+  </div>
+
+
+  <div id="testPurchaseHistory"
+       class="card hidden">
+
+    <div class="balance-label">
+      TEST PURCHASE HISTORY
+    </div>
+
+    <div id="testPurchaseList"
+         class="kyc-text"
+         style="margin-top:8px">
+      No completed test purchase yet.
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ======================================================
+     KYC
+====================================================== -->
+
+<section id="kyc" class="section">
+
+  <div class="card">
+
+    <div style="font-size:24px">
+      🛡️ KYC VERIFICATION
+    </div>
+
+    <p class="kyc-text">
+      AMT Testnet mining does not require verified KYC.
+    </p>
+
+  </div>
+
+
+  <div class="card">
+
+    <div id="kycLargeStatus"
+         style="font-size:22px;font-weight:900">
+      UNVERIFIED
+    </div>
+
+    <p id="kycLargeText"
+       class="kyc-text">
+      Sign in to check your AMT KYC status.
+    </p>
+
+    <button class="secondary"
+            onclick="openKycInfo()">
+      🛡️ PI KYC INFORMATION
+    </button>
+
+    <p class="warning"
+       style="margin-top:14px">
+
+      AMT does not collect passports,
+      National IDs, driver's licenses,
+      or other identity documents directly.
+
+      <br><br>
+
+      Complete identity verification only through
+      the approved Pi verification process.
+
+      <br><br>
+
+      The AMT backend stores an application KYC status;
+      it does not by itself prove live Pi KYC verification.
+
+    </p>
+
+  </div>
+
+</section>
+
+</div>
+
+
+<!-- ======================================================
+     NAVIGATION
+====================================================== -->
+
+<nav class="nav-wrap">
+
+  <div class="nav-inner">
+
+    <button class="active"
+            onclick="showSection('mining',this);loadMiningStatus()">
+      <span>⛏️</span>
+      Mining
+    </button>
+
+    <button onclick="showSection('wallet',this);loadWallet();loadTransactions()">
+      <span>👛</span>
+      Wallet
+    </button>
+
+    <button onclick="showSection('airdrop',this);loadAirdrop()">
+      <span>🎁</span>
+      Airdrop
+    </button>
+
+    <button onclick="showSection('profile',this);loadProfile()">
+      <span>👤</span>
+      Profile
+    </button>
+
+    <button onclick="showSection('referral',this);loadReferral()">
+      <span>👥</span>
+      Referral
+    </button>
+
+    <button onclick="showSection('security',this);loadSecurityCircle()">
+      <span>🛡️</span>
+      Circle
+    </button>
+
+    <button onclick="showSection('market',this);loadTestMarket()">
+      <span>🛒</span>
+      Market
+    </button>
+
+    <button onclick="showSection('kyc',this);loadKyc()">
+      <span>🔐</span>
+      KYC
+    </button>
+
+  </div>
+
 </nav>
 
+
 <script>
+
 const BACKEND_URL = "https://alberto-amt-testnet.onrender.com";
 
 let accessToken = null;
 let piUser = null;
 let miningInterval = null;
 let currentMiningEndsAt = null;
+let currentWalletAddress = null;
+let refreshBusy = false;
+
+
+/* ======================================================
+   BASIC UI
+====================================================== */
 
 function message(text){
-  const element=document.getElementById("message");
-  if(element) element.textContent=text;
+
+  const element = document.getElementById("message");
+
+  if(element){
+    element.textContent = text;
+  }
+
 }
+
 
 function showSection(id,button){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  const target=document.getElementById(id);
-  if(target) target.classList.add("active");
-  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-  if(button) button.classList.add("active");
+
+  document.querySelectorAll(".section")
+    .forEach(section => section.classList.remove("active"));
+
+  const target = document.getElementById(id);
+
+  if(target){
+    target.classList.add("active");
+  }
+
+  document.querySelectorAll("nav button")
+    .forEach(btn => btn.classList.remove("active"));
+
+  if(button){
+    button.classList.add("active");
+  }
+
 }
+
 
 function openKycInfo(){
-  showSection("kyc",document.querySelectorAll("nav button")[6]);
-  message("Use the official Pi KYC verification process. AMT does not collect identity documents.");
+
+  const kycButton = document.querySelectorAll("nav button")[7];
+
+  showSection("kyc",kycButton);
+
+  message(
+    "AMT does not collect identity documents. Use the approved Pi KYC process."
+  );
+
 }
 
-function getReferralFromUrl(){
-  try{
-    const ref=new URLSearchParams(window.location.search).get("ref");
-    if(!ref) return null;
-    const clean=ref.trim();
-    return clean ? clean.slice(0,100) : null;
-  }catch{return null}
+
+/* ======================================================
+   AUTH HELPERS
+====================================================== */
+
+function isLoggedIn(){
+
+  return Boolean(accessToken);
+
 }
+
+
+function setLoggedInUI(){
+
+  const loginButton = document.getElementById("loginButton");
+  const logoutButton = document.getElementById("logoutButton");
+
+  loginButton.classList.add("hidden");
+  logoutButton.classList.remove("hidden");
+
+  document.getElementById("loginState").textContent =
+    "Pi account connected";
+
+  document.getElementById("profileStatus").textContent =
+    "ONLINE";
+
+  document.getElementById("profileStatus").className =
+    "status on";
+
+}
+
+
+function setLoggedOutUI(){
+
+  const loginButton = document.getElementById("loginButton");
+  const logoutButton = document.getElementById("logoutButton");
+
+  loginButton.classList.remove("hidden");
+  logoutButton.classList.add("hidden");
+
+  document.getElementById("loginName").textContent =
+    "Not signed in";
+
+  document.getElementById("loginState").textContent =
+    "Pi account disconnected";
+
+  document.getElementById("username").textContent =
+    "Not signed in";
+
+  document.getElementById("profileUsername").textContent =
+    "—";
+
+  document.getElementById("uid").textContent =
+    "—";
+
+  document.getElementById("profileStatus").textContent =
+    "OFFLINE";
+
+  document.getElementById("profileStatus").className =
+    "status off";
+
+  document.getElementById("walletAddress").textContent =
+    "Sign in to generate your AMT Testnet ledger address.";
+
+  document.getElementById("walletBalance").textContent =
+    "0.00000000";
+
+  document.getElementById("amtBalance").textContent =
+    "0.00000000";
+
+  document.getElementById("miningStatus").textContent =
+    "NOT MINING";
+
+  document.getElementById("miningStatus").className =
+    "value danger";
+
+  document.getElementById("timer").textContent =
+    "00:00:00";
+
+  document.getElementById("earned").textContent =
+    "0.00000000 AMT";
+
+  document.getElementById("airdropStatus").textContent =
+    "NOT CHECKED";
+
+  document.getElementById("airdropText").textContent =
+    "Sign in to check your airdrop eligibility.";
+
+  document.getElementById("transactionHistory").innerHTML =
+    '<div class="empty">Sign in to view transactions.</div>';
+
+  currentWalletAddress = null;
+  currentMiningEndsAt = null;
+
+  if(miningInterval){
+    clearInterval(miningInterval);
+    miningInterval = null;
+  }
+
+  document.getElementById("mineButton").disabled = false;
+  document.getElementById("mineButton").textContent =
+    "🔐 LOGIN TO START MINING";
+
+  document.getElementById("claimButton").classList.add("hidden");
+
+}
+
+
+/* ======================================================
+   LOGOUT
+====================================================== */
+
+function logoutApp(){
+
+  accessToken = null;
+  piUser = null;
+
+  sessionStorage.setItem(
+    "amt_manual_logout",
+    "1"
+  );
+
+  setLoggedOutUI();
+
+  message(
+    "You are logged out of the AMT app. Pi authorization itself is not revoked."
+  );
+
+}
+
+
+/* ======================================================
+   PI AUTHENTICATION
+====================================================== */
 
 async function authenticatePi(){
+
   try{
+
     if(!window.Pi){
-      message("Pi SDK is not available. Open AMT inside the supported Pi environment.");
+
+      message(
+        "Pi SDK is not available. Open AMT inside the supported Pi environment."
+      );
+
       return;
     }
 
-    Pi.init({version:"2.0",sandbox:true});
+    message("Opening Pi Sign-In...");
 
-    const authResult=await Pi.authenticate(
+    Pi.init({
+      version:"2.0",
+      sandbox:true
+    });
+
+    const authResult = await Pi.authenticate(
       ["username","payments"],
       function(payment){
-        console.log("Incomplete payment found:",payment.identifier);
+
+        console.log(
+          "Incomplete Pi payment found:",
+          payment
+        );
+
       }
     );
 
-    accessToken=authResult.accessToken;
-    piUser=authResult.user;
+    accessToken = authResult.accessToken;
+    piUser = authResult.user;
+
+    sessionStorage.removeItem(
+      "amt_manual_logout"
+    );
+
+    setLoggedInUI();
+
+    document.getElementById("loginName").textContent =
+      piUser?.username || "Pi Pioneer";
 
     await verifyWithBackend();
+
   }catch(error){
-    console.error("Pi authentication error:",error);
-    message("Pi Sign-In was not completed.");
+
+    console.error(
+      "Pi authentication error:",
+      error
+    );
+
+    message(
+      "Pi Sign-In was not completed."
+    );
+
   }
+
 }
 
-async function verifyWithBackend(){
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/auth/verify`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
 
-    const data=await response.json();
+/* ======================================================
+   API HELPER
+====================================================== */
 
-    if(!response.ok || !data.success){
-      message("Pi Sign-In succeeded, but AMT account verification failed.");
-      return;
-    }
-
-    document.getElementById("username").textContent=data.user?.username || "Pi Pioneer";
-    document.getElementById("uid").textContent=data.user?.uid || "—";
-    document.getElementById("profileStatus").textContent="ONLINE";
-    document.getElementById("profileStatus").className="status on";
-
-    message("Pi account connected to AMT Testnet.");
-
-    const referralUsername=getReferralFromUrl();
-    if(referralUsername) await autoLinkReferral(referralUsername);
-
-    await Promise.allSettled([
-      loadKyc(),
-      loadWallet(),
-      loadMiningStatus(),
-      loadReferral(),
-      loadSecurityCircle(),
-      loadTestMarket()
-    ]);
-  }catch(error){
-    console.error("Backend authentication error:",error);
-    message("Unable to connect to AMT backend.");
-  }
-}
-
-async function autoLinkReferral(referralUsername){
-  if(!accessToken || !referralUsername) return;
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/referral/auto-link`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken,referralUsername})
-    });
-    const data=await response.json();
-    if(!response.ok || !data.success){
-      console.warn("Referral link:",data);
-      return;
-    }
-    if(data.linked){
-      message(`Referral linked to ${data.referrer?.username || referralUsername}.`);
-    }else if(data.status==="REFERRER_LIMIT_REACHED"){
-      message("The referral Pioneer has reached the 5 direct-referral limit.");
-    }
-  }catch(error){console.error("Referral auto-link error:",error)}
-}
-
-async function loadKyc(){
-  if(!accessToken) return;
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/kyc/status`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
-    if(!response.ok || !data.success) return;
-
-    const status=String(data.kyc?.status || "UNVERIFIED").toUpperCase();
-    document.getElementById("kycStatus").textContent=status;
-    document.getElementById("profileKyc").textContent=status;
-    document.getElementById("kycLargeStatus").textContent=status;
-
-    const kycButton=document.getElementById("kycButton");
-    const mineButton=document.getElementById("mineButton");
-
-    if(status==="VERIFIED"){
-      document.getElementById("kycStatus").className="status on";
-      document.getElementById("kycText").textContent="Pi identity verification is completed. You can mine AMT Testnet.";
-      document.getElementById("kycLargeText").textContent="Your Pi KYC status is VERIFIED. AMT Testnet mining is available.";
-      document.getElementById("kycLargeStatus").className="success";
-      kycButton.classList.add("hidden");
-    }else{
-      document.getElementById("kycStatus").className="status off";
-      document.getElementById("kycText").textContent="Pi KYC is not required for AMT Testnet mining. KYC will be required for applicable Mainnet functions.";
-      document.getElementById("kycLargeText").textContent="You can mine AMT on Testnet without KYC. Complete the official Pi KYC process before applicable Mainnet migration, wallet transfer, and ecosystem swap functions.";
-      document.getElementById("kycLargeStatus").className="danger";
-      kycButton.classList.remove("hidden");
-    }
-
-    if(!currentMiningEndsAt){
-      mineButton.disabled=false;
-      mineButton.textContent="⛏️ START AMT MINING";
-    }
-  }catch(error){
-    console.error("KYC error:",error);
-    document.getElementById("mineButton").disabled=false;
-    document.getElementById("mineButton").textContent="⛏️ START AMT MINING";
-  }
-}
-
-async function startMining(){
-  if(!accessToken){message("Sign in with Pi first.");return}
-
-  const button=document.getElementById("mineButton");
-  button.disabled=true;
-
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/mining/start`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
-
-    if(!response.ok || !data.success){
-      message(data.message || data.error || "Mining could not start.");
-      button.disabled=false;
-      return;
-    }
-
-    message("AMT Testnet mining session is active.");
-    await loadMiningStatus();
-  }catch(error){
-    console.error("Mining start error:",error);
-    message("Unable to contact AMT backend.");
-    button.disabled=false;
-  }
-}
-
-async function loadMiningStatus(){
-  if(!accessToken) return;
-
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/mining/status`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
-    if(!response.ok || !data.success) return;
-
-    if(!data.mining){
-      currentMiningEndsAt=null;
-      if(miningInterval){clearInterval(miningInterval);miningInterval=null}
-
-      document.getElementById("miningStatus").textContent="NOT MINING";
-      document.getElementById("miningStatus").className="value danger";
-      document.getElementById("timer").textContent="00:00:00";
-      document.getElementById("earned").textContent="0.00000000 AMT";
-      document.getElementById("claimButton").classList.add("hidden");
-      document.getElementById("mineButton").textContent="⛏️ START AMT MINING";
-      document.getElementById("mineButton").disabled=false;
-      return;
-    }
-
-    const session=data.session;
-    currentMiningEndsAt=session.endsAt;
-
-    document.getElementById("miningStatus").textContent=data.completed ? "MINING COMPLETE" : "MINING ACTIVE";
-    document.getElementById("miningStatus").className="value success";
-    document.getElementById("rate").textContent=session.rate;
-    document.getElementById("earned").textContent=Number(session.earned || 0).toFixed(8)+" AMT";
-
-    updateTimer(currentMiningEndsAt);
-    document.getElementById("claimButton").classList.remove("hidden");
-    document.getElementById("mineButton").textContent=data.completed ? "⛏️ MINING COMPLETE" : "⛏️ MINING ACTIVE";
-    document.getElementById("mineButton").disabled=true;
-
-    if(data.completed){
-      if(miningInterval){clearInterval(miningInterval);miningInterval=null}
-    }else{
-      startTimer();
-    }
-  }catch(error){console.error("Mining status error:",error)}
-}
-
-function startTimer(){
-  if(miningInterval) clearInterval(miningInterval);
-
-  miningInterval=setInterval(async()=>{
-    if(!currentMiningEndsAt) return;
-
-    const remaining=Math.max(0,new Date(currentMiningEndsAt).getTime()-Date.now());
-    updateTimer(currentMiningEndsAt);
-
-    if(remaining<=0){
-      clearInterval(miningInterval);
-      miningInterval=null;
-
-      document.getElementById("timer").textContent="00:00:00";
-      document.getElementById("mineButton").textContent="⛏️ MINING COMPLETE";
-      document.getElementById("mineButton").disabled=true;
-
-      message("Mining session completed. You can claim your AMT reward.");
-
-      await loadMiningStatus();
-      await loadReferral();
-      await loadSecurityCircle();
-    }
-  },1000);
-}
-
-function updateTimer(endTime){
-  if(!endTime) return;
-  const remaining=Math.max(0,new Date(endTime).getTime()-Date.now());
-  const totalSeconds=Math.floor(remaining/1000);
-  const hours=Math.floor(totalSeconds/3600);
-  const minutes=Math.floor((totalSeconds%3600)/60);
-  const seconds=totalSeconds%60;
-
-  document.getElementById("timer").textContent=
-    String(hours).padStart(2,"0")+":"+
-    String(minutes).padStart(2,"0")+":"+
-    String(seconds).padStart(2,"0");
-}
-
-async function claimMining(){
-  if(!accessToken){message("Sign in with Pi first.");return}
-
-  const button=document.getElementById("claimButton");
-  button.disabled=true;
-
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/mining/claim`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
-
-    if(!response.ok || !data.success){
-      message(data.error || data.message || "Reward claim failed.");
-      button.disabled=false;
-      return;
-    }
-
-    message(`Claimed ${Number(data.claimed || 0).toFixed(8)} AMT Testnet.`);
-    button.disabled=false;
-
-    await loadWallet();
-    await loadMiningStatus();
-    await loadReferral();
-    await loadSecurityCircle();
-  }catch(error){
-    console.error("Claim error:",error);
-    message("Unable to claim AMT reward.");
-    button.disabled=false;
-  }
-}
-
-async function loadWallet(){
-  if(!accessToken) return;
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/wallet`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
-    if(!response.ok || !data.success) return;
-
-    const balance=Number(data.wallet?.amt || 0).toFixed(8);
-    document.getElementById("amtBalance").textContent=balance;
-    document.getElementById("walletBalance").textContent=balance;
-  }catch(error){console.error("Wallet error:",error)}
-}
-
-async function loadProfile(){
-  if(!accessToken) return;
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/profile`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
-    if(!response.ok || !data.success) return;
-
-    document.getElementById("username").textContent=data.profile?.username || "Pi Pioneer";
-    document.getElementById("uid").textContent=data.profile?.uid || "—";
-    document.getElementById("profileKyc").textContent=data.profile?.kycStatus || "UNVERIFIED";
-  }catch(error){console.error("Profile error:",error)}
-}
-
-function buildReferralLink(username){
-  if(!username) return "";
-  const url=new URL(window.location.href);
-  url.search="";
-  url.hash="";
-  url.searchParams.set("ref",username);
-  return url.toString();
-}
-
-async function loadReferral(){
-  if(!accessToken) return;
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/referral/status`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
-    if(!response.ok || !data.success) return;
-
-    const referral=data.referral || {};
-    const username=referral.username || "";
-
-    document.getElementById("myReferralUsername").textContent=username || "—";
-    document.getElementById("referralLink").textContent=
-      buildReferralLink(username) || "Sign in to generate your referral link.";
-
-    document.getElementById("referralCount").textContent=
-      `${referral.count || 0} / ${referral.maxDirectReferrals || 5}`;
-
-    document.getElementById("activeReferralCount").textContent=
-      String(referral.activeMiners || 0);
-
-    const container=document.getElementById("referralMembers");
-
-    if(!referral.referrals || referral.referrals.length===0){
-      container.textContent="No referrals yet.";
-      return;
-    }
-
-    container.innerHTML=referral.referrals.map(item=>`
-      <div class="member">
-        <div class="member-top">
-          <div class="member-name">👤 ${escapeHtml(item.username)}</div>
-          <div class="member-status ${item.mining ? "success" : "muted"}">
-            ${item.mining ? "🟢 MINING" : "⚪ NOT MINING"}
-          </div>
-        </div>
-      </div>
-    `).join("");
-  }catch(error){console.error("Referral status error:",error)}
-}
-
-async function loadSecurityCircle(){
-  if(!accessToken) return;
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/security-circle/status`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
-    if(!response.ok || !data.success) return;
-
-    const circle=data.securityCircle || {};
-    const members=circle.members || [];
-
-    document.getElementById("securityCount").textContent=
-      `${members.length} / ${circle.limit || 5}`;
-
-    const container=document.getElementById("securityMembers");
-
-    if(members.length===0){
-      container.textContent="No Security Circle members yet.";
-      return;
-    }
-
-    container.innerHTML=members.map(item=>`
-      <div class="member">
-        <div class="member-top">
-          <div class="member-name">👤 ${escapeHtml(item.username)}</div>
-          <div class="member-status ${item.mining ? "success" : "muted"}">
-            ${item.mining ? "🟢 MINING" : "⚪ NOT MINING"}
-          </div>
-        </div>
-      </div>
-    `).join("");
-  }catch(error){console.error("Security Circle error:",error)}
-}
-
-async function loadTestMarket(){
-  const locked=document.getElementById("marketLockedCard");
-  const card=document.getElementById("privateMarketCard");
-  const history=document.getElementById("testPurchaseHistory");
+async function api(path,options={}){
 
   if(!accessToken){
-    card.classList.add("hidden");
-    history.classList.add("hidden");
-    locked.classList.remove("hidden");
-    return;
+    throw new Error("NOT_AUTHENTICATED");
   }
 
-  try{
-    const response=await fetch(`${BACKEND_URL}/api/market/test-product`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
+  const method =
+    String(options.method || "GET").toUpperCase();
 
-    if(!response.ok || !data.success){
-      card.classList.add("hidden");
-      history.classList.add("hidden");
-      locked.classList.remove("hidden");
+  const headers = new Headers(
+    options.headers || {}
+  );
+
+  headers.set(
+    "Authorization",
+    "Bearer " + accessToken
+  );
+
+  let body = options.body;
+
+  if(
+    method !== "GET" &&
+    method !== "HEAD"
+  ){
+
+    headers.set(
+      "Content-Type",
+      "application/json"
+    );
+
+    let parsed = {};
+
+    if(body){
+
+      try{
+        parsed =
+          typeof body === "string"
+            ? JSON.parse(body)
+            : body;
+      }catch{
+        parsed = {};
+      }
+
+    }
+
+    if(
+      parsed &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed)
+    ){
+
+      parsed.accessToken =
+        accessToken;
+
+      body = JSON.stringify(parsed);
+
+    }else{
+
+      body = JSON.stringify({
+        accessToken
+      });
+
+    }
+
+  }
+
+  const response = await fetch(
+    BACKEND_URL + path,
+    {
+      ...options,
+      method,
+      headers,
+      body
+    }
+  );
+
+  let data = {};
+
+  try{
+    data = await response.json();
+  }catch{
+    data = {};
+  }
+
+  if(!response.ok){
+
+    throw new Error(
+      data.error ||
+      data.message ||
+      `Request failed (${response.status})`
+    );
+
+  }
+
+  return data;
+
+}
+
+
+/* ======================================================
+   BACKEND AUTH VERIFY
+====================================================== */
+
+async function verifyWithBackend(){
+
+  try{
+
+    const data = await api(
+      "/api/auth/verify",
+      {
+        method:"POST",
+        body:{}
+      }
+    );
+
+    if(!data.success){
+
+      message(
+        "Pi Sign-In succeeded, but AMT account verification failed."
+      );
+
       return;
     }
 
-    const product=data.product;
-    locked.classList.add("hidden");
-    card.classList.remove("hidden");
-    history.classList.remove("hidden");
+    const user =
+      data.user || {};
 
-    document.getElementById("testPetPrice").textContent=
-      `${Number(product.amountPi).toFixed(2)} Pi`;
+    const username =
+      user.username ||
+      piUser?.username ||
+      "Pi Pioneer";
 
-    document.getElementById("testBuyButton").textContent=
-      `🐾 TEST BUY — ${Number(product.amountPi).toFixed(2)} PI`;
+    const uid =
+      user.uid ||
+      piUser?.uid ||
+      "—";
 
-    if(product.description){
-      document.getElementById("testPetDescription").textContent=product.description;
+    document.getElementById("username").textContent =
+      username;
+
+    document.getElementById("profileUsername").textContent =
+      username;
+
+    document.getElementById("uid").textContent =
+      uid;
+
+    document.getElementById("loginName").textContent =
+      username;
+
+    document.getElementById("loginState").textContent =
+      "Pi account connected • AMT Testnet";
+
+    setLoggedInUI();
+
+    message(
+      "Pi account connected to AMT Testnet."
+    );
+
+    const referralUsername =
+      getReferralFromUrl();
+
+    if(referralUsername){
+
+      await autoLinkReferral(
+        referralUsername
+      );
+
     }
 
-    const purchases=data.purchases || [];
-    const list=document.getElementById("testPurchaseList");
+    await Promise.allSettled([
 
-    if(!purchases.length){
-      list.textContent="No completed test purchase yet.";
-    }else{
-      list.innerHTML=purchases.map(p=>`
-        <div class="member">
-          <div class="member-top">
-            <div class="member-name">🐾 Alberto Test Pet</div>
-            <div class="member-status success">PAID</div>
-          </div>
-          <div class="muted" style="margin-top:5px">
-            ${Number(p.amount).toFixed(2)} Pi • ${escapeHtml(p.transaction_id || "verified")}
-          </div>
-        </div>
-      `).join("");
-    }
+      loadKyc(),
+
+      loadWallet(),
+
+      loadProfile(),
+
+      loadMiningStatus(),
+
+      loadAirdrop(),
+
+      loadReferral(),
+
+      loadSecurityCircle(),
+
+      loadTransactions(),
+
+      loadTestMarket()
+
+    ]);
+
   }catch(error){
-    console.error("Test market error:",error);
-    card.classList.add("hidden");
-    history.classList.add("hidden");
-    locked.classList.remove("hidden");
+
+    console.error(
+      "Backend verification error:",
+      error
+    );
+
+    message(
+      error.message === "NOT_AUTHENTICATED"
+        ? "Sign in with Pi first."
+        : "Unable to connect to AMT backend."
+    );
+
   }
+
 }
 
-async function buyTestPet(){
-  if(!accessToken){message("Sign in with Pi first.");return}
-  if(!window.Pi || typeof Pi.createPayment!=="function"){
-    message("Pi Payments are available only inside the supported Pi environment.");
+
+/* ======================================================
+   REFERRAL URL
+====================================================== */
+
+function getReferralFromUrl(){
+
+  try{
+
+    const ref =
+      new URLSearchParams(
+        window.location.search
+      ).get("ref");
+
+    if(!ref){
+      return null;
+    }
+
+    const clean =
+      ref.trim();
+
+    return clean
+      ? clean.slice(0,100)
+      : null;
+
+  }catch{
+
+    return null;
+
+  }
+
+}
+
+
+function buildReferralLink(username){
+
+  if(!username){
+    return "";
+  }
+
+  const url =
+    new URL(window.location.href);
+
+  url.search = "";
+  url.hash = "";
+
+  url.searchParams.set(
+    "ref",
+    username
+  );
+
+  return url.toString();
+
+}
+
+
+async function autoLinkReferral(
+  referralUsername
+){
+
+  if(
+    !accessToken ||
+    !referralUsername
+  ){
     return;
   }
 
-  const button=document.getElementById("testBuyButton");
-  const status=document.getElementById("testBuyStatus");
-
-  button.disabled=true;
-  status.textContent="🧪 Opening PI TESTNET payment only...";
-
   try{
-    const response=await fetch(`${BACKEND_URL}/api/market/test-product`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken})
-    });
-    const data=await response.json();
 
-    if(!response.ok || !data.success){
-      throw new Error(data.message || "Private test product is unavailable.");
+    const data =
+      await api(
+        "/api/referral/auto-link",
+        {
+          method:"POST",
+          body:{
+            referralUsername
+          }
+        }
+      );
+
+    if(data.linked){
+
+      message(
+        `Referral linked to ${
+          data.referrer?.username ||
+          referralUsername
+        }.`
+      );
+
     }
 
-    const product=data.product;
-
-    Pi.createPayment(
-      {
-        amount:Number(product.amountPi),
-        memo:product.name,
-        metadata:{productId:product.id,testOnly:true}
-      },
-      {
-        onReadyForServerApproval:async function(paymentId){
-          try{
-            status.textContent="Pi payment created. Waiting for server approval...";
-            const r=await fetch(`${BACKEND_URL}/api/market/payment/approve`,{
-              method:"POST",
-              headers:{"Content-Type":"application/json"},
-              body:JSON.stringify({accessToken,paymentId})
-            });
-            const d=await r.json();
-            if(!r.ok || !d.success){
-              throw new Error(d.error || d.message || "Payment approval failed.");
-            }
-            status.textContent="Payment approved. Complete the PI TESTNET payment in Pi. REAL PI IS NOT USED.";
-          }catch(error){
-            console.error("Test payment approval error:",error);
-            status.textContent=error.message || "Payment approval failed.";
-            button.disabled=false;
-          }
-        },
-
-        onReadyForServerCompletion:async function(paymentId,txid){
-          try{
-            status.textContent="Verifying and completing the Pi Testnet payment...";
-            const r=await fetch(`${BACKEND_URL}/api/market/payment/complete`,{
-              method:"POST",
-              headers:{"Content-Type":"application/json"},
-              body:JSON.stringify({accessToken,paymentId,txid})
-            });
-            const d=await r.json();
-            if(!r.ok || !d.success){
-              throw new Error(d.error || d.message || "Payment completion failed.");
-            }
-            status.textContent=`✅ Test Buy completed: ${d.product} — ${d.network}.`;
-            message("Pi Testnet Test Buy completed successfully.");
-            button.disabled=false;
-            await loadTestMarket();
-          }catch(error){
-            console.error("Test payment completion error:",error);
-            status.textContent=error.message || "Payment completion failed.";
-            button.disabled=false;
-          }
-        },
-
-        onCancel:function(paymentId){
-          console.log("Test payment cancelled:",paymentId);
-          status.textContent="Payment cancelled.";
-          button.disabled=false;
-        },
-
-        onError:function(error,payment){
-          console.error("Pi Test Buy error:",error,payment);
-          status.textContent="Pi Test Buy failed or was interrupted. Check the Pi payment dialog and try again.";
-          button.disabled=false;
-        }
-      }
-    );
   }catch(error){
-    console.error("Test Buy error:",error);
-    status.textContent=error.message || "Test Buy could not start.";
-    button.disabled=false;
+
+    console.warn(
+      "Referral auto-link:",
+      error.message
+    );
+
   }
+
 }
 
-function escapeHtml(value){
-  return String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
 
-async function copyReferralLink(){
-  if(!accessToken){message("Sign in with Pi first.");return}
+/* ======================================================
+   KYC
+====================================================== */
 
-  const username=document.getElementById("myReferralUsername").textContent.trim();
-  const link=buildReferralLink(username);
+async function loadKyc(){
 
-  if(!link){message("Referral link is not available yet.");return}
+  if(!accessToken){
+    return;
+  }
 
   try{
-    await navigator.clipboard.writeText(link);
-    message("Referral link copied.");
-  }catch{
-    message("Copy failed. Long-press the referral link to copy it.");
+
+    const data =
+      await api(
+        "/api/kyc/status",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+      return;
+    }
+
+    const status =
+      String(
+        data.kyc?.status ||
+        "UNVERIFIED"
+      ).toUpperCase();
+
+    document.getElementById("kycStatus").textContent =
+      status;
+
+    document.getElementById("profileKyc").textContent =
+      status;
+
+    document.getElementById("kycLargeStatus").textContent =
+      status;
+
+    if(status === "VERIFIED"){
+
+      document.getElementById("kycStatus").className =
+        "status on";
+
+      document.getElementById("kycLargeStatus").className =
+        "success";
+
+      document.getElementById("kycText").textContent =
+        "The AMT backend currently records your KYC status as VERIFIED.";
+
+      document.getElementById("kycLargeText").textContent =
+        "The AMT backend records your status as VERIFIED. Testnet mining remains available.";
+
+      document.getElementById("kycButton").classList.add(
+        "hidden"
+      );
+
+    }else{
+
+      document.getElementById("kycStatus").className =
+        "status off";
+
+      document.getElementById("kycLargeStatus").className =
+        "danger";
+
+      document.getElementById("kycText").textContent =
+        "KYC is not required for AMT Testnet mining.";
+
+      document.getElementById("kycLargeText").textContent =
+        "You can mine AMT Testnet without KYC. Future Mainnet functions may have separate requirements.";
+
+      document.getElementById("kycButton").classList.remove(
+        "hidden"
+      );
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "KYC error:",
+      error
+    );
+
   }
+
 }
 
-setInterval(async()=>{
-  if(!accessToken) return;
-  await loadWallet();
-  await loadMiningStatus();
-  await loadReferral();
-  await loadSecurityCircle();
-  await loadTestMarket();
-},15000);
 
-window.addEventListener("load",()=>{
-  message("AMT Testnet — connecting to Pi...");
-  authenticatePi();
-});
+/* ======================================================
+   MINING
+====================================================== */
+
+async function startMining(){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  const button =
+    document.getElementById("mineButton");
+
+  button.disabled = true;
+
+  try{
+
+    const data =
+      await api(
+        "/api/mining/start",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+
+      message(
+        data.message ||
+        data.error ||
+        "Mining could not start."
+      );
+
+      button.disabled = false;
+
+      return;
+
+    }
+
+    message(
+      "AMT Testnet mining session is active."
+    );
+
+    await loadMiningStatus();
+
+  }catch(error){
+
+    console.error(
+      "Mining start error:",
+      error
+    );
+
+    message(
+      error.message ||
+      "Unable to contact AMT backend."
+    );
+
+    button.disabled = false;
+
+  }
+
+}
+
+
+async function loadMiningStatus(){
+
+  if(!accessToken){
+    return;
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/mining/status",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+      return;
+    }
+
+    if(!data.mining){
+
+      currentMiningEndsAt = null;
+
+      if(miningInterval){
+
+        clearInterval(
+          miningInterval
+        );
+
+        miningInterval = null;
+
+      }
+
+      document.getElementById("miningStatus").textContent =
+        "NOT MINING";
+
+      document.getElementById("miningStatus").className =
+        "value danger";
+
+      document.getElementById("timer").textContent =
+        "00:00:00";
+
+      document.getElementById("earned").textContent =
+        "0.00000000 AMT";
+
+      document.getElementById("claimButton").classList.add(
+        "hidden"
+      );
+
+      document.getElementById("mineButton").textContent =
+        "⛏️ START AMT MINING";
+
+      document.getElementById("mineButton").disabled =
+        false;
+
+      return;
+
+    }
+
+    const session =
+      data.session || {};
+
+    currentMiningEndsAt =
+      session.endsAt;
+
+    document.getElementById("miningStatus").textContent =
+      data.completed
+        ? "MINING COMPLETE"
+        : "MINING ACTIVE";
+
+    document.getElementById("miningStatus").className =
+      "value success";
+
+    document.getElementById("rate").textContent =
+      session.rate ?? "0.01";
+
+    document.getElementById("earned").textContent =
+      Number(
+        session.earned || 0
+      ).toFixed(8) +
+      " AMT";
+
+    updateTimer(
+      currentMiningEndsAt
+    );
+
+    if(data.completed){
+
+      document.getElementById("claimButton").classList.remove(
+        "hidden"
+      );
+
+      document.getElementById("claimButton").disabled =
+        false;
+
+      document.getElementById("mineButton").textContent =
+        "⛏️ MINING COMPLETE";
+
+      document.getElementById("mineButton").disabled =
+        true;
+
+      if(miningInterval){
+
+        clearInterval(
+          miningInterval
+        );
+
+        miningInterval = null;
+
+      }
+
+    }else{
+
+      document.getElementById("claimButton").classList.add(
+        "hidden"
+      );
+
+      document.getElementById("mineButton").textContent =
+        "⛏️ MINING ACTIVE";
+
+      document.getElementById("mineButton").disabled =
+        true;
+
+      startTimer();
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "Mining status error:",
+      error
+    );
+
+  }
+
+}
+
+
+function startTimer(){
+
+  if(miningInterval){
+
+    clearInterval(
+      miningInterval
+    );
+
+  }
+
+  miningInterval =
+    setInterval(
+      async function(){
+
+        if(!currentMiningEndsAt){
+          return;
+        }
+
+        const remaining =
+          Math.max(
+            0,
+            new Date(
+              currentMiningEndsAt
+            ).getTime() -
+            Date.now()
+          );
+
+        updateTimer(
+          currentMiningEndsAt
+        );
+
+        if(remaining <= 0){
+
+          clearInterval(
+            miningInterval
+          );
+
+          miningInterval = null;
+
+          document.getElementById("timer").textContent =
+            "00:00:00";
+
+          document.getElementById("mineButton").textContent =
+            "⛏️ MINING COMPLETE";
+
+          document.getElementById("mineButton").disabled =
+            true;
+
+          message(
+            "Mining session completed. Your AMT reward is ready to claim."
+          );
+
+          await loadMiningStatus();
+
+          await loadWallet();
+
+          await loadReferral();
+
+          await loadSecurityCircle();
+
+        }
+
+      },
+      1000
+    );
+
+}
+
+
+function updateTimer(endTime){
+
+  if(!endTime){
+    return;
+  }
+
+  const remaining =
+    Math.max(
+      0,
+      new Date(endTime).getTime() -
+      Date.now()
+    );
+
+  const totalSeconds =
+    Math.floor(
+      remaining / 1000
+    );
+
+  const hours =
+    Math.floor(
+      totalSeconds / 3600
+    );
+
+  const minutes =
+    Math.floor(
+      (totalSeconds % 3600) / 60
+    );
+
+  const seconds =
+    totalSeconds % 60;
+
+  document.getElementById("timer").textContent =
+    String(hours).padStart(2,"0") +
+    ":" +
+    String(minutes).padStart(2,"0") +
+    ":" +
+    String(seconds).padStart(2,"0");
+
+}
+
+
+async function claimMining(){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  const button =
+    document.getElementById("claimButton");
+
+  button.disabled = true;
+
+  try{
+
+    const data =
+      await api(
+        "/api/mining/claim",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+
+      message(
+        data.error ||
+        data.message ||
+        "Reward claim failed."
+      );
+
+      button.disabled = false;
+
+      return;
+
+    }
+
+    message(
+      `Claimed ${
+        Number(
+          data.claimed || 0
+        ).toFixed(8)
+      } AMT Testnet.`
+    );
+
+    await loadWallet();
+
+    await loadTransactions();
+
+    await loadMiningStatus();
+
+    await loadReferral();
+
+    await loadSecurityCircle();
+
+  }catch(error){
+
+    console.error(
+      "Mining claim error:",
+      error
+    );
+
+    message(
+      error.message ||
+      "Unable to claim AMT reward."
+    );
+
+  }
+
+  button.disabled = false;
+
+}
+
+
+/* ======================================================
+   WALLET
+====================================================== */
+
+async function loadWallet(){
+
+  if(!accessToken){
+    return;
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/wallet",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+      return;
+    }
+
+    const wallet =
+      data.wallet || {};
+
+    const rawBalance =
+      wallet.amt ??
+      wallet.balance ??
+      0;
+
+    const balance =
+      Number(
+        rawBalance
+      ).toFixed(8);
+
+    document.getElementById("amtBalance").textContent =
+      balance;
+
+    document.getElementById("walletBalance").textContent =
+      balance;
+
+    currentWalletAddress =
+      wallet.walletAddress ||
+      wallet.address ||
+      null;
+
+    document.getElementById("walletAddress").textContent =
+      currentWalletAddress ||
+      "AMT Testnet ledger address not available.";
+
+    document.getElementById("walletStatus").textContent =
+      wallet.walletStatus ||
+      wallet.status ||
+      "LEDGER_ACTIVE";
+
+    document.getElementById("walletType").textContent =
+      wallet.walletType ||
+      "AMT TESTNET LEDGER";
+
+  }catch(error){
+
+    console.error(
+      "Wallet error:",
+      error
+    );
+
+  }
+
+}
+
+
+async function copyWalletAddress(){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  if(!currentWalletAddress){
+
+    await loadWallet();
+
+  }
+
+  if(!currentWalletAddress){
+
+    message(
+      "Wallet address is not available yet."
+    );
+
+    return;
+
+  }
+
+  try{
+
+    await navigator.clipboard.writeText(
+      currentWalletAddress
+    );
+
+    message(
+      "AMT Testnet wallet address copied."
+    );
+
+  }catch{
+
+    message(
+      "Copy failed. Long-press the address to copy it."
+    );
+
+  }
+
+}
+
+
+function receiveAMT(){
+
+  if(!currentWalletAddress){
+
+    message(
+      "Sign in first and load your AMT wallet address."
+    );
+
+    return;
+
+  }
+
+  message(
+    "Receive AMT by giving the sender your AMT Testnet ledger address."
+  );
+
+  copyWalletAddress();
+
+}
+
+
+async function sendAMT(){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  const recipient =
+    document.getElementById(
+      "sendAddress"
+    ).value.trim();
+
+  const amount =
+    Number(
+      document.getElementById(
+        "sendAmount"
+      ).value
+    );
+
+  const memo =
+    document.getElementById(
+      "sendMemo"
+    ).value.trim();
+
+  if(!recipient){
+
+    message(
+      "Enter the recipient AMT ledger address."
+    );
+
+    return;
+
+  }
+
+  if(
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ){
+
+    message(
+      "Enter a valid AMT amount."
+    );
+
+    return;
+
+  }
+
+  if(
+    currentWalletAddress &&
+    recipient === currentWalletAddress
+  ){
+
+    message(
+      "You cannot send AMT to your own wallet."
+    );
+
+    return;
+
+  }
+
+  const button =
+    document.getElementById(
+      "sendButton"
+    );
+
+  button.disabled = true;
+
+  try{
+
+    const data =
+      await api(
+        "/api/wallet/send",
+        {
+          method:"POST",
+          body:{
+            recipientAddress:recipient,
+            amount,
+            memo
+          }
+        }
+      );
+
+    if(!data.success){
+
+      message(
+        data.error ||
+        data.message ||
+        "AMT transfer failed."
+      );
+
+      return;
+
+    }
+
+    document.getElementById(
+      "sendAddress"
+    ).value = "";
+
+    document.getElementById(
+      "sendAmount"
+    ).value = "";
+
+    document.getElementById(
+      "sendMemo"
+    ).value = "";
+
+    message(
+      `Successfully sent ${amount.toFixed(8)} AMT Testnet.`
+    );
+
+    await loadWallet();
+
+    await loadTransactions();
+
+  }catch(error){
+
+    console.error(
+      "Send AMT error:",
+      error
+    );
+
+    message(
+      error.message ||
+      "AMT transfer failed."
+    );
+
+  }
+
+  button.disabled = false;
+
+}
+
+
+/* ======================================================
+   TRANSACTIONS
+====================================================== */
+
+async function loadTransactions(){
+
+  if(!accessToken){
+    return;
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/wallet/transactions",
+        {
+          method:"GET"
+        }
+      );
+
+    const transactions =
+      data.transactions ||
+      data.items ||
+      [];
+
+    const container =
+      document.getElementById(
+        "transactionHistory"
+      );
+
+    if(!transactions.length){
+
+      container.innerHTML =
+        '<div class="empty">No AMT transactions yet.</div>';
+
+      return;
+
+    }
+
+    container.innerHTML =
+      transactions.map(
+        function(tx){
+
+          const amount =
+            Number(
+              tx.amount || 0
+            );
+
+          const type =
+            String(
+              tx.type ||
+              tx.direction ||
+              "TRANSACTION"
+            ).toUpperCase();
+
+          const outgoing =
+            type.includes("SEND") ||
+            type.includes("DEBIT");
+
+          const signedAmount =
+            outgoing
+              ? "-" + amount.toFixed(8)
+              : "+" + amount.toFixed(8);
+
+          const counterparty =
+            tx.counterpartyAddress ||
+            tx.recipientAddress ||
+            tx.senderAddress ||
+            tx.walletAddress ||
+            "";
+
+          const memo =
+            tx.memo ||
+            tx.reference ||
+            "";
+
+          const created =
+            tx.createdAt ||
+            tx.created_at ||
+            tx.timestamp ||
+            "";
+
+          let dateText = "";
+
+          if(created){
+
+            const date =
+              new Date(created);
+
+            if(!Number.isNaN(
+              date.getTime()
+            )){
+
+              dateText =
+                date.toLocaleString();
+
+            }
+
+          }
+
+          return `
+            <div class="tx">
+
+              <div class="tx-top">
+
+                <div class="tx-type ${
+                  outgoing
+                    ? "danger"
+                    : "success"
+                }">
+
+                  ${
+                    outgoing
+                      ? "↗ SENT"
+                      : "↙ RECEIVED"
+                  }
+
+                </div>
+
+                <div class="tx-amount">
+
+                  ${signedAmount} AMT
+
+                </div>
+
+              </div>
+
+              <div class="tx-meta">
+
+                ${
+                  counterparty
+                    ? escapeHtml(counterparty)
+                    : "AMT Testnet ledger"
+                }
+
+                ${
+                  memo
+                    ? "<br>Memo: " +
+                      escapeHtml(memo)
+                    : ""
+                }
+
+                ${
+                  dateText
+                    ? "<br>" +
+                      escapeHtml(dateText)
+                    : ""
+                }
+
+              </div>
+
+            </div>
+          `;
+
+        }
+      ).join("");
+
+  }catch(error){
+
+    console.error(
+      "Transaction history error:",
+      error
+    );
+
+    document.getElementById(
+      "transactionHistory"
+    ).innerHTML =
+      '<div class="empty">Transaction history is temporarily unavailable.</div>';
+
+  }
+
+}
+
+
+/* ======================================================
+   AIRDROP
+====================================================== */
+
+async function loadAirdrop(){
+
+  if(!accessToken){
+
+    document.getElementById(
+      "airdropStatus"
+    ).textContent =
+      "LOGIN REQUIRED";
+
+    document.getElementById(
+      "airdropText"
+    ).textContent =
+      "Sign in to check your Testnet airdrop.";
+
+    return;
+
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/airdrop/status",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    const airdrop =
+      data.airdrop ||
+      {};
+
+    const amount =
+      Number(
+        airdrop.amountToClaim ??
+        airdrop.amount ??
+        airdrop.claimAmount ??
+        1
+      );
+
+    document.getElementById(
+      "airdropAmount"
+    ).textContent =
+      amount.toFixed(8) +
+      " AMT";
+
+    const claimed =
+      Boolean(
+        airdrop.claimed
+      );
+
+    const status =
+      document.getElementById(
+        "airdropStatus"
+      );
+
+    const button =
+      document.getElementById(
+        "airdropButton"
+      );
+
+    if(claimed){
+
+      status.textContent =
+        "CLAIMED";
+
+      status.className =
+        "value success";
+
+      document.getElementById(
+        "airdropText"
+      ).textContent =
+        "Your AMT Testnet airdrop has already been claimed.";
+
+      button.disabled = true;
+
+      button.textContent =
+        "✅ AIRDROP ALREADY CLAIMED";
+
+    }else{
+
+      status.textContent =
+        "AVAILABLE";
+
+      status.className =
+        "value success";
+
+      document.getElementById(
+        "airdropText"
+      ).textContent =
+        "Your one-time AMT Testnet airdrop is available.";
+
+      button.disabled = false;
+
+      button.textContent =
+        "🎁 CLAIM TESTNET AIRDROP";
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "Airdrop status error:",
+      error
+    );
+
+    message(
+      "Unable to check AMT Testnet airdrop."
+    );
+
+  }
+
+}
+
+
+async function claimAirdrop(){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  const button =
+    document.getElementById(
+      "airdropButton"
+    );
+
+  button.disabled = true;
+
+  try{
+
+    const data =
+      await api(
+        "/api/airdrop/claim",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+
+      message(
+        data.error ||
+        data.message ||
+        "Airdrop claim failed."
+      );
+
+      button.disabled = false;
+
+      return;
+
+    }
+
+    const amount =
+      Number(
+        data.amount ||
+        data.claimed ||
+        0
+      );
+
+    message(
+      `🎁 Airdrop claimed: ${amount.toFixed(8)} AMT Testnet.`
+    );
+
+    await loadAirdrop();
+
+    await loadWallet();
+
+    await loadTransactions();
+
+  }catch(error){
+
+    console.error(
+      "Airdrop claim error:",
+      error
+    );
+
+    message(
+      error.message ||
+      "Airdrop claim failed."
+    );
+
+    button.disabled = false;
+
+  }
+
+}
+
+
+/* ======================================================
+   PROFILE
+====================================================== */
+
+function setProfileImage(image){
+
+  const profileAvatar =
+    document.getElementById(
+      "profileAvatar"
+    );
+
+  const loginAvatar =
+    document.getElementById(
+      "loginAvatar"
+    );
+
+  if(image){
+
+    profileAvatar.innerHTML =
+      `<img src="${escapeHtml(image)}" alt="Profile">`;
+
+    loginAvatar.innerHTML =
+      `<img src="${escapeHtml(image)}" alt="Profile">`;
+
+  }else{
+
+    profileAvatar.textContent =
+      "AMT";
+
+    loginAvatar.textContent =
+      "AMT";
+
+  }
+
+}
+
+
+async function loadProfile(){
+
+  if(!accessToken){
+    return;
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/profile",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+      return;
+    }
+
+    const profile =
+      data.profile ||
+      {};
+
+    const username =
+      profile.username ||
+      piUser?.username ||
+      "Pi Pioneer";
+
+    document.getElementById(
+      "username"
+    ).textContent =
+      username;
+
+    document.getElementById(
+      "profileUsername"
+    ).textContent =
+      username;
+
+    document.getElementById(
+      "uid"
+    ).textContent =
+      profile.uid ||
+      piUser?.uid ||
+      "—";
+
+    document.getElementById(
+      "profileKyc"
+    ).textContent =
+      profile.kycStatus ||
+      "UNVERIFIED";
+
+    document.getElementById(
+      "loginName"
+    ).textContent =
+      username;
+
+    setProfileImage(
+      profile.profileImage ||
+      profile.profile_image ||
+      null
+    );
+
+  }catch(error){
+
+    console.error(
+      "Profile error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* ======================================================
+   PROFILE PHOTO
+====================================================== */
+
+async function uploadProfilePicture(event){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  const file =
+    event.target.files?.[0];
+
+  if(!file){
+    return;
+  }
+
+  if(!file.type.startsWith("image/")){
+
+    message(
+      "Please select an image file."
+    );
+
+    return;
+
+  }
+
+  if(file.size > 10 * 1024 * 1024){
+
+    message(
+      "Image is too large. Maximum source size is 10MB."
+    );
+
+    return;
+
+  }
+
+  message(
+    "Preparing profile picture..."
+  );
+
+  try{
+
+    const imageData =
+      await compressImage(
+        file,
+        256,
+        0.82
+      );
+
+    const data =
+      await api(
+        "/api/profile/photo",
+        {
+          method:"POST",
+          body:{
+            image:imageData
+          }
+        }
+      );
+
+    if(!data.success){
+
+      throw new Error(
+        data.error ||
+        data.message ||
+        "Profile picture upload failed."
+      );
+
+    }
+
+    const image =
+      data.profileImage ||
+      data.image ||
+      data.profile?.profileImage ||
+      imageData;
+
+    setProfileImage(
+      image
+    );
+
+    message(
+      "Profile picture updated successfully."
+    );
+
+  }catch(error){
+
+    console.error(
+      "Profile photo error:",
+      error
+    );
+
+    message(
+      error.message ||
+      "Profile picture upload failed."
+    );
+
+  }
+
+  event.target.value = "";
+
+}
+
+
+function compressImage(
+  file,
+  maxSize,
+  quality
+){
+
+  return new Promise(
+    function(resolve,reject){
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        function(){
+
+          const img =
+            new Image();
+
+          img.onload =
+            function(){
+
+              let width =
+                img.width;
+
+              let height =
+                img.height;
+
+              const scale =
+                Math.min(
+                  maxSize / width,
+                  maxSize / height,
+                  1
+                );
+
+              width =
+                Math.round(
+                  width * scale
+                );
+
+              height =
+                Math.round(
+                  height * scale
+                );
+
+              const canvas =
+                document.createElement(
+                  "canvas"
+                );
+
+              canvas.width =
+                width;
+
+              canvas.height =
+                height;
+
+              const ctx =
+                canvas.getContext(
+                  "2d"
+                );
+
+              ctx.drawImage(
+                img,
+                0,
+                0,
+                width,
+                height
+              );
+
+              resolve(
+                canvas.toDataURL(
+                  "image/jpeg",
+                  quality
+                )
+              );
+
+            };
+
+          img.onerror =
+            reject;
+
+          img.src =
+            reader.result;
+
+        };
+
+      reader.onerror =
+        reject;
+
+      reader.readAsDataURL(
+        file
+      );
+
+    }
+  );
+
+}
+
+
+async function removeProfilePicture(){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/profile/photo",
+        {
+          method:"DELETE"
+        }
+      );
+
+    if(!data.success){
+
+      throw new Error(
+        data.error ||
+        data.message ||
+        "Unable to remove profile picture."
+      );
+
+    }
+
+    setProfileImage(
+      null
+    );
+
+    message(
+      "Profile picture removed."
+    );
+
+  }catch(error){
+
+    console.error(
+      "Remove photo error:",
+      error
+    );
+
+    message(
+      error.message ||
+      "Unable to remove profile picture."
+    );
+
+  }
+
+}
+
+
+/* ======================================================
+   REFERRALS
+====================================================== */
+
+async function loadReferral(){
+
+  if(!accessToken){
+    return;
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/referral/status",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+      return;
+    }
+
+    const referral =
+      data.referral ||
+      {};
+
+    const username =
+      referral.username ||
+      piUser?.username ||
+      "";
+
+    document.getElementById(
+      "myReferralUsername"
+    ).textContent =
+      username ||
+      "—";
+
+    document.getElementById(
+      "referralLink"
+    ).textContent =
+      buildReferralLink(
+        username
+      ) ||
+      "Sign in to generate your referral link.";
+
+    const count =
+      Number(
+        referral.count ||
+        0
+      );
+
+    const max =
+      referral.maxDirectReferrals;
+
+    document.getElementById(
+      "referralCount"
+    ).textContent =
+      max === "UNLIMITED" ||
+      max === null ||
+      max === undefined
+        ? `${count} / UNLIMITED`
+        : `${count} / ${max}`;
+
+    document.getElementById(
+      "activeReferralCount"
+    ).textContent =
+      String(
+        referral.activeMiners ||
+        0
+      );
+
+    const container =
+      document.getElementById(
+        "referralMembers"
+      );
+
+    const referrals =
+      referral.referrals ||
+      [];
+
+    if(!referrals.length){
+
+      container.innerHTML =
+        '<div class="empty">No referrals yet.</div>';
+
+      return;
+
+    }
+
+    container.innerHTML =
+      referrals.map(
+        function(item){
+
+          const mining =
+            Boolean(
+              item.mining
+            );
+
+          return `
+            <div class="member">
+
+              <div class="member-top">
+
+                <div class="member-name">
+                  👤 ${escapeHtml(
+                    item.username ||
+                    "Pioneer"
+                  )}
+                </div>
+
+                <div class="member-status ${
+                  mining
+                    ? "success"
+                    : "muted"
+                }">
+
+                  ${
+                    mining
+                      ? "🟢 MINING"
+                      : "⚪ NOT MINING"
+                  }
+
+                </div>
+
+              </div>
+
+            </div>
+          `;
+
+        }
+      ).join("");
+
+  }catch(error){
+
+    console.error(
+      "Referral status error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* ======================================================
+   SECURITY CIRCLE
+====================================================== */
+
+async function loadSecurityCircle(){
+
+  if(!accessToken){
+    return;
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/security-circle/status",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+      return;
+    }
+
+    const circle =
+      data.securityCircle ||
+      {};
+
+    const members =
+      circle.members ||
+      [];
+
+    const limit =
+      circle.limit ||
+      5;
+
+    document.getElementById(
+      "securityCount"
+    ).textContent =
+      `${members.length} / ${limit}`;
+
+    const container =
+      document.getElementById(
+        "securityMembers"
+      );
+
+    if(!members.length){
+
+      container.innerHTML =
+        '<div class="empty">No Security Circle members yet.</div>';
+
+      return;
+
+    }
+
+    container.innerHTML =
+      members.map(
+        function(item){
+
+          const mining =
+            Boolean(
+              item.mining
+            );
+
+          return `
+            <div class="member">
+
+              <div class="member-top">
+
+                <div class="member-name">
+                  👤 ${escapeHtml(
+                    item.username ||
+                    "Pioneer"
+                  )}
+                </div>
+
+                <div class="member-status ${
+                  mining
+                    ? "success"
+                    : "muted"
+                }">
+
+                  ${
+                    mining
+                      ? "🟢 MINING"
+                      : "⚪ NOT MINING"
+                  }
+
+                </div>
+
+              </div>
+
+            </div>
+          `;
+
+        }
+      ).join("");
+
+  }catch(error){
+
+    console.error(
+      "Security Circle error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* ======================================================
+   MARKETPLACE
+====================================================== */
+
+async function loadTestMarket(){
+
+  const locked =
+    document.getElementById(
+      "marketLockedCard"
+    );
+
+  const card =
+    document.getElementById(
+      "privateMarketCard"
+    );
+
+  const history =
+    document.getElementById(
+      "testPurchaseHistory"
+    );
+
+  if(!accessToken){
+
+    card.classList.add(
+      "hidden"
+    );
+
+    history.classList.add(
+      "hidden"
+    );
+
+    locked.classList.remove(
+      "hidden"
+    );
+
+    return;
+
+  }
+
+  try{
+
+    const data =
+      await api(
+        "/api/market/test-product",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+
+      card.classList.add(
+        "hidden"
+      );
+
+      history.classList.add(
+        "hidden"
+      );
+
+      locked.classList.remove(
+        "hidden"
+      );
+
+      return;
+
+    }
+
+    const product =
+      data.product ||
+      {};
+
+    locked.classList.add(
+      "hidden"
+    );
+
+    card.classList.remove(
+      "hidden"
+    );
+
+    history.classList.remove(
+      "hidden"
+    );
+
+    const amount =
+      Number(
+        product.amountPi ||
+        0.10
+      );
+
+    document.getElementById(
+      "testPetPrice"
+    ).textContent =
+      amount.toFixed(2) +
+      " Pi";
+
+    document.getElementById(
+      "testBuyButton"
+    ).textContent =
+      `🐾 TEST BUY — ${amount.toFixed(2)} PI`;
+
+    if(product.description){
+
+      document.getElementById(
+        "testPetDescription"
+      ).textContent =
+        product.description;
+
+    }
+
+    const purchases =
+      data.purchases ||
+      [];
+
+    const list =
+      document.getElementById(
+        "testPurchaseList"
+      );
+
+    if(!purchases.length){
+
+      list.innerHTML =
+        '<div class="empty">No completed test purchase yet.</div>';
+
+    }else{
+
+      list.innerHTML =
+        purchases.map(
+          function(p){
+
+            return `
+              <div class="member">
+
+                <div class="member-top">
+
+                  <div class="member-name">
+                    🐾 Alberto Test Pet
+                  </div>
+
+                  <div class="member-status success">
+                    PAID
+                  </div>
+
+                </div>
+
+                <div class="muted"
+                     style="margin-top:5px">
+
+                  ${Number(
+                    p.amount || 0
+                  ).toFixed(2)} Pi
+
+                  •
+
+                  ${escapeHtml(
+                    p.transaction_id ||
+                    p.transactionId ||
+                    "verified"
+                  )}
+
+                </div>
+
+              </div>
+            `;
+
+          }
+        ).join("");
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "Test market error:",
+      error
+    );
+
+    card.classList.add(
+      "hidden"
+    );
+
+    history.classList.add(
+      "hidden"
+    );
+
+    locked.classList.remove(
+      "hidden"
+    );
+
+  }
+
+}
+
+
+async function buyTestPet(){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  if(
+    !window.Pi ||
+    typeof Pi.createPayment !== "function"
+  ){
+
+    message(
+      "Pi Payments are available only inside the supported Pi environment."
+    );
+
+    return;
+
+  }
+
+  const button =
+    document.getElementById(
+      "testBuyButton"
+    );
+
+  const status =
+    document.getElementById(
+      "testBuyStatus"
+    );
+
+  button.disabled = true;
+
+  status.textContent =
+    "🧪 Opening PI TESTNET payment...";
+
+  try{
+
+    const data =
+      await api(
+        "/api/market/test-product",
+        {
+          method:"POST",
+          body:{}
+        }
+      );
+
+    if(!data.success){
+
+      throw new Error(
+        data.message ||
+        data.error ||
+        "Private test product is unavailable."
+      );
+
+    }
+
+    const product =
+      data.product ||
+      {};
+
+    Pi.createPayment(
+
+      {
+        amount:Number(
+          product.amountPi
+        ),
+
+        memo:
+          product.name ||
+          "AMT Test Product",
+
+        metadata:{
+          productId:
+            product.id,
+          testOnly:true
+        }
+      },
+
+      {
+
+        onReadyForServerApproval:
+          async function(paymentId){
+
+            try{
+
+              status.textContent =
+                "Pi payment created. Waiting for server approval...";
+
+              const d =
+                await api(
+                  "/api/market/payment/approve",
+                  {
+                    method:"POST",
+                    body:{
+                      paymentId
+                    }
+                  }
+                );
+
+              if(!d.success){
+
+                throw new Error(
+                  d.error ||
+                  d.message ||
+                  "Payment approval failed."
+                );
+
+              }
+
+              status.textContent =
+                "Payment approved. Continue in the Pi Testnet payment dialog.";
+
+            }catch(error){
+
+              console.error(
+                "Payment approval error:",
+                error
+              );
+
+              status.textContent =
+                error.message ||
+                "Payment approval failed.";
+
+              button.disabled = false;
+
+            }
+
+          },
+
+
+        onReadyForServerCompletion:
+          async function(
+            paymentId,
+            txid
+          ){
+
+            try{
+
+              status.textContent =
+                "Verifying and completing Pi Testnet payment...";
+
+              const d =
+                await api(
+                  "/api/market/payment/complete",
+                  {
+                    method:"POST",
+                    body:{
+                      paymentId,
+                      txid
+                    }
+                  }
+                );
+
+              if(!d.success){
+
+                throw new Error(
+                  d.error ||
+                  d.message ||
+                  "Payment completion failed."
+                );
+
+              }
+
+              status.textContent =
+                `✅ Test Buy completed: ${
+                  d.product ||
+                  product.name
+                } — ${
+                  d.network ||
+                  "Pi Testnet"
+                }.`;
+
+              message(
+                "Pi Testnet Test Buy completed successfully."
+              );
+
+              button.disabled = false;
+
+              await loadTestMarket();
+
+            }catch(error){
+
+              console.error(
+                "Payment completion error:",
+                error
+              );
+
+              status.textContent =
+                error.message ||
+                "Payment completion failed.";
+
+              button.disabled = false;
+
+            }
+
+          },
+
+
+        onCancel:
+          function(paymentId){
+
+            console.log(
+              "Test payment cancelled:",
+              paymentId
+            );
+
+            status.textContent =
+              "Payment cancelled.";
+
+            button.disabled = false;
+
+          },
+
+
+        onError:
+          function(
+            error,
+            payment
+          ){
+
+            console.error(
+              "Pi Test Buy error:",
+              error,
+              payment
+            );
+
+            status.textContent =
+              "Pi Test Buy failed or was interrupted.";
+
+            button.disabled = false;
+
+          }
+
+      }
+
+    );
+
+  }catch(error){
+
+    console.error(
+      "Test Buy error:",
+      error
+    );
+
+    status.textContent =
+      error.message ||
+      "Test Buy could not start.";
+
+    button.disabled = false;
+
+  }
+
+}
+
+
+/* ======================================================
+   UTILITY
+====================================================== */
+
+function escapeHtml(value){
+
+  return String(
+    value ?? ""
+  )
+  .replaceAll(
+    "&",
+    "&amp;"
+  )
+  .replaceAll(
+    "<",
+    "&lt;"
+  )
+  .replaceAll(
+    ">",
+    "&gt;"
+  )
+  .replaceAll(
+    '"',
+    "&quot;"
+  )
+  .replaceAll(
+    "'",
+    "&#039;"
+  );
+
+}
+
+
+async function copyReferralLink(){
+
+  if(!accessToken){
+
+    message(
+      "Sign in with Pi first."
+    );
+
+    return;
+
+  }
+
+  const username =
+    document.getElementById(
+      "myReferralUsername"
+    ).textContent.trim();
+
+  const link =
+    buildReferralLink(
+      username
+    );
+
+  if(!link){
+
+    message(
+      "Referral link is not available yet."
+    );
+
+    return;
+
+  }
+
+  try{
+
+    await navigator.clipboard.writeText(
+      link
+    );
+
+    message(
+      "Referral link copied."
+    );
+
+  }catch{
+
+    message(
+      "Copy failed. Long-press the referral link to copy it."
+    );
+
+  }
+
+}
+
+
+/* ======================================================
+   BACKGROUND REFRESH
+====================================================== */
+
+setInterval(
+  async function(){
+
+    if(
+      !accessToken ||
+      refreshBusy
+    ){
+      return;
+    }
+
+    refreshBusy = true;
+
+    try{
+
+      await loadWallet();
+
+      await loadMiningStatus();
+
+      await loadReferral();
+
+      await loadSecurityCircle();
+
+    }finally{
+
+      refreshBusy = false;
+
+    }
+
+  },
+  15000
+);
+
+
+/* ======================================================
+   STARTUP
+====================================================== */
+
+window.addEventListener(
+  "load",
+  async function(){
+
+    message(
+      "AMT Testnet — initializing..."
+    );
+
+    if(
+      sessionStorage.getItem(
+        "amt_manual_logout"
+      ) === "1"
+    ){
+
+      setLoggedOutUI();
+
+      message(
+        "AMT app is logged out. Tap LOGIN to connect your Pi account."
+      );
+
+      return;
+
+    }
+
+    await authenticatePi();
+
+  }
+);
+
 </script>
+
 </body>
 </html>
