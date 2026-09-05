@@ -8,40 +8,62 @@
 
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
+    html{background:#000}
     body{
       font-family:Arial,Helvetica,sans-serif;
-      background:radial-gradient(circle at top,#30205f 0%,#100d1c 45%,#08070d 100%);
-      color:#fff;min-height:100vh;padding-bottom:90px
+      background:
+        radial-gradient(circle at 50% 8%,rgba(113,64,190,.28),transparent 34%),
+        radial-gradient(circle at 50% 48%,rgba(78,38,126,.12),transparent 44%),
+        linear-gradient(180deg,#0b0812 0%,#08070e 100%);
+      color:#fff;min-height:100vh;padding-bottom:92px
     }
-    .app{width:100%;max-width:520px;margin:auto;min-height:100vh}
-    header{padding:22px 18px 12px;text-align:center}
+    .app{
+      width:100%;max-width:560px;margin:auto;min-height:100vh;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.025),transparent 20%),
+        repeating-linear-gradient(90deg,transparent 0,transparent 49%,rgba(166,108,255,.018) 50%,transparent 51%)
+    }
+    header{padding:18px 16px 10px;text-align:center;position:relative}
     .logo{
-      width:82px;height:82px;margin:auto;border-radius:50%;display:flex;
-      align-items:center;justify-content:center;font-size:29px;font-weight:900;
-      background:linear-gradient(145deg,#f8d66d,#9c65ff);color:#160d2c;
-      box-shadow:0 0 20px rgba(248,214,109,.25),0 0 40px rgba(182,116,255,.30);
-      border:2px solid rgba(255,255,255,.35)
+      width:72px;height:72px;margin:auto;border-radius:50%;display:flex;
+      align-items:center;justify-content:center;font-size:27px;font-weight:900;
+      background:radial-gradient(circle at 35% 30%,#ffeaa2,#d19a38 40%,#5f3b9e 100%);
+      color:#160d2c;box-shadow:0 0 18px rgba(246,211,108,.34),0 0 42px rgba(168,108,255,.30);
+      border:2px solid rgba(255,225,137,.75);position:relative
     }
-    h1{margin-top:12px;font-size:23px;letter-spacing:1px}
-    .subtitle{color:#bbb4cc;font-size:12px;margin-top:5px}
+    .logo:after{
+      content:"CORE";position:absolute;bottom:-13px;font-size:8px;letter-spacing:2px;color:#bda9d5
+    }
+    h1{
+      margin-top:12px;font-size:22px;letter-spacing:1.8px;
+      text-shadow:0 0 16px rgba(202,155,255,.28)
+    }
+    .subtitle{color:#bbb4cc;font-size:12px;margin-top:5px;letter-spacing:1px}
     .testnet{
       display:inline-block;margin-top:10px;padding:7px 14px;border-radius:20px;
-      background:rgba(255,190,70,.12);border:1px solid rgba(255,190,70,.35);
-      color:#ffd86b;font-size:11px;font-weight:bold;letter-spacing:.7px
+      background:rgba(246,211,108,.08);border:1px solid rgba(246,211,108,.5);
+      color:#ffe28b;font-size:11px;font-weight:bold;letter-spacing:.7px;
+      box-shadow:0 0 16px rgba(246,211,108,.08)
     }
     .message{
-      margin:12px 16px;padding:13px;border-radius:14px;background:rgba(255,255,255,.07);
-      border:1px solid rgba(255,255,255,.08);color:#d9d1e4;font-size:12px;
-      text-align:center;line-height:1.5
+      margin:10px 14px;padding:13px;border-radius:14px;background:rgba(20,15,34,.72);
+      border:1px solid rgba(168,108,255,.22);color:#d9d1e4;font-size:12px;
+      text-align:center;line-height:1.5;box-shadow:inset 0 0 18px rgba(168,108,255,.05)
     }
     .card{
-      margin:12px 16px;padding:18px;border-radius:20px;background:rgba(255,255,255,.07);
-      border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 30px rgba(0,0,0,.20);
+      margin:12px 14px;padding:18px;border-radius:22px;
+      background:linear-gradient(145deg,rgba(42,32,61,.82),rgba(11,9,18,.92));
+      border:1px solid rgba(192,153,255,.18);
+      box-shadow:0 16px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.045);
       backdrop-filter:blur(12px)
     }
+    #mining .card:nth-child(3){
+      padding:18px 14px 20px;border-color:rgba(185,129,255,.28);
+      box-shadow:0 18px 45px rgba(0,0,0,.46),0 0 35px rgba(126,70,190,.11),inset 0 0 30px rgba(126,70,190,.05)
+    }
     .balance-label{color:#aaa3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px}
-    .balance{font-size:38px;font-weight:900;margin-top:5px;word-break:break-word;color:#fff}
-    .amt{color:#e5c46b;font-size:14px;font-weight:bold;margin-top:3px}
+    .balance{font-size:34px;font-weight:900;margin-top:5px;word-break:break-word;color:#fff;text-shadow:0 0 18px rgba(255,255,255,.08)}
+    .amt{color:#f6d36c;font-size:14px;font-weight:bold;margin-top:3px}
     .kyc-box,.user-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
     .kyc-title{font-weight:bold}
     .kyc-text{color:#aaa3b8;font-size:12px;margin-top:5px;line-height:1.5}
@@ -49,35 +71,48 @@
     .status.off{background:rgba(255,80,80,.13);color:#ff8d8d;border:1px solid rgba(255,80,80,.15)}
     .status.on{background:rgba(70,220,130,.13);color:#79e6a1;border:1px solid rgba(70,220,130,.15)}
     .mining-circle{
-      width:220px;height:220px;margin:24px auto;border-radius:50%;position:relative;
+      width:min(76vw,300px);height:min(76vw,300px);max-width:300px;max-height:300px;
+      margin:22px auto;border-radius:50%;position:relative;
       display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
-      background:radial-gradient(circle at 50% 35%,rgba(90,65,130,.30),rgba(18,15,30,.96) 70%);
-      border:4px solid rgba(210,160,255,.45);
-      box-shadow:0 0 20px rgba(160,100,255,.18),0 0 55px rgba(160,100,255,.16),
-      inset 0 0 35px rgba(160,100,255,.10)
+      background:
+        radial-gradient(circle at 50% 45%,rgba(77,47,111,.34),rgba(7,6,14,.98) 64%),
+        repeating-radial-gradient(circle,transparent 0 27px,rgba(246,211,108,.035) 28px 29px);
+      border:4px solid rgba(189,133,255,.62);
+      box-shadow:0 0 22px rgba(168,108,255,.34),0 0 70px rgba(168,108,255,.18),inset 0 0 55px rgba(168,108,255,.16)
     }
     .mining-circle:before{
-      content:"";position:absolute;inset:8px;border-radius:50%;
-      border:2px solid rgba(246,211,108,.13);box-shadow:inset 0 0 25px rgba(176,108,255,.08)
+      content:"";position:absolute;inset:9px;border-radius:50%;
+      border:2px solid rgba(246,211,108,.22);
+      box-shadow:inset 0 0 30px rgba(168,108,255,.13),0 0 15px rgba(246,211,108,.06)
     }
     .mining-circle:after{
-      content:"";position:absolute;width:115%;height:115%;border-radius:50%;
-      border:3px solid transparent;border-top-color:rgba(246,211,108,.90);
-      border-right-color:rgba(176,108,255,.90);opacity:.8;animation:miningGlow 4s linear infinite
+      content:"";position:absolute;width:112%;height:112%;border-radius:50%;
+      border:3px solid transparent;border-top-color:#f6d36c;border-right-color:#a86cff;
+      opacity:.85;box-shadow:0 0 16px rgba(168,108,255,.45);
+      animation:miningGlow 3s linear infinite
     }
-    .mining-icon{position:relative;z-index:2;font-size:48px}
-    .timer{position:relative;z-index:2;font-size:31px;font-weight:900;margin-top:9px;letter-spacing:1px}
-    .rate{position:relative;z-index:2;color:#c7bfd2;font-size:13px;margin-top:7px}
+    .mining-icon{
+      position:relative;z-index:2;font-size:54px;
+      filter:drop-shadow(0 0 12px rgba(246,211,108,.32))
+    }
+    .timer{
+      position:relative;z-index:2;font-size:34px;font-weight:900;margin-top:9px;
+      letter-spacing:1.5px;text-shadow:0 0 18px rgba(210,165,255,.35)
+    }
+    .rate{position:relative;z-index:2;color:#ddd4e8;font-size:13px;margin-top:7px;letter-spacing:.4px}
     @keyframes miningGlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
     button{
-      width:100%;border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:900;
-      cursor:pointer;color:#160d2c;background:linear-gradient(135deg,#f6d36c,#b06cff);
-      box-shadow:0 8px 22px rgba(168,100,255,.25)
+      width:100%;min-height:54px;border:none;border-radius:15px;padding:15px;font-size:15px;
+      font-weight:900;cursor:pointer;color:#160d2c;
+      background:linear-gradient(135deg,#f6d36c 0%,#c89a55 38%,#9f69e9 100%);
+      box-shadow:0 9px 24px rgba(168,108,255,.24),inset 0 1px 0 rgba(255,255,255,.28);
+      letter-spacing:.3px
     }
+    button:active{transform:scale(.985)}
     button:disabled{opacity:.45;cursor:not-allowed}
     .secondary{
-      background:rgba(255,255,255,.08);color:white;box-shadow:none;margin-top:10px;
-      border:1px solid rgba(255,255,255,.08)
+      background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.045));
+      color:white;box-shadow:none;margin-top:10px;border:1px solid rgba(192,153,255,.18)
     }
     .kyc-button{margin-top:14px}
     .hidden{display:none!important}
@@ -85,33 +120,46 @@
     .section.active{display:block}
     .row{
       display:flex;justify-content:space-between;gap:15px;padding:13px 0;
-      border-bottom:1px solid rgba(255,255,255,.08)
+      border-bottom:1px solid rgba(192,153,255,.10)
     }
     .row:last-child{border-bottom:none}
     .muted{color:#aaa3b8;font-size:12px}
-    .value{font-weight:bold;text-align:right}
-    .warning{color:#ffca70;font-size:12px;line-height:1.5}
-    .success{color:#77e5a0}
+    .value{font-weight:bold;text-align:right;color:#f5efff}
+    .warning{color:#ffd17b;font-size:12px;line-height:1.5}
+    .success{color:#7ff0aa}
     .danger{color:#ff8d8d}
-    .info{color:#bfa8ff;font-size:12px;line-height:1.5}
+    .info{color:#cbb4ff;font-size:12px;line-height:1.5}
     .ref-link{
       word-break:break-all;padding:12px;border-radius:12px;background:rgba(0,0,0,.22);
       color:#f3d36e;font-size:12px;margin-top:10px
     }
-    .member{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+    .member{padding:12px 0;border-bottom:1px solid rgba(192,153,255,.10)}
     .member:last-child{border-bottom:none}
     .member-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
     .member-name{font-weight:900}
     .member-status{font-size:11px;font-weight:900}
     nav{
-      position:fixed;bottom:0;left:0;right:0;min-height:72px;background:rgba(10,8,17,.94);
-      border-top:1px solid rgba(255,255,255,.10);display:flex;justify-content:center;
-      z-index:10;backdrop-filter:blur(14px)
+      position:fixed;bottom:0;left:0;right:0;min-height:76px;background:rgba(7,6,12,.96);
+      border-top:1px solid rgba(192,153,255,.18);display:flex;justify-content:center;
+      z-index:10;backdrop-filter:blur(14px);box-shadow:0 -10px 30px rgba(0,0,0,.28)
     }
-    .nav-inner{width:100%;max-width:520px;display:grid;grid-template-columns:repeat(7,1fr)}
-    nav button{background:transparent;color:#aaa3b8;box-shadow:none;border-radius:0;padding:8px 2px;font-size:9px}
-    nav button.active{color:#f3d36e}
-    nav span{display:block;font-size:20px;margin-bottom:3px}
+    .nav-inner{width:100%;max-width:560px;display:grid;grid-template-columns:repeat(7,1fr)}
+    nav button{
+      background:transparent;color:#8e879c;box-shadow:none;border-radius:0;
+      padding:8px 2px;font-size:9px;min-height:0
+    }
+    nav button.active{color:#f6d36c;text-shadow:0 0 12px rgba(246,211,108,.3)}
+    nav span{
+      display:block;font-size:21px;margin-bottom:3px;
+      filter:drop-shadow(0 0 5px rgba(168,108,255,.18))
+    }
+
+    @media(max-width:380px){
+      .timer{font-size:29px}
+      .balance{font-size:30px}
+      h1{font-size:19px}
+      nav span{font-size:18px}
+    }
   </style>
 </head>
 
@@ -146,7 +194,7 @@
     </div>
 
     <div class="card">
-      <div style="text-align:center"><div class="balance-label">Mining Session</div></div>
+      <div style="text-align:center"><div class="balance-label">MINING SESSION • CORE MACHINE V4</div></div>
       <div class="mining-circle">
         <div class="mining-icon">⛏️</div>
         <div id="timer" class="timer">00:00:00</div>
