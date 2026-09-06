@@ -1,15 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090711">
-
-<title>Alberto Marketplace Token • AMT Testnet</title>
-
-<script src="https://sdk.minepi.com/pi-sdk.js"></script>
-
-<style>
+<meta name="theme-color" content="#090711"><title>Alberto Marketplace Token • AMT Testnet</title><script src="https://sdk.minepi.com/pi-sdk.js"></script><style>
 *{
   box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
@@ -623,14 +616,7 @@ hr{
   }
   .big-balance{font-size:29px}
 }
-</style>
-</head>
-
-<body>
-
-<div class="app">
-
-<header>
+</style></head><body><div class="app"><header>
   <div class="header-row">
     <div class="brand">
       <div class="brand-logo">AMT</div>
@@ -641,686 +627,537 @@ hr{
     </div>
     <div class="testnet">● PI TESTNET</div>
   </div>
-</header>
-
-<main>
-
-<!-- LOGIN -->
-<section id="loginSection" class="section active">
+</header><main><section id="loginSection" class="section active">
   <div class="hero">
     <h1>Welcome to <span>AMT</span></h1>
-    <p>Alberto Marketplace Token</p>
+    <p>Alberto Marketplace Token</p><div class="notice">
+  <b>PI TESTNET ONLY</b><br>
+  This application is for testing and development.
+  AMT shown here has no Mainnet value.
+</div>
 
-    <div class="notice">
-      <b>PI TESTNET ONLY</b><br>
-      This application is for testing and development.
-      AMT shown here has no Mainnet value.
-    </div>
-  </div>
-
-  <div class="card">
+  </div>  <div class="card">
     <div class="login-box">
       <div class="brand-logo" style="margin:auto;width:75px;height:75px;font-size:27px">
         AMT
-      </div>
+      </div>  <h2>Sign in with Pi</h2>
+  <p>
+    Connect your Pi account to access mining,
+    AMT wallet, rewards, referrals, security circle,
+    staking and marketplace features.
+  </p>
 
-      <h2>Sign in with Pi</h2>
-      <p>
-        Connect your Pi account to access mining,
-        AMT wallet, rewards, referrals, security circle,
-        staking and marketplace features.
-      </p>
+  <button class="primary" onclick="loginWithPi()">
+    🟣 LOGIN WITH PI
+  </button>
+</div>
 
-      <button class="primary" onclick="loginWithPi()">
-        🟣 LOGIN WITH PI
-      </button>
-    </div>
   </div>
-</section>
-
-
-<!-- MINING -->
-<section id="miningSection" class="section">
-
-  <div class="hero">
+</section><section id="miningSection" class="section">  <div class="hero">
     <h1><span>AMT</span> MINING</h1>
-    <p>Alberto Marketplace Token</p>
+    <p>Alberto Marketplace Token</p><div class="notice">
+  Pi KYC is <b>not required</b> for AMT Testnet mining.
+  KYC may be required for applicable Mainnet functions.
+</div>
 
-    <div class="notice">
-      Pi KYC is <b>not required</b> for AMT Testnet mining.
-      KYC may be required for applicable Mainnet functions.
-    </div>
+  </div>  <div class="card">
+    <div class="card-title">MINING SESSION</div><div class="mining-ring">
+  <div class="mining-inner">
+    <div id="miningTimer" class="mining-time">24:00:00</div>
+    <div class="mining-rate">0.01 AMT / HOUR</div>
   </div>
+</div>
 
-  <div class="card">
-    <div class="card-title">MINING SESSION</div>
+<div id="miningStatus" class="status-pill">
+  MINING READY
+</div>
 
-    <div class="mining-ring">
-      <div class="mining-inner">
-        <div id="miningTimer" class="mining-time">24:00:00</div>
-        <div class="mining-rate">0.01 AMT / HOUR</div>
-      </div>
-    </div>
+<button id="startMiningBtn" class="primary" onclick="startMining()">
+  ⛏️ START MINING
+</button>
 
-    <div id="miningStatus" class="status-pill">
-      MINING READY
-    </div>
+<button id="claimMiningBtn"
+        class="secondary hidden"
+        style="margin-top:10px"
+        onclick="claimMining()">
+  💰 CLAIM AMT REWARD
+</button>
 
-    <button id="startMiningBtn" class="primary" onclick="startMining()">
-      ⛏️ START MINING
-    </button>
+<div class="progress">
+  <span id="miningProgress"></span>
+</div>
 
-    <button id="claimMiningBtn"
-            class="secondary hidden"
-            style="margin-top:10px"
-            onclick="claimMining()">
-      💰 CLAIM AMT REWARD
-    </button>
+<div class="row">
+  <span class="muted">Current Earned</span>
+  <b id="currentEarned">0.00000000 AMT</b>
+</div>
 
-    <div class="progress">
-      <span id="miningProgress"></span>
-    </div>
-
-    <div class="row">
-      <span class="muted">Current Earned</span>
-      <b id="currentEarned">0.00000000 AMT</b>
-    </div>
-  </div>
-
-  <div class="grid3">
+  </div>  <div class="grid3">
     <div class="stat">
       <div class="stat-label">Mining Rate</div>
       <div class="stat-value">0.01 AMT/hr</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Status</div>
-      <div id="miniMiningStatus" class="stat-value">Ready</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Network</div>
-      <div class="stat-value">Pi Testnet</div>
-    </div>
-  </div>
+    </div><div class="stat">
+  <div class="stat-label">Status</div>
+  <div id="miniMiningStatus" class="stat-value">Ready</div>
+</div>
 
-</section>
+<div class="stat">
+  <div class="stat-label">Network</div>
+  <div class="stat-value">Pi Testnet</div>
+</div>
 
-
-<!-- WALLET -->
-<section id="walletSection" class="section">
-
-  <div class="hero">
+  </div></section><section id="walletSection" class="section">  <div class="hero">
     <h1>AMT <span>WALLET</span></h1>
     <p>Your Testnet AMT ledger</p>
+  </div>  <div class="card">
+    <div class="card-title">AVAILABLE BALANCE</div><div class="big-balance">
+  <span id="walletBalance">0.00000000</span>
+  <span class="balance-symbol">AMT</span>
+</div>
+
+<div class="grid" style="margin-top:15px">
+  <div class="stat">
+    <div class="stat-label">Available</div>
+    <div id="availableBalance" class="stat-value">0 AMT</div>
   </div>
 
-  <div class="card">
-    <div class="card-title">AVAILABLE BALANCE</div>
-    <div class="big-balance">
-      <span id="walletBalance">0.00000000</span>
-      <span class="balance-symbol">AMT</span>
-    </div>
-
-    <div class="grid" style="margin-top:15px">
-      <div class="stat">
-        <div class="stat-label">Available</div>
-        <div id="availableBalance" class="stat-value">0 AMT</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Staked</div>
-        <div id="stakedBalance" class="stat-value">0 AMT</div>
-      </div>
-    </div>
+  <div class="stat">
+    <div class="stat-label">Staked</div>
+    <div id="stakedBalance" class="stat-value">0 AMT</div>
   </div>
+</div>
 
-  <div class="card">
-    <div class="card-title">AMT APP WALLET</div>
+  </div>  <div class="card">
+    <div class="card-title">AMT APP WALLET</div><div class="notice">
+  The address below identifies your AMT Testnet
+  application ledger wallet. It is not presented
+  as a fabricated blockchain wallet address.
+</div>
 
-    <div class="notice">
-      The address below identifies your AMT Testnet
-      application ledger wallet. It is not presented
-      as a fabricated blockchain wallet address.
-    </div>
-
-    <div style="margin-top:13px">
-      <div class="muted">Wallet Address</div>
-      <div id="amtWalletAddress" class="wallet-address">
-        Not connected
-      </div>
-    </div>
-
-    <hr>
-
-    <button class="secondary" onclick="refreshWallet()">
-      🔄 REFRESH WALLET
-    </button>
+<div style="margin-top:13px">
+  <div class="muted">Wallet Address</div>
+  <div id="amtWalletAddress" class="wallet-address">
+    Not connected
   </div>
+</div>
 
-  <div class="card">
-    <div class="card-title">SEND AMT</div>
+<hr>
 
-    <div class="form-group">
-      <label>Recipient AMT App Wallet Address</label>
-      <input id="sendTo" class="input"
-             placeholder="AMT wallet address">
-    </div>
+<button class="secondary" onclick="refreshWallet()">
+  🔄 REFRESH WALLET
+</button>
 
-    <div class="form-group">
-      <label>Amount</label>
-      <input id="sendAmount"
-             class="input"
-             type="number"
-             min="0"
-             step="0.00000001"
-             placeholder="0.00">
-    </div>
+  </div>  <div class="card">
+    <div class="card-title">SEND AMT</div><div class="form-group">
+  <label>Recipient AMT App Wallet Address</label>
+  <input id="sendTo" class="input"
+         placeholder="AMT wallet address">
+</div>
 
-    <button class="primary" onclick="sendAMT()">
-      SEND AMT
-    </button>
-  </div>
+<div class="form-group">
+  <label>Amount</label>
+  <input id="sendAmount"
+         class="input"
+         type="number"
+         min="0"
+         step="0.00000001"
+         placeholder="0.00">
+</div>
 
-</section>
+<button class="primary" onclick="sendAMT()">
+  SEND AMT
+</button>
 
-
-<!-- AIRDROP -->
-<section id="airdropSection" class="section">
-
-  <div class="hero">
+  </div></section><section id="airdropSection" class="section">  <div class="hero">
     <h1>AMT <span>AIRDROP</span></h1>
     <p>One-time Testnet community reward</p>
+  </div>  <div class="card">
+    <div class="card-title">AIRDROP STATUS</div><div class="grid">
+  <div class="stat">
+    <div class="stat-label">Reward</div>
+    <div class="stat-value">AMT Testnet</div>
   </div>
 
-  <div class="card">
-    <div class="card-title">AIRDROP STATUS</div>
-
-    <div class="grid">
-      <div class="stat">
-        <div class="stat-label">Reward</div>
-        <div class="stat-value">AMT Testnet</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Claim</div>
-        <div id="airdropStatus" class="stat-value">Checking...</div>
-      </div>
-    </div>
-
-    <button id="airdropBtn"
-            class="primary"
-            style="margin-top:15px"
-            onclick="claimAirdrop()">
-      🎁 CLAIM AIRDROP
-    </button>
-
-    <div class="notice">
-      One eligible claim per account.
-      Testnet only.
-    </div>
+  <div class="stat">
+    <div class="stat-label">Claim</div>
+    <div id="airdropStatus" class="stat-value">Checking...</div>
   </div>
+</div>
 
-</section>
+<button id="airdropBtn"
+        class="primary"
+        style="margin-top:15px"
+        onclick="claimAirdrop()">
+  🎁 CLAIM AIRDROP
+</button>
 
+<div class="notice">
+  One eligible claim per account.
+  Testnet only.
+</div>
 
-<!-- REFERRAL -->
-<section id="referralSection" class="section">
-
-  <div class="hero">
+  </div></section><section id="referralSection" class="section">  <div class="hero">
     <h1>AMT <span>REFERRAL</span></h1>
     <p>Grow the AMT Testnet community</p>
-  </div>
+  </div>  <div class="card">
+    <div class="card-title">YOUR REFERRAL CODE</div><div id="referralCode"
+     style="font-size:27px;font-weight:900;color:#ffd54f">
+  ------
+</div>
 
-  <div class="card">
-    <div class="card-title">YOUR REFERRAL CODE</div>
+<button class="secondary"
+        style="margin-top:12px"
+        onclick="copyReferral()">
+  📋 COPY REFERRAL CODE
+</button>
 
-    <div id="referralCode"
-         style="font-size:27px;font-weight:900;color:#ffd54f">
-      ------
-    </div>
-
-    <button class="secondary"
-            style="margin-top:12px"
-            onclick="copyReferral()">
-      📋 COPY REFERRAL CODE
-    </button>
-  </div>
-
-  <div class="grid">
+  </div>  <div class="grid">
     <div class="stat">
       <div class="stat-label">Referral Count</div>
       <div id="referralCount" class="stat-value">0</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Active Miners</div>
-      <div id="activeMiners" class="stat-value">0</div>
-    </div>
-  </div>
+    </div><div class="stat">
+  <div class="stat-label">Active Miners</div>
+  <div id="activeMiners" class="stat-value">0</div>
+</div>
 
-  <div class="card" style="margin-top:15px">
-    <div class="card-title">INVITE A PIONEER</div>
+  </div>  <div class="card" style="margin-top:15px">
+    <div class="card-title">INVITE A PIONEER</div><input id="referralInput"
+       class="input"
+       placeholder="Enter referral code">
 
-    <input id="referralInput"
-           class="input"
-           placeholder="Enter referral code">
+<button class="primary"
+        style="margin-top:10px"
+        onclick="applyReferral()">
+  JOIN REFERRAL
+</button>
 
-    <button class="primary"
-            style="margin-top:10px"
-            onclick="applyReferral()">
-      JOIN REFERRAL
-    </button>
+<div class="notice">
+  Referral rewards are controlled by the AMT Testnet backend.
+</div>
 
-    <div class="notice">
-      Referral rewards are controlled by the AMT Testnet backend.
-    </div>
-  </div>
-
-</section>
-
-
-<!-- SECURITY CIRCLE -->
-<section id="circleSection" class="section">
-
-  <div class="hero">
+  </div></section><section id="circleSection" class="section">  <div class="hero">
     <h1>SECURITY <span>CIRCLE</span></h1>
     <p>Manage your Pi security circle</p>
+  </div>  <div class="card">
+    <div class="card-title">SECURITY CIRCLE STATUS</div><div class="grid">
+  <div class="stat">
+    <div class="stat-label">Members</div>
+    <div id="circleCount" class="stat-value">0</div>
   </div>
 
-  <div class="card">
-    <div class="card-title">SECURITY CIRCLE STATUS</div>
-
-    <div class="grid">
-      <div class="stat">
-        <div class="stat-label">Members</div>
-        <div id="circleCount" class="stat-value">0</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Status</div>
-        <div id="circleStatus" class="stat-value">Not loaded</div>
-      </div>
-    </div>
-
-    <button class="secondary"
-            style="margin-top:14px"
-            onclick="loadSecurityCircle()">
-      🛡️ REFRESH SECURITY CIRCLE
-    </button>
-
-    <div id="circleList" style="margin-top:12px"></div>
-
-    <div class="notice">
-      Security Circle information is read from the Pi-authenticated
-      account when available. This app does not invent Pi members.
-    </div>
+  <div class="stat">
+    <div class="stat-label">Status</div>
+    <div id="circleStatus" class="stat-value">Not loaded</div>
   </div>
+</div>
 
-</section>
+<button class="secondary"
+        style="margin-top:14px"
+        onclick="loadSecurityCircle()">
+  🛡️ REFRESH SECURITY CIRCLE
+</button>
 
+<div id="circleList" style="margin-top:12px"></div>
 
-<!-- PROFILE -->
-<section id="profileSection" class="section">
+<div class="notice">
+  Security Circle information is read from the Pi-authenticated
+  account when available. This app does not invent Pi members.
+</div>
 
-  <div class="hero">
+  </div></section><section id="profileSection" class="section">  <div class="hero">
     <h1>MY <span>PROFILE</span></h1>
     <p>Manage your AMT account</p>
+  </div>  <div class="card"><div class="avatar-wrap">
+
+  <div id="avatarBox"
+       class="avatar avatar-placeholder">
+    👤
   </div>
 
-  <div class="card">
-
-    <div class="avatar-wrap">
-
-      <div id="avatarBox"
-           class="avatar avatar-placeholder">
-        👤
-      </div>
-
-      <div class="profile-name" id="profileUsername">
-        Pioneer
-      </div>
-
-      <div class="muted" id="profileUid">
-        Pi UID: —
-      </div>
-    </div>
-
-    <label>Update Profile Picture</label>
-
-    <input id="profileImageInput"
-           class="input"
-           type="file"
-           accept="image/png,image/jpeg,image/webp">
-
-    <button class="primary"
-            style="margin-top:10px"
-            onclick="uploadProfileImage()">
-      📸 UPLOAD PROFILE PICTURE
-    </button>
-
-    <button id="deletePhotoBtn"
-            class="danger"
-            style="margin-top:10px"
-            onclick="deleteProfileImage()">
-      🗑️ REMOVE PROFILE PICTURE
-    </button>
-
+  <div class="profile-name" id="profileUsername">
+    Pioneer
   </div>
 
-  <div class="card">
-    <div class="card-title">ACCOUNT INFORMATION</div>
-
-    <div class="row">
-      <span class="muted">Username</span>
-      <b id="infoUsername">—</b>
-    </div>
-
-    <div class="row">
-      <span class="muted">Pi UID</span>
-      <span id="infoUid" class="wallet-address">—</span>
-    </div>
-
-    <div class="row">
-      <span class="muted">KYC</span>
-      <b id="infoKyc">UNVERIFIED</b>
-    </div>
-
-    <div class="row">
-      <span class="muted">Network</span>
-      <b>Pi Testnet</b>
-    </div>
+  <div class="muted" id="profileUid">
+    Pi UID: —
   </div>
+</div>
 
-  <div class="card">
-    <div class="card-title">SESSION</div>
+<label>Update Profile Picture</label>
 
-    <button class="danger" onclick="logoutPi()">
-      🚪 LOGOUT
-    </button>
-  </div>
+<input id="profileImageInput"
+       class="input"
+       type="file"
+       accept="image/png,image/jpeg,image/webp">
 
-</section>
+<button class="primary"
+        style="margin-top:10px"
+        onclick="uploadProfileImage()">
+  📸 UPLOAD PROFILE PICTURE
+</button>
 
+<button id="deletePhotoBtn"
+        class="danger"
+        style="margin-top:10px"
+        onclick="deleteProfileImage()">
+  🗑️ REMOVE PROFILE PICTURE
+</button>
 
-<!-- STAKING -->
-<section id="stakingSection" class="section">
+  </div>  <div class="card">
+    <div class="card-title">ACCOUNT INFORMATION</div><div class="row">
+  <span class="muted">Username</span>
+  <b id="infoUsername">—</b>
+</div>
 
-  <div class="hero">
+<div class="row">
+  <span class="muted">Pi UID</span>
+  <span id="infoUid" class="wallet-address">—</span>
+</div>
+
+<div class="row">
+  <span class="muted">KYC</span>
+  <b id="infoKyc">UNVERIFIED</b>
+</div>
+
+<div class="row">
+  <span class="muted">Network</span>
+  <b>Pi Testnet</b>
+</div>
+
+  </div>  <div class="card">
+    <div class="card-title">SESSION</div><button class="danger" onclick="logoutPi()">
+  🚪 LOGOUT
+</button>
+
+  </div></section><section id="stakingSection" class="section">  <div class="hero">
     <h1>AMT <span>STAKING</span></h1>
-    <p>Fixed-term Testnet staking</p>
+    <p>Fixed-term Testnet staking</p><div class="notice">
+  <b>TESTNET ONLY</b><br>
+  Staking is controlled by the AMT backend ledger.
+  Rewards shown here have no Mainnet value.
+</div>
 
-    <div class="notice">
-      <b>TESTNET ONLY</b><br>
-      Staking is controlled by the AMT backend ledger.
-      Rewards shown here have no Mainnet value.
-    </div>
+  </div>  <div class="card">
+    <div class="card-title">YOUR STAKING SUMMARY</div><div class="grid3">
+  <div class="stat">
+    <div class="stat-label">Available</div>
+    <div id="stakeAvailable" class="stat-value">0 AMT</div>
   </div>
 
-  <div class="card">
-    <div class="card-title">YOUR STAKING SUMMARY</div>
-
-    <div class="grid3">
-      <div class="stat">
-        <div class="stat-label">Available</div>
-        <div id="stakeAvailable" class="stat-value">0 AMT</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Staked</div>
-        <div id="stakePrincipal" class="stat-value">0 AMT</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Pending Rewards</div>
-        <div id="stakeRewards" class="stat-value">0 AMT</div>
-      </div>
-    </div>
+  <div class="stat">
+    <div class="stat-label">Staked</div>
+    <div id="stakePrincipal" class="stat-value">0 AMT</div>
   </div>
 
-  <div class="card">
-    <div class="card-title">CHOOSE STAKING POOL</div>
+  <div class="stat">
+    <div class="stat-label">Pending Rewards</div>
+    <div id="stakeRewards" class="stat-value">0 AMT</div>
+  </div>
+</div>
 
-    <div id="stakingPools">
+  </div>  <div class="card">
+    <div class="card-title">CHOOSE STAKING POOL</div><div id="stakingPools">
 
-      <div class="pool">
-        <div class="pool-name">STARTER • 30 DAYS</div>
-        <div class="pool-rate">5%</div>
-        <small>Fixed-term reward</small>
+  <div class="pool">
+    <div class="pool-name">STARTER • 30 DAYS</div>
+    <div class="pool-rate">5%</div>
+    <small>Fixed-term reward</small>
 
-        <button class="secondary"
-                style="margin-top:10px"
-                onclick="selectPool('30D')">
-          SELECT 30D
-        </button>
-      </div>
-
-      <div class="pool">
-        <div class="pool-name">GROWTH • 90 DAYS</div>
-        <div class="pool-rate">10%</div>
-        <small>Fixed-term reward</small>
-
-        <button class="secondary"
-                style="margin-top:10px"
-                onclick="selectPool('90D')">
-          SELECT 90D
-        </button>
-      </div>
-
-      <div class="pool">
-        <div class="pool-name">DIAMOND • 180 DAYS</div>
-        <div class="pool-rate">15%</div>
-        <small>Fixed-term reward</small>
-
-        <button class="secondary"
-                style="margin-top:10px"
-                onclick="selectPool('180D')">
-          SELECT 180D
-        </button>
-      </div>
-
-    </div>
-
-    <hr>
-
-    <label>Selected Pool</label>
-    <input id="selectedPool"
-           class="input"
-           value="30D"
-           readonly>
-
-    <label style="margin-top:12px">Amount to Stake</label>
-    <input id="stakeAmount"
-           class="input"
-           type="number"
-           min="1"
-           step="0.00000001"
-           placeholder="Minimum 1 AMT">
-
-    <button class="primary"
-            style="margin-top:12px"
-            onclick="createStake()">
-      🔒 STAKE AMT
+    <button class="secondary"
+            style="margin-top:10px"
+            onclick="selectPool('30D')">
+      SELECT 30D
     </button>
   </div>
 
-  <div class="card">
+  <div class="pool">
+    <div class="pool-name">GROWTH • 90 DAYS</div>
+    <div class="pool-rate">10%</div>
+    <small>Fixed-term reward</small>
+
+    <button class="secondary"
+            style="margin-top:10px"
+            onclick="selectPool('90D')">
+      SELECT 90D
+    </button>
+  </div>
+
+  <div class="pool">
+    <div class="pool-name">DIAMOND • 180 DAYS</div>
+    <div class="pool-rate">15%</div>
+    <small>Fixed-term reward</small>
+
+    <button class="secondary"
+            style="margin-top:10px"
+            onclick="selectPool('180D')">
+      SELECT 180D
+    </button>
+  </div>
+
+</div>
+
+<hr>
+
+<label>Selected Pool</label>
+<input id="selectedPool"
+       class="input"
+       value="30D"
+       readonly>
+
+<label style="margin-top:12px">Amount to Stake</label>
+<input id="stakeAmount"
+       class="input"
+       type="number"
+       min="1"
+       step="0.00000001"
+       placeholder="Minimum 1 AMT">
+
+<button class="primary"
+        style="margin-top:12px"
+        onclick="createStake()">
+  🔒 STAKE AMT
+</button>
+
+  </div>  <div class="card">
     <div class="card-title">MY ACTIVE STAKES</div>
     <div id="activeStakes">
       <div class="empty">Loading stakes...</div>
     </div>
-  </div>
-
-  <div class="card">
+  </div>  <div class="card">
     <div class="card-title">STAKING HISTORY</div>
     <div id="stakingHistory">
       <div class="empty">No history loaded.</div>
     </div>
-  </div>
-
-</section>
-
-
-<!-- MARKETPLACE -->
-<section id="marketSection" class="section">
-
-  <div class="hero">
+  </div></section><section id="marketSection" class="section">  <div class="hero">
     <h1>AMT <span>MARKETPLACE</span></h1>
-    <p>Digital assets • Pets • NFT ecosystem</p>
+    <p>Digital assets • Pets • NFT ecosystem</p><div class="notice">
+  Marketplace purchases are for Pi Testnet testing.
+  No Mainnet value is implied.
+</div>
 
-    <div class="notice">
-      Marketplace purchases are for Pi Testnet testing.
-      No Mainnet value is implied.
-    </div>
-  </div>
+  </div>  <div class="market-grid"><div class="market-item">
+  <div class="market-art">🐺</div>
+  <div class="market-name">SHADOW WOLF</div>
+  <div class="market-price">35 Pi • RARE</div>
+  <button class="small-btn" onclick="marketInfo('SHADOW WOLF')">
+    VIEW
+  </button>
+</div>
 
-  <div class="market-grid">
+<div class="market-item">
+  <div class="market-art">🦅</div>
+  <div class="market-name">STORM EAGLE</div>
+  <div class="market-price">35 Pi • RARE</div>
+  <button class="small-btn" onclick="marketInfo('STORM EAGLE')">
+    VIEW
+  </button>
+</div>
 
-    <div class="market-item">
-      <div class="market-art">🐺</div>
-      <div class="market-name">SHADOW WOLF</div>
-      <div class="market-price">35 Pi • RARE</div>
-      <button class="small-btn" onclick="marketInfo('SHADOW WOLF')">
-        VIEW
-      </button>
-    </div>
+<div class="market-item">
+  <div class="market-art">🐯</div>
+  <div class="market-name">GOLDEN TIGER</div>
+  <div class="market-price">60 Pi • EPIC</div>
+  <button class="small-btn" onclick="marketInfo('GOLDEN TIGER')">
+    VIEW
+  </button>
+</div>
 
-    <div class="market-item">
-      <div class="market-art">🦅</div>
-      <div class="market-name">STORM EAGLE</div>
-      <div class="market-price">35 Pi • RARE</div>
-      <button class="small-btn" onclick="marketInfo('STORM EAGLE')">
-        VIEW
-      </button>
-    </div>
-
-    <div class="market-item">
-      <div class="market-art">🐯</div>
-      <div class="market-name">GOLDEN TIGER</div>
-      <div class="market-price">60 Pi • EPIC</div>
-      <button class="small-btn" onclick="marketInfo('GOLDEN TIGER')">
-        VIEW
-      </button>
-    </div>
-
-    <div class="market-item">
-      <div class="market-art">🐉</div>
-      <div class="market-name">INFERNO DRAGON</div>
-      <div class="market-price">120 Pi • LEGENDARY</div>
-      <button class="small-btn" onclick="marketInfo('INFERNO DRAGON')">
-        VIEW
-      </button>
-    </div>
+<div class="market-item">
+  <div class="market-art">🐉</div>
+  <div class="market-name">INFERNO DRAGON</div>
+  <div class="market-price">120 Pi • LEGENDARY</div>
+  <button class="small-btn" onclick="marketInfo('INFERNO DRAGON')">
+    VIEW
+  </button>
+</div>
 
   </div>
-</section>
-
-
-<!-- SWAP -->
-<section id="swapSection" class="section">
-
-  <div class="hero">
+</section><section id="swapSection" class="section">  <div class="hero">
     <h1>AMT <span>SWAP</span></h1>
     <p>Pi Testnet swap interface</p>
-  </div>
+  </div>  <div class="card">
+    <div class="card-title">AMT / PI TESTNET</div><div class="notice">
+  Swap functionality depends on the currently available
+  Pi Testnet liquidity and platform integration.
+</div>
 
-  <div class="card">
-    <div class="card-title">AMT / PI TESTNET</div>
+<button class="secondary"
+        style="margin-top:14px"
+        onclick="showToast('Swap interface is available for Testnet integration.',false)">
+  🔄 OPEN SWAP
+</button>
 
-    <div class="notice">
-      Swap functionality depends on the currently available
-      Pi Testnet liquidity and platform integration.
-    </div>
+  </div></section></main><nav id="bottomNav" class="nav hidden">  <div class="nav-grid"><button class="nav-btn active"
+        data-section="miningSection"
+        onclick="showSection('miningSection',this)">
+  <span class="icon">⛏️</span>
+  Mining
+</button>
 
-    <button class="secondary"
-            style="margin-top:14px"
-            onclick="showToast('Swap interface is available for Testnet integration.',false)">
-      🔄 OPEN SWAP
-    </button>
-  </div>
+<button class="nav-btn"
+        data-section="walletSection"
+        onclick="showSection('walletSection',this)">
+  <span class="icon">👛</span>
+  Wallet
+</button>
 
-</section>
+<button class="nav-btn"
+        data-section="profileSection"
+        onclick="showSection('profileSection',this)">
+  <span class="icon">👤</span>
+  Profile
+</button>
 
-</main>
+<button class="nav-btn"
+        data-section="stakingSection"
+        onclick="showSection('stakingSection',this)">
+  <span class="icon">🔒</span>
+  Staking
+</button>
 
+<button class="nav-btn"
+        data-section="marketSection"
+        onclick="showSection('marketSection',this)">
+  <span class="icon">🛒</span>
+  Market
+</button>
 
-<!-- NAVIGATION -->
-<nav id="bottomNav" class="nav hidden">
+  </div>  <div class="nav-grid" style="margin-top:4px"><button class="nav-btn"
+        data-section="airdropSection"
+        onclick="showSection('airdropSection',this)">
+  <span class="icon">🎁</span>
+  Airdrop
+</button>
 
-  <div class="nav-grid">
+<button class="nav-btn"
+        data-section="referralSection"
+        onclick="showSection('referralSection',this)">
+  <span class="icon">👥</span>
+  Referral
+</button>
 
-    <button class="nav-btn active"
-            data-section="miningSection"
-            onclick="showSection('miningSection',this)">
-      <span class="icon">⛏️</span>
-      Mining
-    </button>
+<button class="nav-btn"
+        data-section="circleSection"
+        onclick="showSection('circleSection',this)">
+  <span class="icon">🛡️</span>
+  Circle
+</button>
 
-    <button class="nav-btn"
-            data-section="walletSection"
-            onclick="showSection('walletSection',this)">
-      <span class="icon">👛</span>
-      Wallet
-    </button>
+<button class="nav-btn"
+        data-section="swapSection"
+        onclick="showSection('swapSection',this)">
+  <span class="icon">🔄</span>
+  Swap
+</button>
 
-    <button class="nav-btn"
-            data-section="profileSection"
-            onclick="showSection('profileSection',this)">
-      <span class="icon">👤</span>
-      Profile
-    </button>
-
-    <button class="nav-btn"
-            data-section="stakingSection"
-            onclick="showSection('stakingSection',this)">
-      <span class="icon">🔒</span>
-      Staking
-    </button>
-
-    <button class="nav-btn"
-            data-section="marketSection"
-            onclick="showSection('marketSection',this)">
-      <span class="icon">🛒</span>
-      Market
-    </button>
-
-  </div>
-
-  <div class="nav-grid" style="margin-top:4px">
-
-    <button class="nav-btn"
-            data-section="airdropSection"
-            onclick="showSection('airdropSection',this)">
-      <span class="icon">🎁</span>
-      Airdrop
-    </button>
-
-    <button class="nav-btn"
-            data-section="referralSection"
-            onclick="showSection('referralSection',this)">
-      <span class="icon">👥</span>
-      Referral
-    </button>
-
-    <button class="nav-btn"
-            data-section="circleSection"
-            onclick="showSection('circleSection',this)">
-      <span class="icon">🛡️</span>
-      Circle
-    </button>
-
-    <button class="nav-btn"
-            data-section="swapSection"
-            onclick="showSection('swapSection',this)">
-      <span class="icon">🔄</span>
-      Swap
-    </button>
-
-    <button class="nav-btn"
-            onclick="showSection('profileSection',this)">
-      <span class="icon">⚙️</span>
-      Account
-    </button>
+<button class="nav-btn"
+        onclick="showSection('profileSection',this)">
+  <span class="icon">⚙️</span>
+  Account
+</button>
 
   </div>
-</nav>
-
-<div id="toast" class="toast"></div>
-
-
-<script>
+</nav><div id="toast" class="toast"></div><script>
 "use strict";
 
 /* =========================================================
@@ -1355,7 +1192,7 @@ function esc(value){
 }
 
 function num(value){
-  const n = Number(value);
+  const n=Number(value);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -1365,16 +1202,22 @@ function fmt(value){
 
 function showToast(message,error=false){
   const el=$("toast");
+
   el.textContent=message;
-  el.className="toast show " + (error ? "error" : "success");
+
+  el.className=
+    "toast show " +
+    (error ? "error" : "success");
 
   clearTimeout(showToast.timer);
+
   showToast.timer=setTimeout(()=>{
     el.className="toast";
   },3500);
 }
 
 async function api(path,options={}){
+
   const headers={
     ...(options.body instanceof FormData
       ? {}
@@ -1383,13 +1226,15 @@ async function api(path,options={}){
   };
 
   if(accessToken){
-    headers.Authorization="Bearer "+accessToken;
+    headers.Authorization=
+      "Bearer "+accessToken;
   }
 
-  const response=await fetch(API_BASE+path,{
-    ...options,
-    headers
-  });
+  const response=
+    await fetch(API_BASE+path,{
+      ...options,
+      headers
+    });
 
   let data=null;
 
@@ -1400,6 +1245,7 @@ async function api(path,options={}){
   }
 
   if(!response.ok){
+
     throw new Error(
       data.message ||
       data.error ||
@@ -1417,9 +1263,10 @@ async function api(path,options={}){
 
 function showSection(id,button=null){
 
-  document.querySelectorAll(".section").forEach(section=>{
-    section.classList.remove("active");
-  });
+  document.querySelectorAll(".section")
+    .forEach(section=>{
+      section.classList.remove("active");
+    });
 
   const section=$(id);
 
@@ -1427,13 +1274,14 @@ function showSection(id,button=null){
     section.classList.add("active");
   }
 
-  document.querySelectorAll(".nav-btn").forEach(btn=>{
-    btn.classList.remove("active");
+  document.querySelectorAll(".nav-btn")
+    .forEach(btn=>{
+      btn.classList.remove("active");
 
-    if(btn.dataset.section===id){
-      btn.classList.add("active");
-    }
-  });
+      if(btn.dataset.section===id){
+        btn.classList.add("active");
+      }
+    });
 
   window.scrollTo({
     top:0,
@@ -1496,27 +1344,39 @@ async function loginWithPi(){
       "payments"
     ];
 
-    const authResult=await Pi.authenticate(
-      scopes,
-      function(payment){
-        console.log("Incomplete payment:",payment);
-      }
-    );
+    const authResult=
+      await Pi.authenticate(
+        scopes,
+        function(payment){
+          console.log(
+            "Incomplete payment:",
+            payment
+          );
+        }
+      );
 
     if(!authResult ||
        !authResult.accessToken ||
        !authResult.user){
-      throw new Error("Pi authentication did not return a valid session.");
+
+      throw new Error(
+        "Pi authentication did not return a valid session."
+      );
     }
 
-    accessToken=authResult.accessToken;
-    currentUser=authResult.user;
+    accessToken=
+      authResult.accessToken;
+
+    currentUser=
+      authResult.user;
 
     await api("/api/users",{
       method:"POST",
       body:JSON.stringify({
-        username:currentUser.username,
-        uid:currentUser.uid
+        username:
+          currentUser.username,
+        uid:
+          currentUser.uid
       })
     });
 
@@ -1538,7 +1398,9 @@ async function loginWithPi(){
     enterApp();
 
     showToast(
-      "Welcome, "+(currentUser.username || "Pioneer")+"!"
+      "Welcome, "+
+      (currentUser.username || "Pioneer")+
+      "!"
     );
 
   }catch(error){
@@ -1546,7 +1408,8 @@ async function loginWithPi(){
     console.error(error);
 
     showToast(
-      error.message || "Pi login failed.",
+      error.message ||
+      "Pi login failed.",
       true
     );
   }
@@ -1556,13 +1419,19 @@ async function loginWithPi(){
 async function restoreSession(){
 
   const savedToken=
-    localStorage.getItem("amt_pi_access_token");
+    localStorage.getItem(
+      "amt_pi_access_token"
+    );
 
   const savedUsername=
-    localStorage.getItem("amt_pi_username");
+    localStorage.getItem(
+      "amt_pi_username"
+    );
 
   const savedUid=
-    localStorage.getItem("amt_pi_uid");
+    localStorage.getItem(
+      "amt_pi_uid"
+    );
 
   if(!savedToken){
     return;
@@ -1571,8 +1440,10 @@ async function restoreSession(){
   accessToken=savedToken;
 
   currentUser={
-    username:savedUsername || "Pioneer",
-    uid:savedUid || ""
+    username:
+      savedUsername || "Pioneer",
+    uid:
+      savedUid || ""
   };
 
   try{
@@ -1583,7 +1454,9 @@ async function restoreSession(){
 
   }catch(error){
 
-    console.log("Saved AMT session expired.");
+    console.log(
+      "Saved AMT session expired."
+    );
 
     logoutPi(false);
   }
@@ -1592,9 +1465,11 @@ async function restoreSession(){
 
 function enterApp(){
 
-  $("loginSection").classList.remove("active");
+  $("loginSection")
+    .classList.remove("active");
 
-  $("bottomNav").classList.remove("hidden");
+  $("bottomNav")
+    .classList.remove("hidden");
 
   showSection("miningSection");
 
@@ -1624,13 +1499,16 @@ function logoutPi(showMessage=true){
     miningInterval=null;
   }
 
-  document.querySelectorAll(".section").forEach(s=>{
-    s.classList.remove("active");
-  });
+  document.querySelectorAll(".section")
+    .forEach(s=>{
+      s.classList.remove("active");
+    });
 
-  $("loginSection").classList.add("active");
+  $("loginSection")
+    .classList.add("active");
 
-  $("bottomNav").classList.add("hidden");
+  $("bottomNav")
+    .classList.add("hidden");
 
   if(showMessage){
     showToast("Logged out.");
@@ -1664,38 +1542,51 @@ async function refreshWallet(){
 
   try{
 
-    const data=await api("/api/balance");
+    const data=
+      await api("/api/balance");
 
-    const balance=num(
-      data.balance ??
-      data.availableBalance ??
-      data.amount ??
-      0
-    );
+    const balance=
+      num(
+        data.balance ??
+        data.availableBalance ??
+        data.amount ??
+        0
+      );
 
-    const available=num(
-      data.availableBalance ?? balance
-    );
+    const available=
+      num(
+        data.availableBalance ??
+        balance
+      );
 
-    const staked=num(
-      data.stakedPrincipal ??
-      data.staked ??
-      0
-    );
+    const staked=
+      num(
+        data.stakedPrincipal ??
+        data.staked ??
+        0
+      );
 
-    $("walletBalance").textContent=fmt(balance);
+    $("walletBalance")
+      .textContent=fmt(balance);
 
-    $("availableBalance").textContent=
+    $("availableBalance")
+      .textContent=
       fmt(available)+" AMT";
 
-    $("stakedBalance").textContent=
+    $("stakedBalance")
+      .textContent=
       fmt(staked)+" AMT";
 
     if(data.walletAddress){
-      $("amtWalletAddress").textContent=
+
+      $("amtWalletAddress")
+        .textContent=
         data.walletAddress;
+
     }else if(data.ledgerWalletAddress){
-      $("amtWalletAddress").textContent=
+
+      $("amtWalletAddress")
+        .textContent=
         data.ledgerWalletAddress;
     }
 
@@ -1703,8 +1594,12 @@ async function refreshWallet(){
 
     console.log(error);
 
-    if(error.message.includes("401") ||
-       error.message.toLowerCase().includes("unauthorized")){
+    if(
+      error.message.includes("401") ||
+      error.message
+        .toLowerCase()
+        .includes("unauthorized")
+    ){
       logoutPi(false);
     }
   }
@@ -1716,17 +1611,26 @@ async function sendAMT(){
   const recipient=
     $("sendTo").value.trim();
 
-  const amount=num(
-    $("sendAmount").value
-  );
+  const amount=
+    num($("sendAmount").value);
 
   if(!recipient){
-    showToast("Enter the recipient wallet address.",true);
+
+    showToast(
+      "Enter the recipient wallet address.",
+      true
+    );
+
     return;
   }
 
   if(amount<=0){
-    showToast("Enter a valid AMT amount.",true);
+
+    showToast(
+      "Enter a valid AMT amount.",
+      true
+    );
+
     return;
   }
 
@@ -1743,13 +1647,18 @@ async function sendAMT(){
     $("sendTo").value="";
     $("sendAmount").value="";
 
-    showToast("AMT sent successfully.");
+    showToast(
+      "AMT sent successfully."
+    );
 
     await refreshWallet();
 
   }catch(error){
 
-    showToast(error.message,true);
+    showToast(
+      error.message,
+      true
+    );
   }
 }
 
@@ -1772,48 +1681,133 @@ async function loadMiningStatus(){
         data.session
       );
 
-    const earned=num(
-      data.earned ??
-      data.currentEarned ??
-      0
-    );
+    const completed=
+      Boolean(
+        data.completed ??
+        data.claimable ??
+        data.rewardReady
+      );
 
-    $("currentEarned").textContent=
+    const earned=
+      num(
+        data.earned ??
+        data.currentEarned ??
+        0
+      );
+
+    $("currentEarned")
+      .textContent=
       fmt(earned)+" AMT";
+
+
+    /*
+     * IMPORTANT:
+     * Backend keeps a finished mining session
+     * as ACTIVE until the reward is claimed.
+     *
+     * Therefore:
+     * active === true
+     * completed === true
+     *
+     * means the reward is ready to claim.
+     */
+
+    if(active && completed){
+
+      $("miningStatus")
+        .textContent=
+        "REWARD READY";
+
+      $("miniMiningStatus")
+        .textContent=
+        "Reward Ready";
+
+      $("startMiningBtn")
+        .disabled=true;
+
+      $("claimMiningBtn")
+        .classList.remove("hidden");
+
+      $("miningTimer")
+        .textContent=
+        "00:00:00";
+
+      $("miningProgress")
+        .style.width=
+        "100%";
+
+      if(miningInterval){
+
+        clearInterval(
+          miningInterval
+        );
+
+        miningInterval=null;
+      }
+
+      return;
+    }
+
 
     if(active){
 
-      $("miningStatus").textContent=
+      $("miningStatus")
+        .textContent=
         "⛏️ MINING ACTIVE";
 
-      $("miniMiningStatus").textContent=
+      $("miniMiningStatus")
+        .textContent=
         "Active";
 
-      $("startMiningBtn").disabled=true;
+      $("startMiningBtn")
+        .disabled=true;
+
+      $("claimMiningBtn")
+        .classList.add("hidden");
 
       startMiningClock(data);
 
-    }else{
+      return;
+    }
 
-      $("miningStatus").textContent=
-        "MINING READY";
 
-      $("miniMiningStatus").textContent=
-        "Ready";
+    $("miningStatus")
+      .textContent=
+      "MINING READY";
 
-      $("startMiningBtn").disabled=false;
+    $("miniMiningStatus")
+      .textContent=
+      "Ready";
 
-      $("claimMiningBtn").classList.add("hidden");
+    $("startMiningBtn")
+      .disabled=false;
 
-      $("miningTimer").textContent=
-        "24:00:00";
+    $("claimMiningBtn")
+      .classList.add("hidden");
 
-      $("miningProgress").style.width="0%";
+    $("miningTimer")
+      .textContent=
+      "24:00:00";
+
+    $("miningProgress")
+      .style.width=
+      "0%";
+
+    if(miningInterval){
+
+      clearInterval(
+        miningInterval
+      );
+
+      miningInterval=null;
     }
 
   }catch(error){
 
-    console.log("Mining status:",error);
+    console.log(
+      "Mining status:",
+      error
+    );
   }
 }
 
@@ -1821,111 +1815,187 @@ async function loadMiningStatus(){
 function startMiningClock(data){
 
   if(miningInterval){
-    clearInterval(miningInterval);
+
+    clearInterval(
+      miningInterval
+    );
+
+    miningInterval=null;
   }
 
-  let remaining=num(
-    data.remainingSeconds ??
-    data.secondsRemaining ??
-    86400
-  );
+  let remaining=
+    num(
+      data.remainingSeconds ??
+      data.secondsRemaining ??
+      86400
+    );
 
   const total=86400;
 
   function tick(){
 
-    if(remaining<0){
-      remaining=0;
-    }
+    remaining=
+      Math.max(0,remaining);
 
-    const h=Math.floor(remaining/3600);
-    const m=Math.floor(
-      (remaining%3600)/60
-    );
-    const s=Math.floor(remaining%60);
+    const h=
+      Math.floor(
+        remaining/3600
+      );
 
-    $("miningTimer").textContent=
-      String(h).padStart(2,"0")+":"+
-      String(m).padStart(2,"0")+":"+
+    const m=
+      Math.floor(
+        (remaining%3600)/60
+      );
+
+    const s=
+      Math.floor(
+        remaining%60
+      );
+
+    $("miningTimer")
+      .textContent=
+      String(h).padStart(2,"0")+
+      ":"+
+      String(m).padStart(2,"0")+
+      ":"+
       String(s).padStart(2,"0");
 
     const progress=
       ((total-remaining)/total)*100;
 
-    $("miningProgress").style.width=
-      Math.max(0,Math.min(100,progress))+"%";
+    $("miningProgress")
+      .style.width=
+      Math.max(
+        0,
+        Math.min(100,progress)
+      )+"%";
+
 
     if(remaining<=0){
 
-      $("miningStatus").textContent=
+      $("miningStatus")
+        .textContent=
         "REWARD READY";
 
-      $("miniMiningStatus").textContent=
+      $("miniMiningStatus")
+        .textContent=
         "Reward Ready";
+
+      $("startMiningBtn")
+        .disabled=true;
 
       $("claimMiningBtn")
         .classList.remove("hidden");
 
-      clearInterval(miningInterval);
+      clearInterval(
+        miningInterval
+      );
 
-    }else{
+      miningInterval=null;
 
-      remaining--;
+      return;
     }
+
+    remaining--;
   }
 
   tick();
 
   miningInterval=
-    setInterval(tick,1000);
+    setInterval(
+      tick,
+      1000
+    );
 }
 
 
 async function startMining(){
 
+  const button=
+    $("startMiningBtn");
+
   try{
+
+    button.disabled=true;
 
     await api("/api/mining/start",{
       method:"POST",
       body:JSON.stringify({})
     });
 
-    showToast("AMT mining started.");
+    showToast(
+      "AMT mining started."
+    );
 
     await loadMiningStatus();
 
   }catch(error){
 
-    showToast(error.message,true);
+    button.disabled=false;
+
+    showToast(
+      error.message,
+      true
+    );
   }
 }
 
 
 async function claimMining(){
 
+  const button=
+    $("claimMiningBtn");
+
   try{
 
+    /*
+     * IMPORTANT:
+     * The backend route is /api/mining/claim.
+     * There is NO /api/mining/stop route.
+     */
+
+    button.disabled=true;
+
     const data=
-      await api("/api/mining/stop",{
+      await api("/api/mining/claim",{
         method:"POST",
         body:JSON.stringify({})
       });
 
-    showToast(
-      "Mining reward claimed: "+
-      fmt(
+    const reward=
+      num(
         data.reward ??
         data.amount ??
+        data.claimedAmount ??
         0
-      )+" AMT"
+      );
+
+    showToast(
+      "Mining reward claimed: "+
+      fmt(reward)+
+      " AMT"
     );
 
     await loadMiningStatus();
+
     await refreshWallet();
 
   }catch(error){
 
-    showToast(error.message,true);
+    console.error(
+      "Mining claim:",
+      error
+    );
+
+    showToast(
+      error.message ||
+      "Unable to claim AMT reward.",
+      true
+    );
+
+  }finally{
+
+    button.disabled=false;
   }
 }
 
@@ -1947,19 +2017,27 @@ async function loadAirdrop(){
         data.alreadyClaimed
       );
 
-    $("airdropStatus").textContent=
-      claimed ? "CLAIMED" : "AVAILABLE";
+    $("airdropStatus")
+      .textContent=
+      claimed
+        ? "CLAIMED"
+        : "AVAILABLE";
 
-    $("airdropBtn").disabled=claimed;
+    $("airdropBtn")
+      .disabled=claimed;
 
-    $("airdropBtn").textContent=
+    $("airdropBtn")
+      .textContent=
       claimed
         ? "✅ AIRDROP CLAIMED"
         : "🎁 CLAIM AIRDROP";
 
   }catch(error){
 
-    console.log("Airdrop status:",error);
+    console.log(
+      "Airdrop status:",
+      error
+    );
   }
 }
 
@@ -1976,7 +2054,11 @@ async function claimAirdrop(){
 
     showToast(
       "Airdrop claimed: "+
-      fmt(data.amount ?? data.reward ?? 0)+
+      fmt(
+        data.amount ??
+        data.reward ??
+        0
+      )+
       " AMT"
     );
 
@@ -1985,7 +2067,10 @@ async function claimAirdrop(){
 
   }catch(error){
 
-    showToast(error.message,true);
+    showToast(
+      error.message,
+      true
+    );
   }
 }
 
@@ -2001,23 +2086,29 @@ async function loadReferral(){
     const data=
       await api("/api/referrals");
 
-    $("referralCode").textContent=
+    $("referralCode")
+      .textContent=
       data.referralCode ??
       data.code ??
       "------";
 
-    $("referralCount").textContent=
+    $("referralCount")
+      .textContent=
       data.referralCount ??
       data.count ??
       0;
 
-    $("activeMiners").textContent=
+    $("activeMiners")
+      .textContent=
       data.activeMiners ??
       0;
 
   }catch(error){
 
-    console.log("Referral:",error);
+    console.log(
+      "Referral:",
+      error
+    );
   }
 }
 
@@ -2025,19 +2116,35 @@ async function loadReferral(){
 function copyReferral(){
 
   const code=
-    $("referralCode").textContent.trim();
+    $("referralCode")
+      .textContent
+      .trim();
 
-  if(!code || code==="------"){
-    showToast("Referral code is not ready.",true);
+  if(
+    !code ||
+    code==="------"
+  ){
+
+    showToast(
+      "Referral code is not ready.",
+      true
+    );
+
     return;
   }
 
-  navigator.clipboard.writeText(code)
+  navigator.clipboard
+    .writeText(code)
     .then(()=>{
-      showToast("Referral code copied.");
+      showToast(
+        "Referral code copied."
+      );
     })
     .catch(()=>{
-      showToast("Could not copy referral code.",true);
+      showToast(
+        "Could not copy referral code.",
+        true
+      );
     });
 }
 
@@ -2045,10 +2152,17 @@ function copyReferral(){
 async function applyReferral(){
 
   const code=
-    $("referralInput").value.trim();
+    $("referralInput")
+      .value
+      .trim();
 
   if(!code){
-    showToast("Enter a referral code.",true);
+
+    showToast(
+      "Enter a referral code.",
+      true
+    );
+
     return;
   }
 
@@ -2062,15 +2176,21 @@ async function applyReferral(){
       })
     });
 
-    $("referralInput").value="";
+    $("referralInput")
+      .value="";
 
-    showToast("Referral code applied.");
+    showToast(
+      "Referral code applied."
+    );
 
     await loadReferral();
 
   }catch(error){
 
-    showToast(error.message,true);
+    showToast(
+      error.message,
+      true
+    );
   }
 }
 
@@ -2091,41 +2211,57 @@ async function loadSecurityCircle(){
       data.securityCircle ||
       [];
 
-    $("circleCount").textContent=
+    $("circleCount")
+      .textContent=
       members.length;
 
-    $("circleStatus").textContent=
+    $("circleStatus")
+      .textContent=
       members.length
         ? "ACTIVE"
         : "NO MEMBERS";
 
     if(!members.length){
 
-      $("circleList").innerHTML=
+      $("circleList")
+        .innerHTML=
         '<div class="empty">No security-circle members returned.</div>';
 
       return;
     }
 
-    $("circleList").innerHTML=
+    $("circleList")
+      .innerHTML=
       members.map(member=>`
+
         <div class="stake-item">
+
           <div class="row">
+
             <b>${esc(
               member.username ??
               member.name ??
               "Pioneer"
             )}</b>
-            <span class="muted">Pi</span>
+
+            <span class="muted">
+              Pi
+            </span>
+
           </div>
+
         </div>
+
       `).join("");
 
   }catch(error){
 
-    $("circleStatus").textContent="Unavailable";
+    $("circleStatus")
+      .textContent=
+      "Unavailable";
 
-    $("circleList").innerHTML=
+    $("circleList")
+      .innerHTML=
       '<div class="empty">Security Circle data is not available from the backend yet.</div>';
 
     console.log(error);
@@ -2155,19 +2291,24 @@ async function loadProfile(){
       currentUser?.uid ??
       "—";
 
-    $("profileUsername").textContent=
+    $("profileUsername")
+      .textContent=
       username;
 
-    $("infoUsername").textContent=
+    $("infoUsername")
+      .textContent=
       username;
 
-    $("profileUid").textContent=
+    $("profileUid")
+      .textContent=
       "Pi UID: "+uid;
 
-    $("infoUid").textContent=
+    $("infoUid")
+      .textContent=
       uid;
 
-    $("infoKyc").textContent=
+    $("infoKyc")
+      .textContent=
       data.kycStatus ??
       data.kyc ??
       "UNVERIFIED";
@@ -2183,7 +2324,10 @@ async function loadProfile(){
 
   }catch(error){
 
-    console.log("Profile:",error);
+    console.log(
+      "Profile:",
+      error
+    );
 
     const username=
       currentUser?.username ||
@@ -2193,16 +2337,20 @@ async function loadProfile(){
       currentUser?.uid ||
       "—";
 
-    $("profileUsername").textContent=
+    $("profileUsername")
+      .textContent=
       username;
 
-    $("infoUsername").textContent=
+    $("infoUsername")
+      .textContent=
       username;
 
-    $("profileUid").textContent=
+    $("profileUid")
+      .textContent=
       "Pi UID: "+uid;
 
-    $("infoUid").textContent=
+    $("infoUid")
+      .textContent=
       uid;
   }
 }
@@ -2210,7 +2358,8 @@ async function loadProfile(){
 
 function renderAvatar(url){
 
-  const box=$("avatarBox");
+  const box=
+    $("avatarBox");
 
   if(!url){
 
@@ -2222,58 +2371,114 @@ function renderAvatar(url){
     return;
   }
 
-  box.className="avatar";
-  box.src=url;
-  box.alt="AMT Profile Picture";
+  /*
+   * avatarBox is a DIV in the HTML.
+   * Replace it with an IMG element when
+   * an image exists.
+   */
+
+  box.outerHTML=
+    '<img id="avatarBox" class="avatar" src="'+
+    esc(url)+
+    '" alt="AMT Profile Picture">';
 }
 
 
 async function uploadProfileImage(){
 
   const file=
-    $("profileImageInput").files[0];
+    $("profileImageInput")
+      .files[0];
 
   if(!file){
-    showToast("Choose a profile picture first.",true);
+
+    showToast(
+      "Choose a profile picture first.",
+      true
+    );
+
     return;
   }
 
   if(file.size>5*1024*1024){
-    showToast("Maximum image size is 5 MB.",true);
+
+    showToast(
+      "Maximum image size is 5 MB.",
+      true
+    );
+
     return;
   }
 
   try{
 
-    const form=
-      new FormData();
+    /*
+     * server.js v2.1.1 expects:
+     * { image: "data:image/..." }
+     *
+     * It does NOT expect multipart/FormData
+     * for this endpoint.
+     */
 
-    form.append(
-      "profileImage",
-      file
-    );
+    const reader=
+      new FileReader();
+
+    const imageData=
+      await new Promise(
+        (resolve,reject)=>{
+
+          reader.onload=()=>{
+            resolve(
+              reader.result
+            );
+          };
+
+          reader.onerror=()=>{
+            reject(
+              new Error(
+                "Unable to read image."
+              )
+            );
+          };
+
+          reader.readAsDataURL(file);
+        }
+      );
 
     const data=
       await api("/api/profile/image",{
         method:"POST",
-        body:form
+        body:JSON.stringify({
+          image:imageData
+        })
       });
 
     const image=
       data.profileImageUrl ??
       data.profile_image_url ??
       data.url ??
-      "";
+      imageData;
 
     renderAvatar(image);
 
-    $("profileImageInput").value="";
+    $("profileImageInput")
+      .value="";
 
-    showToast("Profile picture updated.");
+    showToast(
+      "Profile picture updated."
+    );
 
   }catch(error){
 
-    showToast(error.message,true);
+    console.error(
+      "Profile image:",
+      error
+    );
+
+    showToast(
+      error.message,
+      true
+    );
   }
 }
 
@@ -2288,11 +2493,16 @@ async function deleteProfileImage(){
 
     renderAvatar("");
 
-    showToast("Profile picture removed.");
+    showToast(
+      "Profile picture removed."
+    );
 
   }catch(error){
 
-    showToast(error.message,true);
+    showToast(
+      error.message,
+      true
+    );
   }
 }
 
@@ -2305,7 +2515,8 @@ function selectPool(pool){
 
   selectedStakePool=pool;
 
-  $("selectedPool").value=pool;
+  $("selectedPool")
+    .value=pool;
 
   document.querySelectorAll(".pool")
     .forEach(item=>{
@@ -2315,9 +2526,17 @@ function selectPool(pool){
   const pools=
     document.querySelectorAll(".pool");
 
-  if(pool==="30D") pools[0]?.classList.add("active");
-  if(pool==="90D") pools[1]?.classList.add("active");
-  if(pool==="180D") pools[2]?.classList.add("active");
+  if(pool==="30D"){
+    pools[0]?.classList.add("active");
+  }
+
+  if(pool==="90D"){
+    pools[1]?.classList.add("active");
+  }
+
+  if(pool==="180D"){
+    pools[2]?.classList.add("active");
+  }
 }
 
 
@@ -2328,31 +2547,37 @@ async function loadStaking(){
     const summary=
       await api("/api/staking/status");
 
-    const available=num(
-      summary.availableBalance ??
-      summary.available ??
-      0
-    );
+    const available=
+      num(
+        summary.availableBalance ??
+        summary.available ??
+        0
+      );
 
-    const principal=num(
-      summary.stakedPrincipal ??
-      summary.staked ??
-      0
-    );
+    const principal=
+      num(
+        summary.stakedPrincipal ??
+        summary.staked ??
+        0
+      );
 
-    const rewards=num(
-      summary.pendingRewards ??
-      summary.rewards ??
-      0
-    );
+    const rewards=
+      num(
+        summary.pendingRewards ??
+        summary.rewards ??
+        0
+      );
 
-    $("stakeAvailable").textContent=
+    $("stakeAvailable")
+      .textContent=
       fmt(available)+" AMT";
 
-    $("stakePrincipal").textContent=
+    $("stakePrincipal")
+      .textContent=
       fmt(principal)+" AMT";
 
-    $("stakeRewards").textContent=
+    $("stakeRewards")
+      .textContent=
       fmt(rewards)+" AMT";
 
     const stakes=
@@ -2366,9 +2591,13 @@ async function loadStaking(){
 
   }catch(error){
 
-    console.log("Staking:",error);
+    console.log(
+      "Staking:",
+      error
+    );
 
-    $("activeStakes").innerHTML=
+    $("activeStakes")
+      .innerHTML=
       '<div class="empty">No active stakes.</div>';
   }
 }
@@ -2376,26 +2605,31 @@ async function loadStaking(){
 
 function renderActiveStakes(stakes){
 
-  if(!stakes || !stakes.length){
+  if(
+    !stakes ||
+    !stakes.length
+  ){
 
-    $("activeStakes").innerHTML=
+    $("activeStakes")
+      .innerHTML=
       '<div class="empty">No active stakes.</div>';
 
     return;
   }
 
-  $("activeStakes").innerHTML=
+  $("activeStakes")
+    .innerHTML=
     stakes.map(stake=>{
 
-      const principal=num(
-        stake.principal
-      );
+      const principal=
+        num(stake.principal);
 
-      const reward=num(
-        stake.rewardAmount ??
-        stake.reward_amount ??
-        0
-      );
+      const reward=
+        num(
+          stake.rewardAmount ??
+          stake.reward_amount ??
+          0
+        );
 
       const unlock=
         stake.unlockAt ??
@@ -2412,9 +2646,11 @@ function renderActiveStakes(stakes){
         );
 
       return `
+
         <div class="stake-item">
 
           <div class="row">
+
             <b>${esc(
               stake.poolName ??
               stake.poolId ??
@@ -2424,18 +2660,29 @@ function renderActiveStakes(stakes){
             <span style="color:#ffd450">
               ${fmt(principal)} AMT
             </span>
+
           </div>
 
           <div class="row">
-            <span class="muted">Reward</span>
-            <span>${fmt(reward)} AMT</span>
+            <span class="muted">
+              Reward
+            </span>
+
+            <span>
+              ${fmt(reward)} AMT
+            </span>
           </div>
 
           <div class="row">
-            <span class="muted">Unlock</span>
-            <span>${esc(
-              formatDate(unlock)
-            )}</span>
+            <span class="muted">
+              Unlock
+            </span>
+
+            <span>
+              ${esc(
+                formatDate(unlock)
+              )}
+            </span>
           </div>
 
           <button
@@ -2445,13 +2692,18 @@ function renderActiveStakes(stakes){
             onclick="unstake('${esc(
               stake.id
             )}')">
-            ${unlocked
-              ? "💰 UNSTAKE + REWARD"
-              : "🔒 LOCKED"}
+
+            ${
+              unlocked
+                ? "💰 UNSTAKE + REWARD"
+                : "🔒 LOCKED"
+            }
+
           </button>
 
         </div>
       `;
+
     }).join("");
 }
 
@@ -2463,13 +2715,17 @@ async function createStake(){
     selectedStakePool;
 
   const amount=
-    num($("stakeAmount").value);
+    num(
+      $("stakeAmount").value
+    );
 
   if(amount<=0){
+
     showToast(
       "Enter an AMT amount to stake.",
       true
     );
+
     return;
   }
 
@@ -2484,11 +2740,15 @@ async function createStake(){
         })
       });
 
-    $("stakeAmount").value="";
+    $("stakeAmount")
+      .value="";
 
     showToast(
       "Stake created: "+
-      fmt(data.principal ?? amount)+
+      fmt(
+        data.principal ??
+        amount
+      )+
       " AMT"
     );
 
@@ -2497,7 +2757,10 @@ async function createStake(){
 
   }catch(error){
 
-    showToast(error.message,true);
+    showToast(
+      error.message,
+      true
+    );
   }
 }
 
@@ -2526,7 +2789,8 @@ async function unstake(stakeId){
         data.totalPayout ??
         data.amount ??
         0
-      )+" AMT returned."
+      )+
+      " AMT returned."
     );
 
     await loadStaking();
@@ -2534,7 +2798,10 @@ async function unstake(stakeId){
 
   }catch(error){
 
-    showToast(error.message,true);
+    showToast(
+      error.message,
+      true
+    );
   }
 }
 
@@ -2553,16 +2820,21 @@ async function loadStakingHistory(){
 
     if(!history.length){
 
-      $("stakingHistory").innerHTML=
+      $("stakingHistory")
+        .innerHTML=
         '<div class="empty">No staking history yet.</div>';
 
       return;
     }
 
-    $("stakingHistory").innerHTML=
+    $("stakingHistory")
+      .innerHTML=
       history.map(item=>`
+
         <div class="stake-item">
+
           <div class="row">
+
             <b>${esc(
               item.poolName ??
               item.poolId ??
@@ -2575,24 +2847,41 @@ async function loadStakingHistory(){
                 0
               )} AMT
             </span>
+
           </div>
 
           <div class="row">
-            <span class="muted">Status</span>
-            <span>${esc(
-              item.status ??
-              "—"
-            )}</span>
+
+            <span class="muted">
+              Status
+            </span>
+
+            <span>
+              ${esc(
+                item.status ??
+                "—"
+              )}
+            </span>
+
           </div>
 
           <div class="row">
-            <span class="muted">Reward</span>
-            <span>${fmt(
-              item.rewardAmount ??
-              0
-            )} AMT</span>
+
+            <span class="muted">
+              Reward
+            </span>
+
+            <span>
+              ${fmt(
+                item.rewardAmount ??
+                0
+              )} AMT
+            </span>
+
           </div>
+
         </div>
+
       `).join("");
 
   }catch(error){
@@ -2604,14 +2893,21 @@ async function loadStakingHistory(){
 
 function formatDate(value){
 
-  if(!value || value==="—"){
+  if(
+    !value ||
+    value==="—"
+  ){
     return "—";
   }
 
   const date=
     new Date(value);
 
-  if(Number.isNaN(date.getTime())){
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
     return String(value);
   }
 
@@ -2648,12 +2944,13 @@ window.addEventListener(
   "beforeunload",
   ()=>{
     if(miningInterval){
-      clearInterval(miningInterval);
+
+      clearInterval(
+        miningInterval
+      );
     }
   }
 );
 
-</script>
-
-</body>
+</script></body>
 </html>
