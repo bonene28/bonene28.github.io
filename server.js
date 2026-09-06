@@ -1,17 +1,27 @@
 // ============================================================
-// AMT API COMPATIBILITY ROUTES — v2.1.1
-// Keeps existing Pioneer accounts, balances and ledger intact.
+// AMT API COMPATIBILITY ROUTES — v2.1.2
+// Staking removed.
+// Existing Pioneer accounts, balances, wallets and ledger intact.
 // ============================================================
+
 
 // ------------------------------------------------------------
 // POST /api/users
 // Frontend compatibility for Pi Login.
-// Uses Pi UID as the permanent account key.
+//
+// IMPORTANT:
+// - Pi UID remains the permanent account key.
+// - Existing member is reused.
+// - Existing AMT wallet is preserved.
+// - If the miner has no wallet, one is created automatically.
+// - No staking is used.
 // ------------------------------------------------------------
 app.post("/api/users", requireAuth, async (req, res, next) => {
   try {
     const member = await getAuthenticatedMember(req.piAccessToken);
 
+    // Automatically create AMT wallet if the miner does not have one.
+    // Existing wallet is preserved.
     const wallet = await ensureAmtWallet(member.id);
 
     const balanceResult = await pool.query(
@@ -23,34 +33,24 @@ app.post("/api/users", requireAuth, async (req, res, next) => {
       [member.id]
     );
 
-    const stakingResult = await pool.query(
-      `
-      SELECT
-        COALESCE(SUM(amount), 0) AS total_staked,
-        COALESCE(SUM(reward), 0) AS total_rewards
-      FROM amt_stakes
-      WHERE member_id = $1
-        AND status = 'ACTIVE'
-      `,
-      [member.id]
-    );
-
     res.json({
       ok: true,
+
       user: {
         id: member.id,
         pi_uid: member.pi_uid,
         username: member.username,
         kyc_status: member.kyc_status
       },
+
       wallet: {
         address: wallet.wallet_address,
         status: wallet.wallet_status
       },
-      balance: Number(balanceResult.rows[0].balance || 0),
-      total_staked: Number(stakingResult.rows[0].total_staked || 0),
-      total_rewards: Number(stakingResult.rows[0].total_rewards || 0)
+
+      balance: Number(balanceResult.rows[0].balance || 0)
     });
+
   } catch (err) {
     next(err);
   }
@@ -64,6 +64,9 @@ app.get("/api/balance", requireAuth, async (req, res, next) => {
   try {
     const member = await getAuthenticatedMember(req.piAccessToken);
 
+    // Make sure every authenticated miner has an AMT wallet.
+    const wallet = await ensureAmtWallet(member.id);
+
     const result = await pool.query(
       `
       SELECT COALESCE(SUM(amount), 0) AS balance
@@ -73,14 +76,13 @@ app.get("/api/balance", requireAuth, async (req, res, next) => {
       [member.id]
     );
 
-    const wallet = await ensureAmtWallet(member.id);
-
     res.json({
       ok: true,
       balance: Number(result.rows[0].balance || 0),
       wallet_address: wallet.wallet_address,
       wallet_status: wallet.wallet_status
     });
+
   } catch (err) {
     next(err);
   }
@@ -104,20 +106,27 @@ app.post("/api/ledger/send", requireAuth, async (req, res, next) => {
       ""
     ).trim();
 
-    const amount = Number(
-      req.body?.amount
-    );
+    const amount = Number(req.body?.amount);
 
     if (!recipientAddress) {
-      throw new HttpError(400, "Recipient wallet address is required.");
+      throw new HttpError(
+        400,
+        "Recipient wallet address is required."
+      );
     }
 
     if (!validAmount(amount)) {
-      throw new HttpError(400, "Invalid AMT amount.");
+      throw new HttpError(
+        400,
+        "Invalid AMT amount."
+      );
     }
 
     if (amount <= 0) {
-      throw new HttpError(400, "Amount must be greater than zero.");
+      throw new HttpError(
+        400,
+        "Amount must be greater than zero."
+      );
     }
 
     await client.query("BEGIN");
@@ -133,7 +142,10 @@ app.post("/api/ledger/send", requireAuth, async (req, res, next) => {
     );
 
     if (!senderResult.rowCount) {
-      throw new HttpError(404, "Member account not found.");
+      throw new HttpError(
+        404,
+        "Member account not found."
+      );
     }
 
     const recipientResult = await client.query(
@@ -147,13 +159,20 @@ app.post("/api/ledger/send", requireAuth, async (req, res, next) => {
     );
 
     if (!recipientResult.rowCount) {
-      throw new HttpError(404, "Recipient AMT wallet not found.");
+      throw new HttpError(
+        404,
+        "Recipient AMT wallet not found."
+      );
     }
 
-    const recipientId = recipientResult.rows[0].member_id;
+    const recipientId =
+      recipientResult.rows[0].member_id;
 
     if (Number(recipientId) === Number(member.id)) {
-      throw new HttpError(400, "You cannot send AMT to your own wallet.");
+      throw new HttpError(
+        400,
+        "You cannot send AMT to your own wallet."
+      );
     }
 
     const balanceResult = await client.query(
@@ -165,10 +184,14 @@ app.post("/api/ledger/send", requireAuth, async (req, res, next) => {
       [member.id]
     );
 
-    const balance = Number(balanceResult.rows[0].balance || 0);
+    const balance =
+      Number(balanceResult.rows[0].balance || 0);
 
     if (balance < amount) {
-      throw new HttpError(400, "Insufficient AMT balance.");
+      throw new HttpError(
+        400,
+        "Insufficient AMT balance."
+      );
     }
 
     const reference = makeReference("AMT");
@@ -224,12 +247,15 @@ app.post("/api/ledger/send", requireAuth, async (req, res, next) => {
       amount,
       recipient_address: recipientAddress
     });
+
   } catch (err) {
+
     try {
       await client.query("ROLLBACK");
     } catch (_) {}
 
     next(err);
+
   } finally {
     client.release();
   }
@@ -238,11 +264,11 @@ app.post("/api/ledger/send", requireAuth, async (req, res, next) => {
 
 // ------------------------------------------------------------
 // GET /api/referrals
-// Compatibility alias.
 // ------------------------------------------------------------
 app.get("/api/referrals", requireAuth, async (req, res, next) => {
   try {
-    const member = await getAuthenticatedMember(req.piAccessToken);
+    const member =
+      await getAuthenticatedMember(req.piAccessToken);
 
     const result = await pool.query(
       `
@@ -266,6 +292,7 @@ app.get("/api/referrals", requireAuth, async (req, res, next) => {
       referrals: result.rows,
       count: result.rowCount
     });
+
   } catch (err) {
     next(err);
   }
@@ -274,11 +301,11 @@ app.get("/api/referrals", requireAuth, async (req, res, next) => {
 
 // ------------------------------------------------------------
 // GET /api/security-circle
-// Compatibility alias.
 // ------------------------------------------------------------
 app.get("/api/security-circle", requireAuth, async (req, res, next) => {
   try {
-    const member = await getAuthenticatedMember(req.piAccessToken);
+    const member =
+      await getAuthenticatedMember(req.piAccessToken);
 
     const result = await pool.query(
       `
@@ -303,6 +330,7 @@ app.get("/api/security-circle", requireAuth, async (req, res, next) => {
       count: result.rowCount,
       max: MAX_SECURITY_CIRCLE
     });
+
   } catch (err) {
     next(err);
   }
@@ -311,11 +339,11 @@ app.get("/api/security-circle", requireAuth, async (req, res, next) => {
 
 // ------------------------------------------------------------
 // POST /api/profile/image
-// Compatibility alias for existing profile photo route.
 // ------------------------------------------------------------
 app.post("/api/profile/image", requireAuth, async (req, res, next) => {
   try {
-    const member = await getAuthenticatedMember(req.piAccessToken);
+    const member =
+      await getAuthenticatedMember(req.piAccessToken);
 
     const image =
       req.body?.image ||
@@ -324,7 +352,10 @@ app.post("/api/profile/image", requireAuth, async (req, res, next) => {
       "";
 
     if (!image) {
-      throw new HttpError(400, "Profile image is required.");
+      throw new HttpError(
+        400,
+        "Profile image is required."
+      );
     }
 
     await pool.query(
@@ -334,7 +365,10 @@ app.post("/api/profile/image", requireAuth, async (req, res, next) => {
           updated_at = NOW()
       WHERE id = $2
       `,
-      [String(image), member.id]
+      [
+        String(image),
+        member.id
+      ]
     );
 
     res.json({
@@ -342,6 +376,7 @@ app.post("/api/profile/image", requireAuth, async (req, res, next) => {
       message: "Profile image updated.",
       profile_image: String(image)
     });
+
   } catch (err) {
     next(err);
   }
@@ -353,7 +388,8 @@ app.post("/api/profile/image", requireAuth, async (req, res, next) => {
 // ------------------------------------------------------------
 app.delete("/api/profile/image", requireAuth, async (req, res, next) => {
   try {
-    const member = await getAuthenticatedMember(req.piAccessToken);
+    const member =
+      await getAuthenticatedMember(req.piAccessToken);
 
     await pool.query(
       `
@@ -369,6 +405,7 @@ app.delete("/api/profile/image", requireAuth, async (req, res, next) => {
       ok: true,
       message: "Profile image removed."
     });
+
   } catch (err) {
     next(err);
   }
@@ -376,5 +413,6 @@ app.delete("/api/profile/image", requireAuth, async (req, res, next) => {
 
 
 // ============================================================
-// END AMT API COMPATIBILITY ROUTES
+// END AMT API COMPATIBILITY ROUTES — v2.1.2
+// STAKING REMOVED FROM THIS COMPATIBILITY LAYER
 // ============================================================
