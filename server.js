@@ -1009,81 +1009,111 @@ app.get(
 AUTH
 ========================================================= */
 
-app.post(
+/*
+ * FIX:
+ * Frontend calls GET /api/auth/verify.
+ *
+ * Previous version accepted POST only,
+ * which caused:
+ *
+ * GET /api/auth/verify -> 404
+ *
+ * app.all() safely accepts both GET and POST
+ * without changing the authentication logic.
+ */
+
+app.all(
   "/api/auth/verify",
   requireAuth,
   async (req, res) => {
-    res.json({
-      ok: true,
+    try {
+      res.json({
+        ok: true,
 
-      /*
-       * Explicit verified Pi wallet address.
-       * This is the address returned by Pi API.
-       */
-      piWalletAddress:
-        req.piUser.walletAddress ||
-        null,
-
-      /*
-       * Current frontend can read data.piUser.
-       */
-      piUser: {
-        uid:
-          req.piUser.uid,
-
-        username:
-          req.piUser.username,
-
-        walletAddress:
+        /*
+         * Explicit verified Pi wallet address.
+         * This is the address returned by Pi API.
+         */
+        piWalletAddress:
           req.piUser.walletAddress ||
-          null
-      },
+          null,
 
-      /*
-       * Existing user object preserved.
-       */
-      user: {
-        uid:
-          req.piUser.uid,
+        /*
+         * Current frontend can read data.piUser.
+         */
+        piUser: {
+          uid:
+            req.piUser.uid,
 
-        username:
-          req.piUser.username,
+          username:
+            req.piUser.username,
 
-        kycStatus:
-          req.member.kyc_status,
+          walletAddress:
+            req.piUser.walletAddress ||
+            null
+        },
 
-        profileImage:
-          req.member
-            .profile_image || null
-      },
+        /*
+         * Existing user object preserved.
+         */
+        user: {
+          uid:
+            req.piUser.uid,
 
-      /*
-       * IMPORTANT:
-       * wallet.walletAddress is still the AMT
-       * application ledger address.
-       */
-      wallet: {
-        walletStatus:
-          req.wallet
-            .wallet_status,
+          username:
+            req.piUser.username,
 
-        walletAddress:
-          req.wallet
-            .wallet_address,
+          kycStatus:
+            req.member.kyc_status,
 
-        isBlockchainWallet:
-          false,
+          profileImage:
+            req.member
+              .profile_image || null
+        },
 
-        walletType:
-          "AMT_TESTNET_LEDGER"
-      },
+        /*
+         * IMPORTANT:
+         * wallet.walletAddress is still the AMT
+         * application ledger address.
+         */
+        wallet: {
+          walletStatus:
+            req.wallet
+              .wallet_status,
 
-      network:
-        "Pi Testnet",
+          walletAddress:
+            req.wallet
+              .wallet_address,
 
-      environment:
-        "TESTNET"
-    });
+          isBlockchainWallet:
+            false,
+
+          walletType:
+            "AMT_TESTNET_LEDGER"
+        },
+
+        network:
+          "Pi Testnet",
+
+        environment:
+          "TESTNET"
+      });
+
+    } catch (error) {
+      console.error(
+        "AUTH VERIFY RESPONSE ERROR:",
+        error
+      );
+
+      res
+        .status(500)
+        .json({
+          ok: false,
+          error:
+            error.message ||
+            "Unable to verify authentication."
+        });
+    }
   }
 );
 
