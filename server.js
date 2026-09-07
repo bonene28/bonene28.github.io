@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.1.1
+FULL SERVER VERSION 2.1.2
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,17 +18,16 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.1.1:
-- Fixed legacy POST /api/users login endpoint
-- Added legacy balance endpoint
-- Added legacy ledger send endpoint
-- Added legacy referral endpoints
-- Added legacy security-circle endpoint
-- Added legacy profile image aliases
-- Existing Pioneer records are preserved
-- Existing AMT balances are preserved
-- Existing mining sessions are preserved
-- Existing ledger history is preserved
+VERSION 2.1.2:
+- Preserved all existing Pioneer records
+- Preserved all existing AMT balances
+- Preserved all existing mining sessions
+- Preserved all existing ledger history
+- Preserved reward/mining/staking logic
+- Added verified Pi Testnet wallet address to auth response
+- Added verified Pi Testnet wallet address to profile response
+- Added verified Pi Testnet wallet address to wallet response
+- AMT ledger address remains separate from Pi wallet address
 ============================================================
 */
 
@@ -371,6 +370,12 @@ async function verifyPiAccessToken(
       data.username
     ),
 
+    /*
+     * This is the VERIFIED Pi wallet address
+     * returned by the Pi API.
+     *
+     * It is NOT the AMT- ledger address.
+     */
     walletAddress:
       data.wallet_address || null
   };
@@ -917,7 +922,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.1.1",
+      "2.1.2",
 
     features: [
       "Pi Login",
@@ -1011,6 +1016,32 @@ app.post(
     res.json({
       ok: true,
 
+      /*
+       * Explicit verified Pi wallet address.
+       * This is the address returned by Pi API.
+       */
+      piWalletAddress:
+        req.piUser.walletAddress ||
+        null,
+
+      /*
+       * Current frontend can read data.piUser.
+       */
+      piUser: {
+        uid:
+          req.piUser.uid,
+
+        username:
+          req.piUser.username,
+
+        walletAddress:
+          req.piUser.walletAddress ||
+          null
+      },
+
+      /*
+       * Existing user object preserved.
+       */
       user: {
         uid:
           req.piUser.uid,
@@ -1026,6 +1057,11 @@ app.post(
             .profile_image || null
       },
 
+      /*
+       * IMPORTANT:
+       * wallet.walletAddress is still the AMT
+       * application ledger address.
+       */
       wallet: {
         walletStatus:
           req.wallet
@@ -1036,8 +1072,17 @@ app.post(
             .wallet_address,
 
         isBlockchainWallet:
-          false
-      }
+          false,
+
+        walletType:
+          "AMT_TESTNET_LEDGER"
+      },
+
+      network:
+        "Pi Testnet",
+
+      environment:
+        "TESTNET"
     });
   }
 );
@@ -1066,16 +1111,35 @@ app.get(
         req.member
           .profile_image || null,
 
+      /*
+       * VERIFIED Pi wallet address.
+       */
+      piWalletAddress:
+        req.piUser.walletAddress ||
+        null,
+
       walletStatus:
         req.wallet
           .wallet_status,
 
+      /*
+       * AMT application ledger address.
+       */
       walletAddress:
         req.wallet
           .wallet_address,
 
+      walletType:
+        "AMT_TESTNET_LEDGER",
+
+      isBlockchainWallet:
+        false,
+
       network:
-        "Pi Testnet"
+        "Pi Testnet",
+
+      environment:
+        "TESTNET"
     });
   }
 );
@@ -1354,11 +1418,32 @@ app.get(
       network:
         "Pi Testnet",
 
+      environment:
+        "TESTNET",
+
+      /*
+       * VERIFIED Pi Testnet wallet.
+       */
+      piWalletAddress:
+        req.piUser.walletAddress ||
+        null,
+
+      /*
+       * AMT application ledger wallet.
+       * Kept unchanged for compatibility.
+       */
       walletStatus:
         req.wallet
           .wallet_status,
 
       walletAddress:
+        req.wallet
+          .wallet_address,
+
+      /*
+       * Explicit AMT ledger field.
+       */
+      ledgerWalletAddress:
         req.wallet
           .wallet_address,
 
@@ -4532,22 +4617,10 @@ app.get(
 
 /* =========================================================
 LEGACY / FRONTEND COMPATIBILITY ROUTES
-=========================================================
-
-These routes are intentionally kept for the current
-frontend so that the existing Pioneer miners can log in
-without changing their accounts or balances.
-
 ========================================================= */
 
 /* ---------------------------------------------------------
 POST /api/users
-
-This is the route that was returning:
-Request failed: 404
-
-It uses Pi UID authentication and the existing member
-record. It does NOT create a duplicate Pioneer.
 --------------------------------------------------------- */
 
 app.post(
@@ -4598,6 +4671,13 @@ app.post(
           isBlockchainWallet:
             false
         },
+
+        /*
+         * Added without changing the old wallet object.
+         */
+        piWalletAddress:
+          req.piUser.walletAddress ||
+          null,
 
         balance,
 
@@ -4683,7 +4763,11 @@ app.get(
 
         walletAddress:
           req.wallet
-            .wallet_address
+            .wallet_address,
+
+        piWalletAddress:
+          req.piUser.walletAddress ||
+          null
       });
 
     } catch (error) {
@@ -4870,8 +4954,6 @@ app.get(
 
 /* ---------------------------------------------------------
 POST /api/referrals/apply
-
-Accepts referralMemberId or memberId.
 --------------------------------------------------------- */
 
 app.post(
@@ -5133,8 +5215,6 @@ app.get(
 
 /* ---------------------------------------------------------
 POST /api/profile/image
-
-Alias for /api/profile/photo
 --------------------------------------------------------- */
 
 app.post(
@@ -5223,8 +5303,6 @@ app.post(
 
 /* ---------------------------------------------------------
 DELETE /api/profile/image
-
-Alias for /api/profile/photo
 --------------------------------------------------------- */
 
 app.delete(
@@ -5331,7 +5409,7 @@ async function startServer() {
         );
 
         console.log(
-          `Version: 2.1.1`
+          "Version: 2.1.2"
         );
 
         console.log(
@@ -5360,6 +5438,10 @@ async function startServer() {
 
         console.log(
           "Legacy login compatibility: ENABLED"
+        );
+
+        console.log(
+          "Pi wallet address response: ENABLED"
         );
 
         console.log(
