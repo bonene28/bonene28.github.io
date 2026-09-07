@@ -265,7 +265,7 @@ Your Pi Wallet passphrase/private key is never requested by AMT. Never enter it 
 <div class="card-title">AMT APP WALLET</div>
 
 <div class="notice">
-The address below identifies your AMT Testnet application ledger wallet. It is not presented as a fabricated blockchain wallet address.
+The address below identifies your AMT Testnet application ledger wallet. It is not a fabricated blockchain wallet address.
 </div>
 
 <div style="margin-top:13px">
@@ -759,6 +759,10 @@ function fmt(value){
 function showToast(message,error=false){
   const el=$("toast");
 
+  if(!el){
+    return;
+  }
+
   el.textContent=message;
 
   el.className=
@@ -772,7 +776,19 @@ function showToast(message,error=false){
   },3500);
 }
 
+
+/* =========================================================
+   AMT API HELPER
+   ========================================================= */
+
 async function api(path,options={}){
+
+  const method=
+    String(
+      options.method||
+      "GET"
+    ).toUpperCase();
+
   const headers={
     ...(options.body instanceof FormData
       ?{}
@@ -781,40 +797,149 @@ async function api(path,options={}){
   };
 
   if(accessToken){
-    headers.Authorization="Bearer "+accessToken;
+    headers.Authorization=
+      "Bearer "+
+      accessToken;
   }
 
-  const response=await fetch(
-    API_BASE+path,
-    {
-      ...options,
-      headers
-    }
+  const cleanPath=
+    String(path||"").startsWith("/")
+      ?String(path)
+      :"/"+String(path);
+
+  const url=
+    API_BASE+
+    cleanPath;
+
+  console.log(
+    "[AMT API REQUEST]",
+    method,
+    url
   );
+
+  let response;
+
+  try{
+
+    response=
+      await fetch(
+        url,
+        {
+          ...options,
+          method,
+          headers
+        }
+      );
+
+  }catch(networkError){
+
+    console.error(
+      "[AMT API NETWORK ERROR]",
+      {
+        method,
+        url,
+        error:networkError
+      }
+    );
+
+    throw new Error(
+      "Cannot reach AMT backend. Check your internet connection."
+    );
+  }
 
   let data=null;
 
+  const contentType=
+    response.headers.get(
+      "content-type"
+    )||"";
+
   try{
-    data=await response.json();
-  }catch(e){
+
+    if(
+      contentType
+        .toLowerCase()
+        .includes("application/json")
+    ){
+
+      data=
+        await response.json();
+
+    }else{
+
+      const text=
+        await response.text();
+
+      data={
+        message:text
+      };
+    }
+
+  }catch(parseError){
+
     data={};
   }
 
+
   if(!response.ok){
+
+    console.error(
+      "[AMT API ERROR]",
+      {
+        status:response.status,
+        method,
+        path:cleanPath,
+        url,
+        response:data
+      }
+    );
+
+    const serverMessage=
+      data?.message||
+      data?.error||
+      data?.details||
+      "";
+
     throw new Error(
-      data.message||
-      data.error||
-      ("Request failed: "+response.status)
+      "Request failed "+
+      response.status+
+      " | "+
+      method+
+      " "+
+      cleanPath+
+      (
+        serverMessage
+          ?" | "+serverMessage
+          :""
+      )
     );
   }
+
+  console.log(
+    "[AMT API SUCCESS]",
+    method,
+    cleanPath,
+    data
+  );
 
   return data;
 }
 
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
 function showSection(id){
+
   document
     .querySelectorAll(".section")
-    .forEach(s=>s.classList.remove("active"));
+    .forEach(
+      section=>
+        section.classList.remove(
+          "active"
+        )
+    );
 
   const section=$(id);
 
@@ -824,12 +949,14 @@ function showSection(id){
 
   document
     .querySelectorAll(".nav-btn")
-    .forEach(btn=>{
-      btn.classList.toggle(
-        "active",
-        btn.dataset.section===id
-      );
-    });
+    .forEach(
+      button=>{
+        button.classList.toggle(
+          "active",
+          button.dataset.section===id
+        );
+      }
+    );
 
   window.scrollTo({
     top:0,
@@ -872,11 +999,17 @@ function showSection(id){
 
 function setPiWalletAddress(address){
 
-  const wallet=String(address||"").trim();
+  const wallet=
+    String(
+      address||
+      ""
+    ).trim();
 
   if(currentUser){
+
     currentUser.wallet_address=
-      wallet||null;
+      wallet||
+      null;
   }
 
   if(wallet){
@@ -887,35 +1020,56 @@ function setPiWalletAddress(address){
     );
 
     if($("piWalletAddress")){
-      $("piWalletAddress").textContent=wallet;
+
+      $("piWalletAddress")
+        .textContent=
+        wallet;
     }
 
     if($("profileWalletAddress")){
-      $("profileWalletAddress").textContent=wallet;
+
+      $("profileWalletAddress")
+        .textContent=
+        wallet;
     }
 
     if($("walletStatus")){
-      $("walletStatus").textContent="CONNECTED";
-      $("walletStatus").style.color="#8cffb3";
+
+      $("walletStatus")
+        .textContent=
+        "CONNECTED";
+
+      $("walletStatus")
+        .style
+        .color=
+        "#8cffb3";
     }
 
   }else{
 
     if($("piWalletAddress")){
-      $("piWalletAddress").textContent=
+
+      $("piWalletAddress")
+        .textContent=
         "Not connected";
     }
 
     if($("profileWalletAddress")){
-      $("profileWalletAddress").textContent=
+
+      $("profileWalletAddress")
+        .textContent=
         "Not connected";
     }
 
     if($("walletStatus")){
-      $("walletStatus").textContent=
+
+      $("walletStatus")
+        .textContent=
         "NOT CONNECTED";
 
-      $("walletStatus").style.color=
+      $("walletStatus")
+        .style
+        .color=
         "#ff7f91";
     }
   }
@@ -929,29 +1083,34 @@ function setPiWalletAddress(address){
 async function verifyCurrentPiSession(){
 
   const data=
-    await api("/api/auth/verify");
+    await api(
+      "/api/auth/verify"
+    );
 
   const piUser=
-    data.piUser||
-    data.user||
-    data.pi||
+    data?.piUser||
+    data?.user||
+    data?.pi||
     {};
 
   const walletAddress=
     piUser.walletAddress||
     piUser.wallet_address||
+    data?.piWalletAddress||
+    data?.pi_wallet_address||
     "";
 
   currentUser={
+
     username:
       piUser.username||
-      data.username||
+      data?.username||
       currentUser?.username||
       "Pioneer",
 
     uid:
       piUser.uid||
-      data.uid||
+      data?.uid||
       currentUser?.uid||
       "",
 
@@ -980,7 +1139,7 @@ async function verifyCurrentPiSession(){
 
 
 /* =========================================================
-   LOGIN
+   LOGIN WITH PI
    ========================================================= */
 
 async function loginWithPi(){
@@ -1011,6 +1170,7 @@ async function loginWithPi(){
           "wallet_address"
         ],
         payment=>{
+
           console.log(
             "Incomplete payment:",
             payment
@@ -1032,14 +1192,14 @@ async function loginWithPi(){
       authResult.accessToken;
 
     currentUser={
+
       ...authResult.user,
+
       wallet_address:
         authResult.user.wallet_address||
         null
     };
 
-
-    /* Save session */
 
     localStorage.setItem(
       "amt_pi_access_token",
@@ -1048,12 +1208,14 @@ async function loginWithPi(){
 
     localStorage.setItem(
       "amt_pi_username",
-      currentUser.username||""
+      currentUser.username||
+      ""
     );
 
     localStorage.setItem(
       "amt_pi_uid",
-      currentUser.uid||""
+      currentUser.uid||
+      ""
     );
 
     if(currentUser.wallet_address){
@@ -1065,7 +1227,9 @@ async function loginWithPi(){
     }
 
 
-    /* Existing user compatibility */
+    /*
+      Keep existing AMT legacy user compatibility.
+    */
 
     await api(
       "/api/users",
@@ -1082,8 +1246,8 @@ async function loginWithPi(){
 
 
     /*
-      Verify the Pi session with the AMT backend.
-      This retrieves the Pi Testnet wallet address.
+      Verify the actual Pi session with backend.
+      This also obtains the server-confirmed Pi wallet.
     */
 
     await verifyCurrentPiSession();
@@ -1097,16 +1261,22 @@ async function loginWithPi(){
 
     showToast(
       "Welcome, "+
-      (currentUser.username||"Pioneer")+
+      (
+        currentUser.username||
+        "Pioneer"
+      )+
       "!"
     );
 
   }catch(error){
 
-    console.error(error);
+    console.error(
+      "[AMT LOGIN ERROR]",
+      error
+    );
 
     showToast(
-      error.message||
+      error?.message||
       "Pi login failed.",
       true
     );
@@ -1138,15 +1308,18 @@ async function restoreSession(){
   const savedWallet=
     localStorage.getItem(
       "amt_pi_wallet_address"
-    )||"";
+    )||
+    "";
 
   if(!savedToken){
     return;
   }
 
-  accessToken=savedToken;
+  accessToken=
+    savedToken;
 
   currentUser={
+
     username:
       savedUsername||
       "Pioneer",
@@ -1162,16 +1335,7 @@ async function restoreSession(){
 
   try{
 
-    /*
-      Verify the saved Pi token again.
-      This prevents relying only on localStorage.
-    */
-
     await verifyCurrentPiSession();
-
-    /*
-      Validate AMT wallet session.
-    */
 
     await api(
       "/api/wallet"
@@ -1252,8 +1416,11 @@ function logoutPi(showMessage=true){
 
   document
     .querySelectorAll(".section")
-    .forEach(s=>
-      s.classList.remove("active")
+    .forEach(
+      section=>
+        section.classList.remove(
+          "active"
+        )
     );
 
   $("loginSection")
@@ -1265,6 +1432,7 @@ function logoutPi(showMessage=true){
     .add("hidden");
 
   if(showMessage){
+
     showToast(
       "Logged out."
     );
@@ -1279,13 +1447,21 @@ function logoutPi(showMessage=true){
 async function loadAll(){
 
   await Promise.allSettled([
+
     refreshWallet(),
+
     loadMiningStatus(),
+
     loadAirdrop(),
+
     loadReferral(),
+
     loadSecurityCircle(),
+
     loadProfile(),
+
     loadStaking()
+
   ]);
 }
 
@@ -1298,12 +1474,6 @@ async function refreshWallet(){
 
   try{
 
-    /*
-      IMPORTANT:
-      /api/wallet = AMT balance + AMT ledger wallet
-      /api/auth/verify = Pi identity + Pi wallet
-    */
-
     const data=
       await api(
         "/api/wallet"
@@ -1312,27 +1482,25 @@ async function refreshWallet(){
 
     const balance=
       num(
-        data.balance??
-        data.availableBalance??
+        data?.balance??
+        data?.availableBalance??
         0
       );
 
     const available=
       num(
-        data.availableBalance??
+        data?.availableBalance??
         balance
       );
 
     const staked=
       num(
-        data.stakedBalance??
-        data.stakedPrincipal??
-        data.staked??
+        data?.stakedBalance??
+        data?.stakedPrincipal??
+        data?.staked??
         0
       );
 
-
-    /* AMT balance */
 
     if($("walletBalance")){
 
@@ -1358,17 +1526,19 @@ async function refreshWallet(){
     }
 
 
-    /* =====================================================
-       AMT APPLICATION LEDGER WALLET
-       ===================================================== */
+    /*
+      AMT application ledger address.
+      This is deliberately kept separate from
+      the real Pi wallet address.
+    */
 
     const amtAddress=
-      data.ledgerWalletAddress||
-      data.wallet?.walletAddress||
+      data?.ledgerWalletAddress||
+      data?.wallet?.walletAddress||
       (
-        data.walletType===
+        data?.walletType===
         "AMT_TESTNET_LEDGER"
-          ?data.walletAddress
+          ?data?.walletAddress
           :""
       )||
       "";
@@ -1382,11 +1552,13 @@ async function refreshWallet(){
     }
 
 
-    /* =====================================================
-       PI TESTNET WALLET
-       ===================================================== */
+    /*
+      Pi Testnet wallet.
+    */
 
     const piAddress=
+      data?.piWalletAddress||
+      data?.pi_wallet_address||
       currentUser?.wallet_address||
       localStorage.getItem(
         "amt_pi_wallet_address"
@@ -1397,10 +1569,6 @@ async function refreshWallet(){
       piAddress
     );
 
-
-    /* =====================================================
-       KEEP EXISTING MINING UI BALANCE
-       ===================================================== */
 
     if($("miningBalance")){
 
@@ -1451,10 +1619,13 @@ async function refreshWallet(){
 
 async function copyPiWalletAddress(){
 
+  const element=
+    $("piWalletAddress");
+
   const address=
-    $("piWalletAddress")
-      .textContent
-      .trim();
+    element
+      ?element.textContent.trim()
+      :"";
 
   if(
     !address||
@@ -1572,29 +1743,29 @@ async function loadMiningStatus(){
 
     const active=
       Boolean(
-        data.active??
-        data.isMining??
-        data.session
+        data?.active??
+        data?.isMining??
+        data?.session
       );
 
     const completed=
       Boolean(
-        data.completed??
-        data.claimable??
-        data.rewardReady
+        data?.completed??
+        data?.claimable??
+        data?.rewardReady
       );
 
     const earned=
       num(
-        data.earned??
-        data.currentEarned??
+        data?.earned??
+        data?.currentEarned??
         0
       );
 
     const savedBalance=
       num(
-        data.balance??
-        data.availableBalance??
+        data?.balance??
+        data?.availableBalance??
         0
       );
 
@@ -1747,8 +1918,8 @@ function startMiningClock(data){
 
   let remaining=
     num(
-      data.remainingSeconds??
-      data.secondsRemaining??
+      data?.remainingSeconds??
+      data?.secondsRemaining??
       86400
     );
 
@@ -1756,14 +1927,14 @@ function startMiningClock(data){
 
   const savedBalance=
     num(
-      data.balance??
-      data.availableBalance??
+      data?.balance??
+      data?.availableBalance??
       0
     );
 
   const rate=
     num(
-      data.rate??
+      data?.rate??
       0.01
     );
 
@@ -1948,9 +2119,9 @@ async function claimMining(){
     showToast(
       "Mining reward claimed: "+
       fmt(
-        data.reward??
-        data.amount??
-        data.claimedAmount??
+        data?.reward??
+        data?.amount??
+        data?.claimedAmount??
         0
       )+
       " AMT"
@@ -1963,7 +2134,7 @@ async function claimMining(){
   }catch(error){
 
     showToast(
-      error.message||
+      error?.message||
       "Unable to claim AMT reward.",
       true
     );
@@ -1990,8 +2161,8 @@ async function loadAirdrop(){
 
     const claimed=
       Boolean(
-        data.claimed??
-        data.alreadyClaimed
+        data?.claimed??
+        data?.alreadyClaimed
       );
 
     $("airdropStatus")
@@ -2036,8 +2207,8 @@ async function claimAirdrop(){
     showToast(
       "Airdrop claimed: "+
       fmt(
-        data.amount??
-        data.reward??
+        data?.amount??
+        data?.reward??
         0
       )+
       " AMT"
@@ -2074,19 +2245,19 @@ async function loadReferral(){
 
     $("referralCode")
       .textContent=
-      data.referralCode??
-      data.code??
+      data?.referralCode??
+      data?.code??
       "------";
 
     $("referralCount")
       .textContent=
-      data.referralCount??
-      data.count??
+      data?.referralCount??
+      data?.count??
       0;
 
     $("activeMiners")
       .textContent=
-      data.activeMiners??
+      data?.activeMiners??
       0;
 
   }catch(error){
@@ -2198,8 +2369,8 @@ async function loadSecurityCircle(){
       );
 
     const members=
-      data.members||
-      data.securityCircle||
+      data?.members||
+      data?.securityCircle||
       [];
 
     $("circleCount")
@@ -2215,13 +2386,18 @@ async function loadSecurityCircle(){
     $("circleList")
       .innerHTML=
       members.length
-        ?members.map(m=>
-          `<div class="stake-item">
-            <div class="row">
-              <b>${esc(m.username??m.name??"Pioneer")}</b>
-              <span class="muted">Pi</span>
-            </div>
-          </div>`
+        ?members.map(
+          member=>
+            `<div class="stake-item">
+              <div class="row">
+                <b>${esc(
+                  member?.username??
+                  member?.name??
+                  "Pioneer"
+                )}</b>
+                <span class="muted">Pi</span>
+              </div>
+            </div>`
         ).join("")
         :'<div class="empty">No security-circle members returned.</div>';
 
@@ -2235,7 +2411,9 @@ async function loadSecurityCircle(){
       .innerHTML=
       '<div class="empty">Security Circle data is not available from the backend yet.</div>';
 
-    console.log(error);
+    console.log(
+      error
+    );
   }
 }
 
@@ -2254,13 +2432,13 @@ async function loadProfile(){
       );
 
     const username=
-      data.username??
+      data?.username??
       currentUser?.username??
       "Pioneer";
 
     const uid=
-      data.uid??
-      data.piUid??
+      data?.uid??
+      data?.piUid??
       currentUser?.uid??
       "—";
 
@@ -2284,19 +2462,14 @@ async function loadProfile(){
 
     $("infoKyc")
       .textContent=
-      data.kycStatus??
-      data.kyc??
+      data?.kycStatus??
+      data?.kyc??
       "UNVERIFIED";
 
 
-    /*
-      Only use Pi-specific wallet fields here.
-      Do NOT confuse AMT ledger wallet with Pi wallet.
-    */
-
     const wallet=
-      data.piWalletAddress||
-      data.pi_wallet_address||
+      data?.piWalletAddress||
+      data?.pi_wallet_address||
       currentUser?.wallet_address||
       localStorage.getItem(
         "amt_pi_wallet_address"
@@ -2309,10 +2482,10 @@ async function loadProfile(){
 
 
     const image=
-      data.profileImageUrl||
-      data.profile_image_url||
-      data.avatarUrl||
-      data.avatar||
+      data?.profileImageUrl||
+      data?.profile_image_url||
+      data?.avatarUrl||
+      data?.avatar||
       "";
 
     renderAvatar(
@@ -2368,6 +2541,10 @@ function renderAvatar(url){
 
   const box=
     $("avatarBox");
+
+  if(!box){
+    return;
+  }
 
   if(!url){
 
@@ -2457,9 +2634,9 @@ async function uploadProfileImage(){
       );
 
     renderAvatar(
-      data.profileImageUrl||
-      data.profile_image_url||
-      data.url||
+      data?.profileImageUrl||
+      data?.profile_image_url||
+      data?.url||
       imageData
     );
 
@@ -2522,10 +2699,11 @@ function selectPool(pool){
 
   document
     .querySelectorAll(".pool")
-    .forEach(item=>
-      item.classList.remove(
-        "active"
-      )
+    .forEach(
+      item=>
+        item.classList.remove(
+          "active"
+        )
     );
 
   const pools=
@@ -2534,18 +2712,21 @@ function selectPool(pool){
     );
 
   if(pool==="30D"){
+
     pools[0]?.classList.add(
       "active"
     );
   }
 
   if(pool==="90D"){
+
     pools[1]?.classList.add(
       "active"
     );
   }
 
   if(pool==="180D"){
+
     pools[2]?.classList.add(
       "active"
     );
@@ -2564,22 +2745,22 @@ async function loadStaking(){
 
     const available=
       num(
-        summary.availableBalance??
-        summary.available??
+        summary?.availableBalance??
+        summary?.available??
         0
       );
 
     const principal=
       num(
-        summary.stakedPrincipal??
-        summary.staked??
+        summary?.stakedPrincipal??
+        summary?.staked??
         0
       );
 
     const rewards=
       num(
-        summary.pendingRewards??
-        summary.rewards??
+        summary?.pendingRewards??
+        summary?.rewards??
         0
       );
 
@@ -2601,8 +2782,8 @@ async function loadStaking(){
 
 
     renderActiveStakes(
-      summary.activeStakes||
-      summary.stakes||
+      summary?.activeStakes||
+      summary?.stakes||
       []
     );
 
@@ -2640,24 +2821,24 @@ function renderActiveStakes(stakes){
 
         const principal=
           num(
-            stake.principal
+            stake?.principal
           );
 
         const reward=
           num(
-            stake.rewardAmount??
-            stake.reward_amount??
+            stake?.rewardAmount??
+            stake?.reward_amount??
             0
           );
 
         const unlock=
-          stake.unlockAt??
-          stake.unlock_at??
+          stake?.unlockAt??
+          stake?.unlock_at??
           "—";
 
         const unlocked=
           Boolean(
-            stake.unlocked??
+            stake?.unlocked??
             (
               unlock!=="—"&&
               new Date(unlock)<=
@@ -2670,8 +2851,8 @@ function renderActiveStakes(stakes){
 
           <div class="row">
             <b>${esc(
-              stake.poolName??
-              stake.poolId??
+              stake?.poolName??
+              stake?.poolId??
               "AMT STAKE"
             )}</b>
 
@@ -2696,7 +2877,7 @@ function renderActiveStakes(stakes){
             class="${unlocked?"primary":"secondary"}"
             style="margin-top:10px"
             ${unlocked?"":"disabled"}
-            onclick="unstake('${esc(stake.id)}')"
+            onclick="unstake('${esc(stake?.id)}')"
           >
             ${unlocked
               ?"💰 UNSTAKE + REWARD"
@@ -2752,7 +2933,7 @@ async function createStake(){
     showToast(
       "Stake created: "+
       fmt(
-        data.principal??
+        data?.principal??
         amount
       )+
       " AMT"
@@ -2781,6 +2962,7 @@ async function unstake(stakeId){
       "Unstake this AMT stake and receive principal + earned reward?"
     )
   ){
+
     return;
   }
 
@@ -2800,8 +2982,8 @@ async function unstake(stakeId){
     showToast(
       "Unstaked successfully. "+
       fmt(
-        data.totalPayout??
-        data.amount??
+        data?.totalPayout??
+        data?.amount??
         0
       )+
       " AMT returned."
@@ -2833,8 +3015,8 @@ async function loadStakingHistory(){
       );
 
     const history=
-      data.history||
-      data.stakes||
+      data?.history||
+      data?.stakes||
       [];
 
     $("stakingHistory")
@@ -2846,14 +3028,14 @@ async function loadStakingHistory(){
 
             <div class="row">
               <b>${esc(
-                item.poolName||
-                item.poolId||
+                item?.poolName||
+                item?.poolId||
                 "AMT"
               )}</b>
 
               <span>
                 ${fmt(
-                  item.principal||
+                  item?.principal||
                   0
                 )} AMT
               </span>
@@ -2862,7 +3044,7 @@ async function loadStakingHistory(){
             <div class="row">
               <span class="muted">Status</span>
               <span>${esc(
-                item.status||
+                item?.status||
                 "—"
               )}</span>
             </div>
@@ -2870,7 +3052,7 @@ async function loadStakingHistory(){
             <div class="row">
               <span class="muted">Reward</span>
               <span>${fmt(
-                item.rewardAmount||
+                item?.rewardAmount||
                 0
               )} AMT</span>
             </div>
@@ -2895,6 +3077,7 @@ function formatDate(value){
     !value||
     value==="—"
   ){
+
     return "—";
   }
 
@@ -2929,8 +3112,11 @@ function marketInfo(name){
 document.addEventListener(
   "DOMContentLoaded",
   ()=>{
+
     selectPool("30D");
+
     restoreSession();
+
   }
 );
 
@@ -2942,7 +3128,9 @@ document.addEventListener(
 window.addEventListener(
   "beforeunload",
   ()=>{
+
     if(miningInterval){
+
       clearInterval(
         miningInterval
       );
