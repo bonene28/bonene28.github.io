@@ -1,2556 +1,2837 @@
-<!DOCTYPE html>  <html lang="en">  
-<head>  
+<!DOCTYPE html><html lang="en">  <head>  
 <meta charset="UTF-8">  
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">  
-<title>Alberto Marketplace Token • AMT</title>  <script src="https://sdk.minepi.com/pi-sdk.js"></script>  <style>  
-*{box-sizing:border-box}  
-  
-:root{  
-  --bg:#05030d;  
-  --panel:#0d0a20;  
-  --panel2:#12102b;  
-  --line:#34236a;  
-  --purple:#9d4cff;  
-  --purple2:#d16cff;  
-  --blue:#20b7ff;  
-  --cyan:#40eaff;  
-  --green:#39ef92;  
-  --gold:#ffc83d;  
-  --muted:#a8a5c2;  
-  --danger:#ff7070;  
-}  
-  
-html,body{  
-  margin:0;  
-  min-height:100%;  
-  background:  
-    radial-gradient(circle at 50% -10%,#32145d 0,#0b0718 38%,#030208 100%);  
-  color:#fff;  
-  font-family:Arial,sans-serif;  
-}  
-  
-body{  
-  padding-bottom:110px;  
-}  
-  
-button{  
-  font:inherit;  
-  cursor:pointer;  
-}  
-  
-.app{  
-  max-width:760px;  
-  margin:auto;  
-  padding:12px;  
-}  
-  
-/* ================= HEADER ================= */  
-  
-.topbar{  
-  display:flex;  
-  align-items:center;  
-  gap:12px;  
-  padding:10px 4px 18px;  
-}  
-  
-.logo{  
-  width:54px;  
-  height:54px;  
-  min-width:54px;  
-  border-radius:50%;  
-  display:grid;  
-  place-items:center;  
-  font-weight:900;  
-  font-size:14px;  
-  color:#fff;  
-  border:2px solid #d19aff;  
-  background:  
-    radial-gradient(circle,#38206e 0,#160d35 58%,#070510 100%);  
-  box-shadow:  
-    0 0 12px #9d4cff,  
-    inset 0 0 18px #9d4cffa8;  
-}  
-  
-.title{  
-  min-width:0;  
-}  
-  
-.title h1{  
-  font-size:18px;  
-  margin:0;  
-  letter-spacing:.4px;  
-}  
-  
-.title p{  
-  margin:4px 0 0;  
-  color:var(--gold);  
-  font-weight:700;  
-  font-size:12px;  
-}  
-  
-.badge{  
-  margin-left:auto;  
-  border:1px solid #20e99a;  
-  color:var(--green);  
-  padding:8px 11px;  
-  border-radius:22px;  
-  font-size:11px;  
-  font-weight:800;  
-  white-space:nowrap;  
-  box-shadow:0 0 14px #20e99a22;  
-}  
-  
-/* ================= SECTIONS ================= */  
-  
-.section{  
-  display:none;  
-}  
-  
-.section.active{  
-  display:block;  
-}  
-  
-/* ================= CARDS ================= */  
-  
-.card{  
-  position:relative;  
-  background:  
-    linear-gradient(145deg,#171331ee,#090717f2);  
-  border:1px solid var(--line);  
-  border-radius:25px;  
-  padding:18px;  
-  margin:12px 0;  
-  box-shadow:  
-    0 14px 40px #0009,  
-    inset 0 0 35px #8b3cff09;  
-  overflow:hidden;  
-}  
-  
-.card:before{  
-  content:"";  
-  position:absolute;  
-  left:0;  
-  top:0;  
-  width:100%;  
-  height:1px;  
-  background:linear-gradient(90deg,transparent,#9d4cff,transparent);  
-  opacity:.7;  
-}  
-  
-.balance-card{  
-  background:  
-    radial-gradient(circle at 85% 15%,#702dff22,transparent 35%),  
-    linear-gradient(145deg,#171331ee,#090717f2);  
-}  
-  
-.kicker{  
-  color:#aaa6c4;  
-  font-size:12px;  
-  letter-spacing:2px;  
-  text-transform:uppercase;  
-}  
-  
-.balance{  
-  font-size:40px;  
-  font-weight:900;  
-  margin:8px 0 0;  
-  letter-spacing:.5px;  
-}  
-  
-.unit{  
-  color:var(--gold);  
-  font-weight:800;  
-  margin-top:3px;  
-}  
-  
-/* ================= STATS ================= */  
-  
-.stats{  
-  display:grid;  
-  grid-template-columns:repeat(3,1fr);  
-  gap:9px;  
-  margin-top:17px;  
-}  
-  
-.stat{  
-  background:  
-    linear-gradient(145deg,#100d25,#080716);  
-  border:1px solid #302451;  
-  border-radius:17px;  
-  padding:12px 9px;  
-  text-align:center;  
-}  
-  
-.stat b{  
-  display:block;  
-  font-size:17px;  
-}  
-  
-.stat span{  
-  display:block;  
-  color:#9e9bb3;  
-  font-size:10px;  
-  margin-top:5px;  
-  letter-spacing:.4px;  
-}  
-  
-/* ================= MINING ================= */  
-  
-.mining-head{  
-  display:flex;  
-  justify-content:space-between;  
-  align-items:end;  
-  gap:10px;  
-}  
-  
-.mining-head h2{  
-  margin:4px 0 0;  
-  font-size:22px;  
-}  
-  
-.live{  
-  color:var(--green);  
-  font-weight:800;  
-  white-space:nowrap;  
-}  
-  
-/* PREMIUM CORE FAN */  
-  
-.miner{  
-  height:330px;  
-  margin-top:16px;  
-  border-radius:24px;  
-  background:  
-    radial-gradient(circle at 50% 50%,#5d2bb955 0,#21103d 34%,#0a0715 72%);  
-  border:1px solid #392565;  
-  display:grid;  
-  place-items:center;  
-  overflow:hidden;  
-  position:relative;  
-  box-shadow:  
-    inset 0 0 50px #6d32ff19,  
-    0 0 25px #5425a322;  
-}  
-  
-.miner:before{  
-  content:"";  
-  position:absolute;  
-  width:275px;  
-  height:275px;  
-  border-radius:50%;  
-  border:1px dashed #20b7ff55;  
-  animation:spinSlow 18s linear infinite;  
-}  
-  
-.miner:after{  
-  content:"";  
-  position:absolute;  
-  width:230px;  
-  height:230px;  
-  border-radius:50%;  
-  border:1px solid #9d4cff55;  
-  box-shadow:  
-    0 0 35px #9d4cff33,  
-    inset 0 0 35px #20b7ff22;  
-  animation:spinReverse 12s linear infinite;  
-}  
-  
-.core-fan{  
-  position:relative;  
-  width:250px;  
-  height:250px;  
-  border-radius:50%;  
-  display:grid;  
-  place-items:center;  
-  z-index:2;  
-  animation:corePulse 3s ease-in-out infinite;  
-}  
-  
-.fan-ring{  
-  position:absolute;  
-  inset:5px;  
-  border-radius:50%;  
-  border:5px solid transparent;  
-  border-top-color:#25caff;  
-  border-right-color:#9d4cff;  
-  border-bottom-color:#ffc83d;  
-  box-shadow:  
-    0 0 18px #20b7ff,  
-    0 0 35px #9d4cff66;  
-  animation:spin 5s linear infinite;  
-}  
-  
-.fan-ring.two{  
-  inset:20px;  
-  border-width:2px;  
-  border-top-color:#d16cff;  
-  border-right-color:#20eaff;  
-  border-bottom-color:#8d3cff;  
-  animation:spinReverse 7s linear infinite;  
-}  
-  
-.blades{  
-  position:absolute;  
-  width:190px;  
-  height:190px;  
-  border-radius:50%;  
-  animation:spin 3.5s linear infinite;  
-}  
-  
-.blade{  
-  position:absolute;  
-  left:50%;  
-  top:50%;  
-  width:78px;  
-  height:35px;  
-  transform-origin:0 50%;  
-  border-radius:100% 20% 20% 100%;  
-  background:  
-    linear-gradient(90deg,#7c35ff,#22bfff,#b85cff);  
-  box-shadow:  
-    0 0 13px #20b7ff,  
-    0 0 25px #8c3dff88;  
-}  
-  
-.blade:nth-child(1){transform:rotate(0deg)}  
-.blade:nth-child(2){transform:rotate(60deg)}  
-.blade:nth-child(3){transform:rotate(120deg)}  
-.blade:nth-child(4){transform:rotate(180deg)}  
-.blade:nth-child(5){transform:rotate(240deg)}  
-.blade:nth-child(6){transform:rotate(300deg)}  
-  
-.core-center{  
-  position:absolute;  
-  width:75px;  
-  height:75px;  
-  border-radius:50%;  
-  display:grid;  
-  place-items:center;  
-  z-index:5;  
-  color:#ffc83d;  
-  font-size:20px;  
-  font-weight:900;  
-  background:  
-    radial-gradient(circle,#5ceaff 0,#5131ff 42%,#130b2c 75%);  
-  border:3px solid #d8a0ff;  
-  box-shadow:  
-    0 0 15px #20dfff,  
-    0 0 40px #7c38ff,  
-    inset 0 0 25px #20b7ff88;  
-}  
-  
-.core-label{  
-  position:absolute;  
-  bottom:17px;  
-  left:50%;  
-  transform:translateX(-50%);  
-  z-index:8;  
-  padding:8px 22px;  
-  border-radius:12px;  
-  border:1px solid #20b7ff66;  
-  background:#080716dd;  
-  color:#fff;  
-  font-weight:900;  
-  letter-spacing:2px;  
-  font-size:12px;  
-  white-space:nowrap;  
-  box-shadow:0 0 20px #20b7ff22;  
-}  
-  
-@keyframes spin{  
-  to{transform:rotate(360deg)}  
-}  
-  
-@keyframes spinReverse{  
-  to{transform:rotate(-360deg)}  
-}  
-  
-@keyframes spinSlow{  
-  to{transform:rotate(360deg)}  
-}  
-  
-@keyframes corePulse{  
-  0%,100%{transform:scale(1)}  
-  50%{transform:scale(1.04)}  
-}  
-  
-/* ================= TIMER ================= */  
-  
-.timer{  
-  text-align:center;  
-  margin-top:12px;  
-  padding:15px;  
-  border:1px solid #302451;  
-  border-radius:18px;  
-  background:#080716aa;  
-}  
-  
-.timer b{  
-  font-size:38px;  
-  letter-spacing:1px;  
-}  
-  
-.timer p{  
-  margin:5px 0 0;  
-  color:#b8b4cf;  
-}  
-  
-.rate{  
-  margin-top:12px;  
-  color:#cf6cff;  
-  font-weight:900;  
-  font-size:18px;  
-}  
-  
-/* ================= BUTTONS ================= */  
-  
-.main-btn{  
-  border:0;  
-  border-radius:17px;  
-  padding:16px 18px;  
-  width:100%;  
-  font-weight:900;  
-  color:#fff;  
-  background:  
-    linear-gradient(100deg,#7a24ff,#1c9cff);  
-  box-shadow:  
-    0 8px 25px #7d2cff55;  
-  margin-top:12px;  
-  transition:.2s;  
-}  
-  
-.main-btn:active{  
-  transform:scale(.98);  
-}  
-  
-.main-btn:disabled{  
-  opacity:.55;  
-  filter:saturate(.6);  
-  cursor:not-allowed;  
-}  
-  
-.claim-btn{  
-  background:  
-    linear-gradient(100deg,#07955a,#32ef92);  
-  color:#06140d;  
-}  
-  
-/* ================= MINING STATUS ================= */  
-  
-.mining-active{  
-  margin-top:12px;  
-  padding:15px;  
-  text-align:center;  
-  border:1px solid #0fcf7c;  
-  border-radius:18px;  
-  background:  
-    linear-gradient(145deg,#063b29aa,#061b16aa);  
-  box-shadow:0 0 20px #00ff8820;  
-}  
-  
-.mining-active strong{  
-  display:block;  
-  color:var(--green);  
-  font-size:20px;  
-}  
-  
-.mining-active span{  
-  display:block;  
-  color:#aaa8bb;  
-  margin-top:5px;  
-  font-size:12px;  
-}  
-  
-.mining-metrics{  
-  display:grid;  
-  grid-template-columns:repeat(3,1fr);  
-  gap:8px;  
-  margin-top:12px;  
-}  
-  
-.metric{  
-  border:1px solid #302451;  
-  border-radius:15px;  
-  padding:11px 6px;  
-  text-align:center;  
-  background:#090817;  
-}  
-  
-.metric b{  
-  display:block;  
-  font-size:14px;  
-}  
-  
-.metric span{  
-  display:block;  
-  color:#9996af;  
-  font-size:9px;  
-  margin-top:4px;  
-}  
-  
-/* ================= ACTIONS ================= */  
-  
-.actions{  
-  display:grid;  
-  grid-template-columns:repeat(2,1fr);  
-  gap:10px;  
-}  
-  
-.action{  
-  border:1px solid #39285b;  
-  background:#11102a;  
-  border-radius:17px;  
-  padding:15px;  
-  color:#fff;  
-  text-align:left;  
-}  
-  
-.action b{  
-  display:block;  
-  font-size:14px;  
-}  
-  
-.action span{  
-  display:block;  
-  color:#9996b2;  
-  font-size:11px;  
-  margin-top:5px;  
-}  
-  
-.action.pay{border-color:#9148ed}  
-.action.swap{border-color:#167fc5}  
-.action.withdraw{border-color:#1a9c61}  
-.action.receive{border-color:#b8871a}  
-  
-.action:disabled{  
-  opacity:.65;  
-  cursor:not-allowed;  
-}  
-  
-/* ================= ROWS ================= */  
-  
-.row{  
-  display:flex;  
-  justify-content:space-between;  
-  gap:12px;  
-  padding:14px 0;  
-  border-bottom:1px solid #2a2440;  
-}  
-  
-.row:last-child{  
-  border-bottom:0;  
-}  
-  
-.row span{  
-  color:#a7a4bc;  
-}  
-  
-.green{color:var(--green)}  
-.gold{color:var(--gold)}  
-.blue{color:#39b7ff}  
-  
-.notice{  
-  border-color:#69501b;  
-}  
-  
-.notice h3{  
-  color:var(--gold);  
-  margin:0 0 8px;  
-}  
-  
-.notice p{  
-  color:#b2afc4;  
-  line-height:1.5;  
-  margin:0;  
-}  
-  
-/* ================= PROFILE ================= */  
-  
-.profile-head{  
-  display:flex;  
-  align-items:center;  
-  gap:14px;  
-}  
-  
-.profile-avatar{  
-  width:75px;  
-  height:75px;  
-  border-radius:50%;  
-  display:grid;  
-  place-items:center;  
-  font-size:28px;  
-  background:linear-gradient(145deg,#8c3dff,#20b7ff);  
-  border:3px solid #b66cff;  
-  box-shadow:0 0 25px #8c3dff77;  
-}  
-  
-.profile-name{  
-  font-size:23px;  
-  font-weight:900;  
-}  
-  
-.profile-sub{  
-  color:#aaa6c2;  
-  margin-top:5px;  
-}  
-  
-.kyc-badge{  
-  display:inline-block;  
-  margin-top:9px;  
-  padding:7px 11px;  
-  border-radius:12px;  
-  border:1px solid var(--green);  
-  color:var(--green);  
-  font-size:11px;  
-  font-weight:900;  
-}  
-  
-/* ================= REFERRAL ================= */  
-  
-.tier-card{  
-  background:  
-    radial-gradient(circle at 80% 20%,#a63cff2b,transparent 35%),  
-    linear-gradient(145deg,#171033,#090718);  
-  border-color:#6c38ad;  
-}  
-  
-.tier-row{  
-  display:flex;  
-  align-items:center;  
-  gap:15px;  
-}  
-  
-.tier-icon{  
-  width:70px;  
-  height:70px;  
-  min-width:70px;  
-  border-radius:20px;  
-  display:grid;  
-  place-items:center;  
-  font-size:30px;  
-  background:  
-    linear-gradient(145deg,#48209a,#17102e);  
-  border:2px solid #a851ff;  
-  box-shadow:0 0 25px #9d4cff66;  
-}  
-  
-.tier-label{  
-  color:#aaa3c1;  
-  font-size:12px;  
-  letter-spacing:1.5px;  
-}  
-  
-.tier-number{  
-  color:#d16cff;  
-  font-size:31px;  
-  font-weight:900;  
-  margin-top:3px;  
-}  
-  
-.elite{  
-  margin-left:auto;  
-  border:1px solid #d16cff;  
-  color:#e28aff;  
-  padding:8px 13px;  
-  border-radius:20px;  
-  font-size:11px;  
-  font-weight:900;  
-}  
-  
-.progress{  
-  margin-top:15px;  
-  height:9px;  
-  border-radius:20px;  
-  background:#211936;  
-  overflow:hidden;  
-}  
-  
-.progress span{  
-  display:block;  
-  height:100%;  
-  width:70%;  
-  border-radius:20px;  
-  background:linear-gradient(90deg,#7a24ff,#d16cff);  
-  box-shadow:0 0 12px #a54cff;  
-}  
-  
-.ref-stats{  
-  display:grid;  
-  grid-template-columns:repeat(3,1fr);  
-  gap:8px;  
-}  
-  
-.ref-stat{  
-  padding:14px 5px;  
-  text-align:center;  
-  border:1px solid #302451;  
-  border-radius:16px;  
-  background:#080716;  
-}  
-  
-.ref-stat b{  
-  display:block;  
-  font-size:23px;  
-  color:#d16cff;  
-}  
-  
-.ref-stat span{  
-  display:block;  
-  color:#9d99b3;  
-  font-size:9px;  
-  margin-top:5px;  
-}  
-  
-.invite-box{  
-  display:flex;  
-  align-items:center;  
-  gap:8px;  
-  border:1px solid #9d4cff;  
-  border-radius:17px;  
-  padding:6px;  
-  margin-top:12px;  
-  background:#090716;  
-}  
-  
-.invite-code{  
-  flex:1;  
-  min-width:0;  
-  padding:10px;  
-  font-size:14px;  
-  font-weight:900;  
-  overflow:hidden;  
-  text-overflow:ellipsis;  
-  white-space:nowrap;  
-}  
-  
-.copy-btn{  
-  border:1px solid var(--cyan);  
-  background:#081322;  
-  color:var(--cyan);  
-  border-radius:13px;  
-  padding:11px 13px;  
-  font-weight:900;  
-}  
-  
-.share-btn{  
-  margin-top:10px;  
-  border:0;  
-  border-radius:17px;  
-  width:100%;  
-  padding:16px;  
-  color:#fff;  
-  font-weight:900;  
-  background:linear-gradient(100deg,#902cff,#12a9ff);  
-  box-shadow:0 8px 25px #762cff44;  
-}  
-  
-/* ================= TEAM ================= */  
-  
-.team-member{  
-  display:flex;  
-  align-items:center;  
-  gap:10px;  
-  padding:12px 0;  
-  border-bottom:1px solid #29223f;  
-}  
-  
-.team-member:last-child{  
-  border-bottom:0;  
-}  
-  
-.team-avatar{  
-  width:43px;  
-  height:43px;  
-  border-radius:50%;  
-  display:grid;  
-  place-items:center;  
-  background:linear-gradient(145deg,#43217d,#122c5b);  
-  border:1px solid #586bff;  
-}  
-  
-.team-info{  
-  flex:1;  
-  min-width:0;  
-}  
-  
-.team-name{  
-  font-weight:800;  
-}  
-  
-.team-status{  
-  color:var(--green);  
-  font-size:10px;  
-  margin-top:4px;  
-}  
-  
-.team-tier{  
-  border:1px solid #9c711b;  
-  color:var(--gold);  
-  padding:6px 8px;  
-  border-radius:10px;  
-  font-size:9px;  
-  font-weight:900;  
-}  
-  
-/* ================= STATUS ================= */  
-  
-.status{  
-  margin-top:10px;  
-  color:#a9a6bd;  
-  font-size:13px;  
-  line-height:1.5;  
-}  
-  
-.ok{  
-  color:var(--green);  
-}  
-  
-.err{  
-  color:var(--danger);  
-}  
-  
-pre{  
-  white-space:pre-wrap;  
-  word-break:break-word;  
-  color:#aaa7bd;  
-  font-size:12px;  
-}  
-  
-/* ================= BOTTOM NAV ================= */  
-  
-.bottom{  
-  position:fixed;  
-  z-index:20;  
-  left:0;  
-  right:0;  
-  bottom:0;  
-  background:#080711f5;  
-  border-top:1px solid #2c2348;  
-  backdrop-filter:blur(18px);  
-  padding:  
-    8px  
-    max(8px,env(safe-area-inset-left))  
-    calc(8px + env(safe-area-inset-bottom));  
-}  
-  
-.nav{  
-  max-width:760px;  
-  margin:auto;  
-  display:grid;  
-  grid-template-columns:repeat(4,1fr);  
-  gap:5px;  
-}  
-  
-.nav button{  
-  background:transparent;  
-  border:0;  
-  color:#aaa7bd;  
-  padding:8px 3px;  
-  border-radius:14px;  
-  font-size:10px;  
-  font-weight:700;  
-}  
-  
-.nav button .ico{  
-  display:block;  
-  font-size:21px;  
-  margin-bottom:3px;  
-}  
-  
-.nav button.active{  
-  background:#261447;  
-  color:#d49aff;  
-  box-shadow:  
-    inset 0 0 18px #8d3cff22,  
-    0 0 15px #8d3cff11;  
-}  
-  
-/* ================= RESPONSIVE ================= */  
-  
-@media(min-width:650px){  
-  .nav{  
-    grid-template-columns:repeat(8,1fr);  
-  }  
-}  
-  
-@media(max-width:430px){  
-  
-  .app{  
-    padding:9px;  
-  }  
-  
-  .title h1{  
-    font-size:15px;  
-  }  
-  
-  .title p{  
-    font-size:10px;  
-  }  
-  
-  .badge{  
-    font-size:9px;  
-    padding:7px 8px;  
-  }  
-  
-  .balance{  
-    font-size:33px;  
-  }  
-  
-  .miner{  
-    height:285px;  
-  }  
-  
-  .core-fan{  
-    width:220px;  
-    height:220px;  
-  }  
-  
-  .blades{  
-    width:165px;  
-    height:165px;  
-  }  
-  
-  .blade{  
-    width:68px;  
-  }  
-  
-  .core-center{  
-    width:67px;  
-    height:67px;  
-    font-size:17px;  
-  }  
-  
-  .miner:before{  
-    width:245px;  
-    height:245px;  
-  }  
-  
-  .miner:after{  
-    width:205px;  
-    height:205px;  
-  }  
-  
-  .timer b{  
-    font-size:32px;  
-  }  
-  
-  .nav button{  
-    font-size:9px;  
-  }  
-  
-  .nav button .ico{  
-    font-size:19px;  
-  }  
-  
-  .stats{  
-    gap:5px;  
-  }  
-  
-  .stat{  
-    padding:10px 5px;  
-  }  
-  
-  .stat b{  
-    font-size:15px;  
-  }  
-  
-  .ref-stat b{  
-    font-size:20px;  
-  }  
-  
-  .tier-number{  
-    font-size:27px;  
-  }  
-}  
-</style>  </head>  <body>  <div class="app">  <!-- ================= TOPBAR ================= -->  <div class="topbar">    <div class="logo">AMT</div>    <div class="title">  
-    <h1>ALBERTO MARKETPLACE TOKEN</h1>  
-    <p>AMT • PI TESTNET</p>  
-  </div>    <div class="badge">● TESTNET</div>  </div>  <!-- ================= MINING ================= -->  <section id="mining" class="section active">    <div class="card balance-card">  <div class="kicker">Total AMT Balance</div>  
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">  
+<meta name="theme-color" content="#090711"><title>Alberto Marketplace Token • AMT Testnet</title><script src="https://sdk.minepi.com/pi-sdk.js"></script><style>  
+*{  
+  box-sizing:border-box;  
+  -webkit-tap-highlight-color:transparent;  
+}  html{
+scroll-behavior:smooth;
+}
 
-<div class="balance" id="balance">  
-  0.00000000  
-</div>  
+body{
+margin:0;
+min-height:100vh;
+font-family:Arial,Helvetica,sans-serif;
+color:#fff;
+background:
+radial-gradient(circle at 20% 0%,rgba(125,55,255,.22),transparent 35%),
+radial-gradient(circle at 100% 20%,rgba(255,174,0,.12),transparent 30%),
+linear-gradient(145deg,#05040b,#10091c 48%,#05040b);
+}
 
-<div class="unit">  
-  AMT Testnet  
-</div>  
+button,
+input,
+select{
+font:inherit;
+}
 
-<div class="stats">  
+button{
+cursor:pointer;
+}
 
-  <div class="stat">  
-    <b>0.01</b>  
-    <span>AMT / HOUR</span>  
-  </div>  
+.hidden{
+display:none!important;
+}
 
-  <div class="stat">  
-    <b id="miningState">OFF</b>  
-    <span>MINING STATUS</span>  
-  </div>  
+.app{
+width:100%;
+max-width:720px;
+margin:auto;
+padding-bottom:105px;
+}
 
-  <div class="stat">  
-    <b>PI</b>  
-    <span>NETWORK</span>  
-  </div>  
+header{
+position:sticky;
+top:0;
+z-index:50;
+padding:14px 15px;
+background:rgba(7,5,14,.88);
+backdrop-filter:blur(18px);
+border-bottom:1px solid rgba(255,255,255,.07);
+}
 
-</div>
+.header-row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+}
 
-  </div>    <div class="card">  <div class="mining-head">  
+.brand{
+display:flex;
+align-items:center;
+gap:10px;
+}
 
-  <div>  
-    <div class="kicker">Mining Machine</div>  
-    <h2>AMT Mining Core Fan</h2>  
-  </div>  
+.brand-logo{
+width:48px;
+height:48px;
+border-radius:15px;
+display:grid;
+place-items:center;
+font-size:20px;
+font-weight:900;
+color:#ffd95a;
+background:
+radial-gradient(circle,#4b1d79,#160b27 65%);
+border:1px solid rgba(255,215,80,.5);
+box-shadow:0 0 22px rgba(166,74,255,.4);
+}
 
-  <div class="live">  
-    ● LIVE  
-  </div>  
+.brand-title{
+font-size:16px;
+font-weight:900;
+letter-spacing:.8px;
+}
 
-</div>  
+.brand-sub{
+margin-top:3px;
+font-size:10px;
+color:#aaa0bb;
+}
 
+.testnet{
+flex-shrink:0;
+padding:7px 10px;
+border-radius:999px;
+color:#8cffb3;
+border:1px solid rgba(80,255,145,.45);
+background:rgba(20,120,55,.12);
+font-size:10px;
+font-weight:800;
+}
 
-<!-- PREMIUM FAN -->  
+main{
+padding:16px;
+}
 
-<div class="miner">  
+.section{
+display:none;
+animation:fade .25s ease;
+}
 
-  <div class="core-fan">  
+.section.active{
+display:block;
+}
 
-    <div class="fan-ring"></div>  
-    <div class="fan-ring two"></div>  
+@keyframes fade{
+from{opacity:0;transform:translateY(5px)}
+to{opacity:1;transform:translateY(0)}
+}
 
-    <div class="blades">  
+.hero{
+position:relative;
+overflow:hidden;
+padding:22px;
+border-radius:27px;
+margin-bottom:15px;
+background:
+radial-gradient(circle at 90% 10%,rgba(255,199,52,.17),transparent 28%),
+linear-gradient(135deg,rgba(97,30,160,.35),rgba(12,8,24,.96));
+border:1px solid rgba(184,91,255,.28);
+box-shadow:0 15px 50px rgba(0,0,0,.3);
+}
 
-      <div class="blade"></div>  
-      <div class="blade"></div>  
-      <div class="blade"></div>  
-      <div class="blade"></div>  
-      <div class="blade"></div>  
-      <div class="blade"></div>  
+.hero h1{
+margin:0;
+font-size:27px;
+line-height:1.05;
+}
 
+.hero h1 span{
+color:#ffd34e;
+}
+
+.hero p{
+margin:9px 0 0;
+color:#aaa2b9;
+font-size:13px;
+}
+
+.notice{
+margin-top:15px;
+padding:12px;
+border-radius:15px;
+background:rgba(255,255,255,.045);
+border:1px solid rgba(255,255,255,.07);
+color:#c5bdd1;
+font-size:11px;
+line-height:1.5;
+}
+
+.card{
+padding:18px;
+margin-bottom:15px;
+border-radius:23px;
+background:linear-gradient(145deg,rgba(28,18,45,.95),rgba(10,8,17,.96));
+border:1px solid rgba(255,255,255,.075);
+box-shadow:0 12px 35px rgba(0,0,0,.22);
+}
+
+.card-title{
+margin:0 0 13px;
+font-size:14px;
+color:#c18cff;
+letter-spacing:.7px;
+font-weight:900;
+}
+
+.big-balance{
+font-size:34px;
+font-weight:900;
+letter-spacing:-1px;
+}
+
+.balance-symbol{
+font-size:13px;
+color:#ffd452;
+margin-left:5px;
+}
+
+.muted{
+color:#958ba3;
+font-size:12px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:11px;
+}
+
+.grid3{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:9px;
+}
+
+.stat{
+padding:14px 10px;
+border-radius:17px;
+background:rgba(255,255,255,.035);
+border:1px solid rgba(255,255,255,.06);
+}
+
+.stat-label{
+font-size:10px;
+color:#938a9e;
+}
+
+.stat-value{
+margin-top:5px;
+font-size:15px;
+font-weight:800;
+}
+
+.primary{
+width:100%;
+border:0;
+padding:14px 16px;
+border-radius:16px;
+color:#100817;
+font-weight:900;
+background:linear-gradient(110deg,#ffd54a,#b65cff);
+box-shadow:0 7px 24px rgba(181,84,255,.25);
+}
+
+.secondary{
+width:100%;
+border:1px solid rgba(180,99,255,.35);
+padding:13px 16px;
+border-radius:16px;
+color:#fff;
+font-weight:800;
+background:rgba(126,53,185,.12);
+}
+
+.danger{
+width:100%;
+border:1px solid rgba(255,80,100,.3);
+padding:13px 16px;
+border-radius:16px;
+color:#ff7f91;
+font-weight:800;
+background:rgba(255,40,70,.08);
+}
+
+button:disabled{
+opacity:.45;
+cursor:not-allowed;
+}
+
+.row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+}
+
+.row + .row{
+margin-top:12px;
+}
+
+.mining-ring{
+width:205px;
+height:205px;
+margin:18px auto;
+border-radius:50%;
+display:grid;
+place-items:center;
+position:relative;
+background:
+radial-gradient(circle,#160c25 52%,transparent 53%),
+conic-gradient(from 0deg,#ffdb4d,#a34dff,#45a5ff,#ffdb4d);
+box-shadow:
+0 0 30px rgba(169,72,255,.35),
+inset 0 0 25px rgba(0,0,0,.8);
+animation:spin 7s linear infinite;
+}
+
+.mining-ring::before{
+content:"";
+position:absolute;
+inset:8px;
+border-radius:50%;
+border:1px solid rgba(255,255,255,.13);
+}
+
+.mining-inner{
+width:180px;
+height:180px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+background:#0b0813;
+z-index:2;
+}
+
+@keyframes spin{
+to{transform:rotate(360deg)}
+}
+
+.mining-time{
+font-size:25px;
+font-weight:900;
+}
+
+.mining-rate{
+color:#ffd452;
+margin-top:6px;
+font-size:11px;
+}
+
+.status-pill{
+display:block;
+text-align:center;
+padding:11px;
+border-radius:999px;
+margin-bottom:12px;
+color:#120b17;
+font-weight:900;
+background:linear-gradient(100deg,#ffd94d,#b75dff);
+}
+
+.progress{
+height:8px;
+border-radius:99px;
+overflow:hidden;
+background:rgba(255,255,255,.07);
+margin:14px 0;
+}
+
+.progress span{
+display:block;
+height:100%;
+width:0%;
+border-radius:99px;
+background:linear-gradient(90deg,#ffd84c,#9c55ff);
+transition:width .4s;
+}
+
+.input{
+width:100%;
+padding:13px 14px;
+border-radius:14px;
+color:#fff;
+outline:none;
+border:1px solid rgba(255,255,255,.1);
+background:#0a0711;
+}
+
+.input:focus{
+border-color:#a95cff;
+}
+
+label{
+display:block;
+margin:0 0 7px;
+font-size:11px;
+color:#aaa1b5;
+}
+
+.form-group{
+margin-bottom:12px;
+}
+
+.action-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+}
+
+.pool{
+padding:15px;
+border-radius:18px;
+margin-bottom:10px;
+background:rgba(255,255,255,.035);
+border:1px solid rgba(255,255,255,.075);
+}
+
+.pool.active{
+border-color:rgba(190,90,255,.65);
+box-shadow:0 0 20px rgba(160,70,255,.12);
+}
+
+.pool-name{
+font-weight:900;
+font-size:15px;
+}
+
+.pool-rate{
+color:#ffd450;
+font-size:22px;
+font-weight:900;
+margin:6px 0;
+}
+
+.pool small{
+color:#968ca1;
+}
+
+.stake-item{
+padding:14px;
+margin-top:10px;
+border-radius:17px;
+background:rgba(255,255,255,.035);
+border:1px solid rgba(255,255,255,.06);
+}
+
+.avatar-wrap{
+text-align:center;
+margin-bottom:15px;
+}
+
+.avatar{
+width:105px;
+height:105px;
+border-radius:50%;
+object-fit:cover;
+display:block;
+margin:auto;
+border:3px solid #a959ff;
+background:#160d23;
+box-shadow:0 0 30px rgba(175,70,255,.35);
+}
+
+.avatar-placeholder{
+display:grid;
+place-items:center;
+font-size:38px;
+color:#91889e;
+}
+
+.profile-name{
+margin-top:11px;
+font-size:21px;
+font-weight:900;
+}
+
+.nav{
+position:fixed;
+left:50%;
+bottom:0;
+transform:translateX(-50%);
+width:min(720px,100%);
+z-index:100;
+padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+background:rgba(8,6,14,.94);
+backdrop-filter:blur(20px);
+border-top:1px solid rgba(255,255,255,.08);
+}
+
+.nav-grid{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:5px;
+}
+
+.nav-btn{
+min-width:0;
+border:0;
+padding:9px 3px;
+border-radius:13px;
+color:#82798c;
+background:transparent;
+font-size:10px;
+font-weight:800;
+}
+
+.nav-btn .icon{
+display:block;
+font-size:19px;
+margin-bottom:3px;
+}
+
+.nav-btn.active{
+color:#ffd64e;
+background:rgba(170,79,255,.13);
+}
+
+.toast{
+position:fixed;
+left:50%;
+bottom:95px;
+transform:translate(-50%,20px);
+width:calc(100% - 32px);
+max-width:650px;
+padding:13px 15px;
+border-radius:15px;
+background:#17101f;
+border:1px solid rgba(255,255,255,.1);
+box-shadow:0 12px 35px rgba(0,0,0,.4);
+opacity:0;
+pointer-events:none;
+transition:.25s;
+z-index:200;
+font-size:12px;
+}
+
+.toast.show{
+opacity:1;
+transform:translate(-50%,0);
+}
+
+.toast.success{
+border-color:rgba(65,255,135,.35);
+}
+
+.toast.error{
+border-color:rgba(255,70,95,.35);
+}
+
+.login-box{
+text-align:center;
+padding:20px 0 10px;
+}
+
+.login-box h2{
+margin:0 0 7px;
+}
+
+.login-box p{
+color:#93899f;
+font-size:12px;
+line-height:1.5;
+}
+
+.wallet-address{
+word-break:break-all;
+font-family:monospace;
+color:#caa2ff;
+font-size:11px;
+}
+
+.market-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+}
+
+.market-item{
+padding:13px;
+border-radius:17px;
+background:rgba(255,255,255,.035);
+border:1px solid rgba(255,255,255,.07);
+}
+
+.market-art{
+height:115px;
+border-radius:14px;
+display:grid;
+place-items:center;
+margin-bottom:10px;
+font-size:42px;
+background:
+radial-gradient(circle at 50% 30%,rgba(179,80,255,.4),transparent 50%),
+#10091a;
+}
+
+.market-name{
+font-weight:900;
+font-size:13px;
+}
+
+.market-price{
+color:#ffd34f;
+margin:5px 0 9px;
+font-size:12px;
+}
+
+.small-btn{
+border:1px solid rgba(170,80,255,.3);
+border-radius:10px;
+padding:9px;
+width:100%;
+color:#fff;
+background:rgba(170,80,255,.1);
+font-size:11px;
+font-weight:800;
+}
+
+.empty{
+padding:25px 12px;
+text-align:center;
+color:#807688;
+font-size:12px;
+}
+
+hr{
+border:0;
+border-top:1px solid rgba(255,255,255,.06);
+margin:15px 0;
+}
+
+@media(max-width:420px){
+main{padding:12px}
+.hero{padding:18px}
+.grid3{grid-template-columns:1fr 1fr}
+.grid3 .stat:last-child{
+grid-column:1/-1;
+}
+.big-balance{font-size:29px}
+}
+</style></head><body><div class="app"><header>
+
+  <div class="header-row">  
+    <div class="brand">  
+      <div class="brand-logo">AMT</div>  
+      <div>  
+        <div class="brand-title">ALBERTO MARKETPLACE</div>  
+        <div class="brand-sub">TOKEN • TESTNET ECOSYSTEM</div>  
+      </div>  
     </div>  
-
-    <div class="core-center">  
-      AMT  
-    </div>  
-
+    <div class="testnet">● PI TESTNET</div>  
   </div>  
-
-  <div class="core-label">  
-    AMT MINING CORE  
-  </div>  
-
-</div>  
-
-
-<div class="timer">  
-
-  <b id="timer">  
-    24:00:00  
-  </b>  
-
+</header><main><section id="loginSection" class="section active">  
+  <div class="hero">  
+    <h1>Welcome to <span>AMT</span></h1>  
+    <p>Alberto Marketplace Token</p><div class="notice">  
+  <b>PI TESTNET ONLY</b><br>  
+  This application is for testing and development.  
+  AMT shown here has no Mainnet value.  
+</div>    </div>  <div class="card">  
+    <div class="login-box">  
+      <div class="brand-logo" style="margin:auto;width:75px;height:75px;font-size:27px">  
+        AMT  
+      </div>  <h2>Sign in with Pi</h2>  
   <p>  
-    Time Remaining  
-  </p>  
-
-  <div class="rate">  
-    0.01 AMT / hour  
+    Connect your Pi account to access mining,  
+    AMT wallet, rewards, referrals, security circle,  
+    staking and marketplace features.  
+  </p>    <button class="primary" onclick="loginWithPi()">  
+    🟣 LOGIN WITH PI  
+  </button>  
+</div>    </div>  
+</section><section id="miningSection" class="section">  <div class="hero">  
+    <h1><span>AMT</span> MINING</h1>  
+    <p>Alberto Marketplace Token</p><div class="notice">  
+  Pi KYC is <b>not required</b> for AMT Testnet mining.  
+  KYC may be required for applicable Mainnet functions.  
+</div>    </div>  <div class="card">  
+    <div class="card-title">MINING SESSION</div><div class="mining-ring">  
+  <div class="mining-inner">  
+    <div id="miningTimer" class="mining-time">24:00:00</div>  
+    <div class="mining-rate">0.01 AMT / HOUR</div>  
   </div>  
-
-</div>  
-
-
-<button  
-  class="main-btn"  
-  id="mineBtn"  
-  disabled>  
-  ⛏ START MINING  
-</button>  
-
-
-<button  
-  class="main-btn claim-btn"  
-  id="claimBtn"  
-  disabled>  
-  🎁 CHECK / CLAIM REWARD  
-</button>  
-
-
-<div id="miningActiveBox" class="mining-active" style="display:none">  
-
-  <strong>  
-    ⚡ MINING ACTIVE  
-  </strong>  
-
-  <span>  
-    Your AMT Mining Core is running smoothly.  
-  </span>  
-
-</div>  
-
-
-<div class="mining-metrics">  
-
-  <div class="metric">  
-    <b>0.24 AMT</b>  
-    <span>DAILY MAX</span>  
-  </div>  
-
-  <div class="metric">  
-    <b id="earnedToday">0.00 AMT</b>  
-    <span>SESSION EARNED</span>  
-  </div>  
-
-  <div class="metric">  
-    <b id="totalEarned">0.00 AMT</b>  
-    <span>TOTAL EARNED</span>  
-  </div>  
-
-</div>  
-
-
-<div id="status" class="status">  
-  Not signed in.  
-</div>
-
-  </div>    <div class="card">  <div class="kicker">  
-  Pi Pioneer Access  
-</div>  
-
-<button  
-  class="main-btn"  
-  id="loginBtn">  
-  🔐 LOGIN WITH PI  
+</div>  <div id="miningStatus" class="status-pill">  
+  MINING READY  
+</div>  <button id="startMiningBtn" class="primary" onclick="startMining()">  
+  ⛏️ START MINING  
+</button>  <button id="claimMiningBtn"  
+class="secondary hidden"  
+style="margin-top:10px"  
+onclick="claimMining()">
+💰 CLAIM AMT REWARD
 </button>
-
-  </div>  </section>  <!-- ================= WALLET ================= -->  <section id="wallet" class="section">    <div class="card balance-card">  <div class="kicker">  
-  AMT Wallet  
-</div>  
-
-<div class="balance" id="walletBalance">  
-  0.00000000  
-</div>  
-
-<div class="unit">  
-  AMT Testnet  
-</div>  
-
-<div class="stats">  
-
-  <div class="stat">  
-    <b>AMT</b>  
-    <span>ASSET</span>  
-  </div>  
-
-  <div class="stat">  
-    <b>TEST</b>  
-    <span>NETWORK</span>  
-  </div>  
-
-  <div class="stat">  
-    <b>SAFE</b>  
-    <span>LEDGER</span>  
-  </div>  
-
-</div>
-
-  </div>    <div class="card">  <div class="kicker">  
-  Wallet Actions  
-</div>  
-
-<div class="actions">  
-
-  <button  
-    class="action pay"  
-    id="paymentBtn">  
-
-    <b>💜 PAYMENT</b>  
-    <span>Pi payment flow</span>  
-
-  </button>  
-
-
-  <button  
-    class="action swap"  
-    disabled>  
-
-    <b>🔄 SWAP</b>  
-    <span>Coming Soon</span>  
-
-  </button>  
-
-
-  <button  
-    class="action withdraw"  
-    disabled>  
-
-    <b>📥 WITHDRAW</b>  
-    <span>Coming Soon</span>  
-
-  </button>  
-
-
-  <button  
-    class="action receive"  
-    disabled>  
-
-    <b>▣ RECEIVE</b>  
-    <span>Coming Soon</span>  
-
-  </button>  
-
-</div>  
-
-<div class="status">  
-  Swap, Withdraw and Receive are reserved for the next release.  
-</div>
-
-  </div>    <div class="card">  <div class="row">  
-  <span>Network</span>  
-  <b class="blue">Pi Testnet</b>  
-</div>  
-
-<div class="row">  
-  <span>Ledger</span>  
-  <b class="green">Backend Controlled</b>  
-</div>  
-
-<div class="row">  
-  <span>On-chain AMT</span>  
-  <b>Not connected</b>  
-</div>  
-
-<button  
-  class="main-btn"  
-  id="refreshWalletBtn"  
-  disabled>  
-  ↻ REFRESH WALLET  
-</button>
-
-  </div>    <div class="card notice">  <h3>  
-  🛡 ABOUT AMT TESTNET WALLET  
-</h3>  
-
-<p>  
-  Testnet wallet balances shown here come from  
-  the AMT backend ledger. No fake on-chain  
-  balance is displayed.  
-</p>
-
-  </div>  </section>  <!-- ================= PROFILE ================= -->  <section id="profile" class="section">    <div class="card">  <div class="kicker">  
-  Pioneer Profile  
-</div>  
-
-<div class="profile-head">  
-
-  <div class="profile-avatar">  
-    👤  
-  </div>  
-
-  <div>  
-
-    <div  
-      class="profile-name"  
-      id="profileUsername">  
-      Pi Pioneer  
-    </div>  
-
-    <div  
-      class="profile-sub">  
-      Alberto Marketplace Pioneer  
-    </div>  
-
-    <div  
-      class="kyc-badge"  
-      id="kycBadge">  
-      ● PI ACCOUNT STATUS  
-    </div>  
-
-  </div>  
-
-</div>
-
-  </div>    <div class="card">  <div class="row">  
-  <span>Pi UID</span>  
-  <b id="profileUid">—</b>  
-</div>  
-
-<div class="row">  
-  <span>KYC Status</span>  
-  <b id="profileKyc">—</b>  
-</div>  
-
-<div class="row">  
-  <span>Wallet Status</span>  
-  <b id="profileWallet">—</b>  
-</div>  
-
-<div class="row">  
-  <span>Referral Tier</span>  
-  <b  
-    id="profileTier"  
-    class="gold">  
-    STARTER  
-  </b>  
-</div>
-
-  </div>    <div class="card notice">  <h3>  
-  🛡 PI ACCOUNT VERIFICATION  
-</h3>  
-
-<p>  
-  AMT displays the account information returned  
-  by the AMT backend. Testnet mining and future  
-  Mainnet transaction requirements can be  
-  enforced separately.  
-</p>
-
-  </div>  </section>  <!-- ================= REFERRAL ================= -->  <section id="referral" class="section">    <div class="card tier-card">  <div class="tier-row">  
-
-  <div class="tier-icon">  
-    👥  
-  </div>  
-
-  <div>  
-
-    <div class="tier-label">  
-      YOUR REFERRAL TIER  
-    </div>  
-
-    <div  
-      class="tier-number"  
-      id="tierNumber">  
-      TIER 1  
-    </div>  
-
-  </div>  
-
-  <div  
-    class="elite"  
-    id="tierName">  
-    STARTER  
-  </div>  
-
-</div>  
-
 
 <div class="progress">  
-  <span id="tierProgress"></span>  
-</div>  
-
-<div class="status">  
-  Every referral helps you level up.  
-</div>
-
-  </div>    <div class="card">  <div class="ref-stats">  
-
-  <div class="ref-stat">  
-    <b id="refCount">0</b>  
-    <span>REFERRALS</span>  
+  <span id="miningProgress"></span>  
+</div>  <div class="row">  
+  <span class="muted">Current Earned</span>  
+  <b id="currentEarned">0.00000000 AMT</b>  
+</div>    </div>  <div class="grid3">  
+    <div class="stat">  
+      <div class="stat-label">Mining Rate</div>  
+      <div class="stat-value">0.01 AMT/hr</div>  
+    </div><div class="stat">  
+  <div class="stat-label">Status</div>  
+  <div id="miniMiningStatus" class="stat-value">Ready</div>  
+</div>  <div class="stat">  
+  <div class="stat-label">Network</div>  
+  <div class="stat-value">Pi Testnet</div>  
+</div>    </div></section><section id="walletSection" class="section">  <div class="hero">  
+    <h1>AMT <span>WALLET</span></h1>  
+    <p>Your Testnet AMT ledger</p>  
+  </div>  <div class="card">  
+    <div class="card-title">AVAILABLE BALANCE</div><div class="big-balance">  
+  <span id="walletBalance">0.00000000</span>  
+  <span class="balance-symbol">AMT</span>  
+</div>  <div class="grid" style="margin-top:15px">  
+  <div class="stat">  
+    <div class="stat-label">Available</div>  
+    <div id="availableBalance" class="stat-value">0 AMT</div>  
+  </div>    <div class="stat">  
+    <div class="stat-label">Staked</div>  
+    <div id="stakedBalance" class="stat-value">0 AMT</div>  
   </div>  
-
-  <div class="ref-stat">  
-    <b id="activeMiners">0</b>  
-    <span>ACTIVE MINERS</span>  
+</div>    </div>  <div class="card">  
+    <div class="card-title">AMT APP WALLET</div><div class="notice">  
+  The address below identifies your AMT Testnet  
+  application ledger wallet. It is not presented  
+  as a fabricated blockchain wallet address.  
+</div>  <div style="margin-top:13px">  
+  <div class="muted">Wallet Address</div>  
+  <div id="amtWalletAddress" class="wallet-address">  
+    Not connected  
   </div>  
-
-  <div class="ref-stat">  
-    <b id="remainingSlots">0</b>  
-    <span>REMAINING SLOTS</span>  
+</div>  <hr>  <button class="secondary" onclick="refreshWallet()">  
+  🔄 REFRESH WALLET  
+</button>    </div>  <div class="card">  
+    <div class="card-title">SEND AMT</div><div class="form-group">  
+  <label>Recipient AMT App Wallet Address</label>  
+  <input id="sendTo" class="input"  
+         placeholder="AMT wallet address">  
+</div>  <div class="form-group">  
+  <label>Amount</label>  
+  <input id="sendAmount"  
+         class="input"  
+         type="number"  
+         min="0"  
+         step="0.00000001"  
+         placeholder="0.00">  
+</div>  <button class="primary" onclick="sendAMT()">  
+  SEND AMT  
+</button>    </div></section><section id="airdropSection" class="section">  <div class="hero">  
+    <h1>AMT <span>AIRDROP</span></h1>  
+    <p>One-time Testnet community reward</p>  
+  </div>  <div class="card">  
+    <div class="card-title">AIRDROP STATUS</div><div class="grid">  
+  <div class="stat">  
+    <div class="stat-label">Reward</div>  
+    <div class="stat-value">AMT Testnet</div>  
+  </div>    <div class="stat">  
+    <div class="stat-label">Claim</div>  
+    <div id="airdropStatus" class="stat-value">Checking...</div>  
   </div>  
+</div>  <button id="airdropBtn"  
+class="primary"  
+style="margin-top:15px"  
+onclick="claimAirdrop()">
+🎁 CLAIM AIRDROP
+</button>
 
-</div>  
+<div class="notice">  
+  One eligible claim per account.  
+  Testnet only.  
+</div>    </div></section><section id="referralSection" class="section">  <div class="hero">  
+    <h1>AMT <span>REFERRAL</span></h1>  
+    <p>Grow the AMT Testnet community</p>  
+  </div>  <div class="card">  
+    <div class="card-title">YOUR REFERRAL CODE</div><div id="referralCode"  
+     style="font-size:27px;font-weight:900;color:#ffd54f">  
+  ------  
+</div>  <button class="secondary"  
+style="margin-top:12px"  
+onclick="copyReferral()">
+📋 COPY REFERRAL CODE
+</button>
 
-<div  
-  id="tierBenefit"  
-  class="status"  
-  style="text-align:center">  
-  Referral tier benefits will appear here.  
-</div>
+  </div>  <div class="grid">  
+    <div class="stat">  
+      <div class="stat-label">Referral Count</div>  
+      <div id="referralCount" class="stat-value">0</div>  
+    </div><div class="stat">  
+  <div class="stat-label">Active Miners</div>  
+  <div id="activeMiners" class="stat-value">0</div>  
+</div>    </div>  <div class="card" style="margin-top:15px">  
+    <div class="card-title">INVITE A PIONEER</div><input id="referralInput"  
+       class="input"  
+       placeholder="Enter referral code">  <button class="primary"  
+style="margin-top:10px"  
+onclick="applyReferral()">
+JOIN REFERRAL
+</button>
 
-  </div>    <div class="card">  <div class="kicker">  
-  🎟 MY INVITE CODE  
-</div>  
-
-<div class="invite-box">  
-
-  <div  
-    class="invite-code"  
-    id="inviteCode">  
-    NOT AVAILABLE  
+<div class="notice">  
+  Referral rewards are controlled by the AMT Testnet backend.  
+</div>    </div></section><section id="circleSection" class="section">  <div class="hero">  
+    <h1>SECURITY <span>CIRCLE</span></h1>  
+    <p>Manage your Pi security circle</p>  
+  </div>  <div class="card">  
+    <div class="card-title">SECURITY CIRCLE STATUS</div><div class="grid">  
+  <div class="stat">  
+    <div class="stat-label">Members</div>  
+    <div id="circleCount" class="stat-value">0</div>  
+  </div>    <div class="stat">  
+    <div class="stat-label">Status</div>  
+    <div id="circleStatus" class="stat-value">Not loaded</div>  
   </div>  
+</div>  <button class="secondary"  
+style="margin-top:14px"  
+onclick="loadSecurityCircle()">
+🛡️ REFRESH SECURITY CIRCLE
+</button>
 
-  <button  
-    class="copy-btn"  
-    id="copyInviteBtn">  
-    📋 COPY  
+<div id="circleList" style="margin-top:12px"></div>  <div class="notice">  
+  Security Circle information is read from the Pi-authenticated  
+  account when available. This app does not invent Pi members.  
+</div>    </div></section><section id="profileSection" class="section">  <div class="hero">  
+    <h1>MY <span>PROFILE</span></h1>  
+    <p>Manage your AMT account</p>  
+  </div>  <div class="card"><div class="avatar-wrap">    <div id="avatarBox"  
+       class="avatar avatar-placeholder">  
+    👤  
+  </div>    <div class="profile-name" id="profileUsername">  
+    Pioneer  
+  </div>    <div class="muted" id="profileUid">  
+    Pi UID: —  
+  </div>  
+</div>  <label>Update Profile Picture</label>
+
+<input id="profileImageInput"  
+class="input"  
+type="file"  
+accept="image/png,image/jpeg,image/webp">
+
+<button class="primary"  
+style="margin-top:10px"  
+onclick="uploadProfileImage()">
+📸 UPLOAD PROFILE PICTURE
+</button>
+
+<button id="deletePhotoBtn"  
+class="danger"  
+style="margin-top:10px"  
+onclick="deleteProfileImage()">
+🗑️ REMOVE PROFILE PICTURE
+</button>
+
+  </div>  <div class="card">  
+    <div class="card-title">ACCOUNT INFORMATION</div><div class="row">  
+  <span class="muted">Username</span>  
+  <b id="infoUsername">—</b>  
+</div>  <div class="row">  
+  <span class="muted">Pi UID</span>  
+  <span id="infoUid" class="wallet-address">—</span>  
+</div>  <div class="row">  
+  <span class="muted">KYC</span>  
+  <b id="infoKyc">UNVERIFIED</b>  
+</div>  <div class="row">  
+  <span class="muted">Network</span>  
+  <b>Pi Testnet</b>  
+</div>    </div>  <div class="card">  
+    <div class="card-title">SESSION</div><button class="danger" onclick="logoutPi()">  
+  🚪 LOGOUT  
+</button>    </div></section><section id="stakingSection" class="section">  <div class="hero">  
+    <h1>AMT <span>STAKING</span></h1>  
+    <p>Fixed-term Testnet staking</p><div class="notice">  
+  <b>TESTNET ONLY</b><br>  
+  Staking is controlled by the AMT backend ledger.  
+  Rewards shown here have no Mainnet value.  
+</div>    </div>  <div class="card">  
+    <div class="card-title">YOUR STAKING SUMMARY</div><div class="grid3">  
+  <div class="stat">  
+    <div class="stat-label">Available</div>  
+    <div id="stakeAvailable" class="stat-value">0 AMT</div>  
+  </div>    <div class="stat">  
+    <div class="stat-label">Staked</div>  
+    <div id="stakePrincipal" class="stat-value">0 AMT</div>  
+  </div>    <div class="stat">  
+    <div class="stat-label">Pending Rewards</div>  
+    <div id="stakeRewards" class="stat-value">0 AMT</div>  
+  </div>  
+</div>    </div>  <div class="card">  
+    <div class="card-title">CHOOSE STAKING POOL</div><div id="stakingPools">    <div class="pool">  
+    <div class="pool-name">STARTER • 30 DAYS</div>  
+    <div class="pool-rate">5%</div>  
+    <small>Fixed-term reward</small>  <button class="secondary"  
+        style="margin-top:10px"  
+        onclick="selectPool('30D')">  
+  SELECT 30D  
+</button>
+
+  </div>    <div class="pool">  
+    <div class="pool-name">GROWTH • 90 DAYS</div>  
+    <div class="pool-rate">10%</div>  
+    <small>Fixed-term reward</small>  <button class="secondary"  
+        style="margin-top:10px"  
+        onclick="selectPool('90D')">  
+  SELECT 90D  
+</button>
+
+  </div>    <div class="pool">  
+    <div class="pool-name">DIAMOND • 180 DAYS</div>  
+    <div class="pool-rate">15%</div>  
+    <small>Fixed-term reward</small>  <button class="secondary"  
+        style="margin-top:10px"  
+        onclick="selectPool('180D')">  
+  SELECT 180D  
+</button>
+
+  </div>  </div>  <hr>  <label>Selected Pool</label>
+<input id="selectedPool"  
+class="input"  
+value="30D"  
+readonly>
+
+<label style="margin-top:12px">Amount to Stake</label>
+<input id="stakeAmount"  
+class="input"  
+type="number"  
+min="1"  
+step="0.00000001"  
+placeholder="Minimum 1 AMT">
+
+<button class="primary"  
+style="margin-top:12px"  
+onclick="createStake()">
+🔒 STAKE AMT
+</button>
+
+  </div>  <div class="card">  
+    <div class="card-title">MY ACTIVE STAKES</div>  
+    <div id="activeStakes">  
+      <div class="empty">Loading stakes...</div>  
+    </div>  
+  </div>  <div class="card">  
+    <div class="card-title">STAKING HISTORY</div>  
+    <div id="stakingHistory">  
+      <div class="empty">No history loaded.</div>  
+    </div>  
+  </div></section><section id="marketSection" class="section">  <div class="hero">  
+    <h1>AMT <span>MARKETPLACE</span></h1>  
+    <p>Digital assets • Pets • NFT ecosystem</p><div class="notice">  
+  Marketplace purchases are for Pi Testnet testing.  
+  No Mainnet value is implied.  
+</div>    </div>  <div class="market-grid"><div class="market-item">  
+  <div class="market-art">🐺</div>  
+  <div class="market-name">SHADOW WOLF</div>  
+  <div class="market-price">35 Pi • RARE</div>  
+  <button class="small-btn" onclick="marketInfo('SHADOW WOLF')">  
+    VIEW  
   </button>  
-
-</div>  
-
-
-<button  
-  class="share-btn"  
-  id="shareInviteBtn">  
-  📤 SHARE INVITE  
+</div>  <div class="market-item">  
+  <div class="market-art">🦅</div>  
+  <div class="market-name">STORM EAGLE</div>  
+  <div class="market-price">35 Pi • RARE</div>  
+  <button class="small-btn" onclick="marketInfo('STORM EAGLE')">  
+    VIEW  
+  </button>  
+</div>  <div class="market-item">  
+  <div class="market-art">🐯</div>  
+  <div class="market-name">GOLDEN TIGER</div>  
+  <div class="market-price">60 Pi • EPIC</div>  
+  <button class="small-btn" onclick="marketInfo('GOLDEN TIGER')">  
+    VIEW  
+  </button>  
+</div>  <div class="market-item">  
+  <div class="market-art">🐉</div>  
+  <div class="market-name">INFERNO DRAGON</div>  
+  <div class="market-price">120 Pi • LEGENDARY</div>  
+  <button class="small-btn" onclick="marketInfo('INFERNO DRAGON')">  
+    VIEW  
+  </button>  
+</div>    </div>  
+</section><section id="swapSection" class="section">  <div class="hero">  
+    <h1>AMT <span>SWAP</span></h1>  
+    <p>Pi Testnet swap interface</p>  
+  </div>  <div class="card">  
+    <div class="card-title">AMT / PI TESTNET</div><div class="notice">  
+  Swap functionality depends on the currently available  
+  Pi Testnet liquidity and platform integration.  
+</div>  <button class="secondary"  
+style="margin-top:14px"  
+onclick="showToast('Swap interface is available for Testnet integration.',false)">
+🔄 OPEN SWAP
 </button>
 
-  </div>    <div class="card">  <div class="mining-head">  
-
-  <h2>  
-    👥 My Referral Team  
-  </h2>  
-
-  <div  
-    class="elite"  
-    id="teamTier">  
-    TIER  
-  </div>  
-
-</div>  
-
-
-<div id="teamList">  
-
-  <div  
-    class="status"  
-    style="text-align:center;padding:25px 0">  
-    Your invited Pioneers will appear here.  
-  </div>  
-
-</div>
-
-  </div>    <div  
-    id="referralInfo"  
-    class="status">  
-    Not signed in.  
-  </div>  </section>  <!-- ================= SYSTEM ================= -->  <section id="system" class="section">    <div class="card">  <div class="kicker">  
-  System  
-</div>  
-
-<pre id="systemInfo">
-
-Checking backend...
-</pre>
-
-  </div>    <div class="card notice">  <h3>  
-  🛡 AMT BACKEND  
-</h3>  
-
-<p>  
-  AMT Testnet services are controlled by the  
-  backend API and PostgreSQL ledger.  
-</p>
-
-  </div>  </section>  </div>  <!-- ================= BOTTOM NAV ================= -->  <div class="bottom">    <div class="nav">  <button  
-  class="active"  
-  data-section="mining">  
-
-  <span class="ico">🤖</span>  
+  </div></section></main><nav id="bottomNav" class="nav hidden">  <div class="nav-grid"><button class="nav-btn active"  
+        data-section="miningSection"  
+        onclick="showSection('miningSection',this)">  
+  <span class="icon">⛏️</span>  
   Mining  
-
-</button>  
-
-
-<button  
-  data-section="wallet">  
-
-  <span class="ico">👛</span>  
-  Wallet  
-
-</button>  
-
-
-<button  
-  data-section="profile">  
-
-  <span class="ico">👤</span>  
-  Profile  
-
-</button>  
-
-
-<button  
-  data-section="referral">  
-
-  <span class="ico">👥</span>  
-  Referral  
-
-</button>  
-
-
-<button  
-  data-section="system">  
-
-  <span class="ico">🛡️</span>  
-  Circle  
-
-</button>  
-
-
-<button  
-  data-section="system">  
-
-  <span class="ico">💬</span>  
-  Chat  
-
-</button>  
-
-
-<button  
-  data-section="wallet">  
-
-  <span class="ico">🛒</span>  
-  Market  
-
-</button>  
-
-
-<button  
-  data-section="wallet">  
-
-  <span class="ico">🎁</span>  
-  Airdrop  
-
+</button>  <button class="nav-btn"  
+data-section="walletSection"  
+onclick="showSection('walletSection',this)">
+<span class="icon">👛</span>
+Wallet
 </button>
 
-  </div>  </div>  <script>  
-  
-/* ============================================================  
-   AMT FRONTEND  
-   Alberto Marketplace Token • Pi Testnet  
-   Existing backend preserved  
-   ============================================================ */  
-  
-const API_BASE =  
-  "https://alberto-amt-testnet.onrender.com";  
-  
-let accessToken = null;  
-let timerInterval = null;  
-let currentMiningEnd = null;  
-  
-const $ = id =>  
-  document.getElementById(id);  
-  
-  
-/* ================= STATUS ================= */  
-  
-function show(message,type=""){  
-  
-  const box = $("status");  
-  
-  if(!box) return;  
-  
-  box.className =  
-    "status " + type;  
-  
-  box.textContent =  
-    message;  
-}  
-  
-  
-/* ================= API ================= */  
-  
-async function api(path,options={}){  
-  
-  const headers = {  
-    "Content-Type":"application/json",  
-    ...(options.headers || {})  
-  };  
-  
-  const body =  
-    options.body  
-      ? JSON.stringify(options.body)  
-      : undefined;  
-  
-  const response =  
-    await fetch(  
-      API_BASE + path,  
-      {  
-        method:options.method || "POST",  
-        headers,  
-        body  
-      }  
-    );  
-  
-  const data =  
-    await response  
-      .json()  
-      .catch(() => ({  
-        success:false,  
-        error:"Invalid server response"  
-      }));  
-  
-  if(  
-    !response.ok ||  
-    data.success === false  
-  ){  
-  
-    throw new Error(  
-      data.error ||  
-      `HTTP ${response.status}`  
-    );  
-  
+<button class="nav-btn"  
+data-section="profileSection"  
+onclick="showSection('profileSection',this)">
+<span class="icon">👤</span>
+Profile
+</button>
+
+<button class="nav-btn"  
+data-section="stakingSection"  
+onclick="showSection('stakingSection',this)">
+<span class="icon">🔒</span>
+Staking
+</button>
+
+<button class="nav-btn"  
+data-section="marketSection"  
+onclick="showSection('marketSection',this)">
+<span class="icon">🛒</span>
+Market
+</button>
+
+  </div>  <div class="nav-grid" style="margin-top:4px"><button class="nav-btn"  
+        data-section="airdropSection"  
+        onclick="showSection('airdropSection',this)">  
+  <span class="icon">🎁</span>  
+  Airdrop  
+</button>  <button class="nav-btn"  
+data-section="referralSection"  
+onclick="showSection('referralSection',this)">
+<span class="icon">👥</span>
+Referral
+</button>
+
+<button class="nav-btn"  
+data-section="circleSection"  
+onclick="showSection('circleSection',this)">
+<span class="icon">🛡️</span>
+Circle
+</button>
+
+<button class="nav-btn"  
+data-section="swapSection"  
+onclick="showSection('swapSection',this)">
+<span class="icon">🔄</span>
+Swap
+</button>
+
+<button class="nav-btn"  
+onclick="showSection('profileSection',this)">
+<span class="icon">⚙️</span>
+Account
+</button>
+
+  </div>  
+</nav><div id="toast" class="toast"></div><script>  
+"use strict";  /* =========================================================
+AMT TESTNET FRONTEND
+Alberto Marketplace Token
+========================================================= */
+
+const API_BASE =
+"https://alberto-amt-testnet.onrender.com";
+
+let accessToken = null;
+let currentUser = null;
+let miningInterval = null;
+let selectedStakePool = "30D";
+
+/* ---------------------------------------------------------
+HELPERS
+--------------------------------------------------------- */
+
+function $(id){
+return document.getElementById(id);
+}
+
+function esc(value){
+return String(value ?? "")
+.replace(/&/g,"&")
+.replace(/</g,"<")
+.replace(/>/g,">")
+.replace(/"/g,""")
+.replace(/'/g,"'");
+}
+
+function num(value){
+const n=Number(value);
+return Number.isFinite(n) ? n : 0;
+}
+
+function fmt(value){
+return num(value).toFixed(8);
+}
+
+function showToast(message,error=false){
+const el=$("toast");
+
+el.textContent=message;
+
+el.className=
+"toast show " +
+(error ? "error" : "success");
+
+clearTimeout(showToast.timer);
+
+showToast.timer=setTimeout(()=>{
+el.className="toast";
+},3500);
+}
+
+async function api(path,options={}){
+
+const headers={
+...(options.body instanceof FormData
+? {}
+: {"Content-Type":"application/json"}),
+...(options.headers || {})
+};
+
+if(accessToken){
+headers.Authorization=
+"Bearer "+accessToken;
+}
+
+const response=
+await fetch(API_BASE+path,{
+...options,
+headers
+});
+
+let data=null;
+
+try{
+data=await response.json();
+}catch(e){
+data={};
+}
+
+if(!response.ok){
+
+throw new Error(  
+  data.message ||  
+  data.error ||  
+  ("Request failed: "+response.status)  
+);
+
+}
+
+return data;
+}
+
+/* ---------------------------------------------------------
+NAVIGATION
+--------------------------------------------------------- */
+
+function showSection(id,button=null){
+
+document.querySelectorAll(".section")
+.forEach(section=>{
+section.classList.remove("active");
+});
+
+const section=$(id);
+
+if(section){
+section.classList.add("active");
+}
+
+document.querySelectorAll(".nav-btn")
+.forEach(btn=>{
+btn.classList.remove("active");
+
+if(btn.dataset.section===id){  
+    btn.classList.add("active");  
   }  
-  
-  return data;  
-}  
-  
-  
-/* ================= NAVIGATION ================= */  
-  
-function setSection(name){  
-  
-  document  
-    .querySelectorAll(".section")  
-    .forEach(section => {  
-  
-      section.classList.toggle(  
-        "active",  
-        section.id === name  
-      );  
-  
-    });  
-  
-  
-  document  
-    .querySelectorAll(".nav button")  
-    .forEach(button => {  
-  
-      button.classList.toggle(  
-        "active",  
-        button.dataset.section === name  
-      );  
-  
-    });  
-  
-  
-  if(name === "wallet"){  
-    loadWalletOnly();  
-  }  
-  
-}  
-  
-  
-/* ================= WALLET ================= */  
-  
-async function loadWalletOnly(){  
-  
-  if(!accessToken) return;  
-  
-  try{  
-  
-    const wallet =  
-      await api(  
-        "/api/wallet",  
-        {  
-          body:{  
-            accessToken  
-          }  
-        }  
-      );  
-  
-    const amount =  
-      Number(  
-        wallet.wallet.amt  
-      ).toFixed(8);  
-  
-    $("walletBalance")  
-      .textContent = amount;  
-  
-    $("balance")  
-      .textContent = amount;  
-  
-  }catch(error){  
-  
-    console.error(  
-      "Wallet:",  
-      error  
-    );  
-  
-  }  
-  
-}  
-  
-  
-/* ================= TIMER ================= */  
-  
-function stopTimer(){  
-  
-  if(timerInterval){  
-  
-    clearInterval(  
-      timerInterval  
-    );  
-  
-    timerInterval = null;  
-  
-  }  
-  
-}  
-  
-  
-function formatTime(seconds){  
-  
-  seconds =  
-    Math.max(  
-      0,  
-      Math.floor(seconds)  
-    );  
-  
-  const h =  
-    String(  
-      Math.floor(  
-        seconds / 3600  
-      )  
-    ).padStart(2,"0");  
-  
-  const m =  
-    String(  
-      Math.floor(  
-        (seconds % 3600) / 60  
-      )  
-    ).padStart(2,"0");  
-  
-  const s =  
-    String(  
-      seconds % 60  
-    ).padStart(2,"0");  
-  
-  return `${h}:${m}:${s}`;  
-  
-}  
-  
-  
-function startTimer(endTime){  
-  
-  stopTimer();  
-  
-  currentMiningEnd =  
-    endTime;  
-  
-  function update(){  
-  
-    const remaining =  
-      Math.max(  
-        0,  
-        Math.floor(  
-          (  
-            new Date(endTime)  
-            - new Date()  
-          ) / 1000  
-        )  
-      );  
-  
-    $("timer")  
-      .textContent =  
-      formatTime(  
-        remaining  
-      );  
-  
-    if(remaining <= 0){  
-  
-      stopTimer();  
-  
-      $("timer")  
-        .textContent =  
-        "00:00:00";  
-  
-    }  
-  
-  }  
-  
-  update();  
-  
-  timerInterval =  
-    setInterval(  
-      update,  
-      1000  
-    );  
-  
-}  
-  
-  
-/* ================= MINING ================= */  
-  
-function updateMiningUI(mining){  
-  
-  if(!mining){  
-  
-    $("mineBtn")  
-      .textContent =  
-      "⛏ START MINING";  
-  
-    $("mineBtn")  
-      .disabled = false;  
-  
-    $("claimBtn")  
-      .disabled = true;  
-  
-    $("miningState")  
-      .textContent = "OFF";  
-  
-    $("miningActiveBox")  
-      .style.display = "none";  
-  
-    stopTimer();  
-  
-    $("timer")  
-      .textContent =  
-      "24:00:00";  
-  
-    return;  
-  
-  }  
-  
-  
-  $("mineBtn")  
-    .textContent =  
-    "⚡ MINING ACTIVE";  
-  
-  $("mineBtn")  
-    .disabled = true;  
-  
-  $("miningState")  
-    .textContent = "ON";  
-  
-  $("miningActiveBox")  
-    .style.display = "block";  
-  
-  
-  const earned =  
-    Number(  
-      mining.session?.earned || 0  
-    );  
-  
-  $("earnedToday")  
-    .textContent =  
-    earned.toFixed(8) +  
-    " AMT";  
-  
-  
-  $("claimBtn")  
-    .disabled =  
-    !mining.session?.claimAvailable;  
-  
-  
-  if(mining.session?.endsAt){  
-  
-    startTimer(  
-      mining.session.endsAt  
-    );  
-  
-  }  
-  
-}  
-  
-  
-/* ================= LOAD ALL ================= */  
-  
-async function loadAll(){  
-  
-  if(!accessToken)  
-    return;  
-  
-  
-  try{  
-  
-    /* PROFILE */  
-  
-    const profile =  
-      await api(  
-        "/api/profile",  
-        {  
-          body:{  
-            accessToken  
-          }  
-        }  
-      );  
-  
-  
-    const p =  
-      profile.profile || {};  
-  
-  
-    const username =  
-      p.username ||  
-      "Pi Pioneer";  
-  
-  
-    $("profileUsername")  
-      .textContent =  
-      "@" + username;  
-  
-  
-    $("profileUid")  
-      .textContent =  
-      p.uid || "—";  
-  
-  
-    $("profileKyc")  
-      .textContent =  
-      p.kycStatus ||  
-      "UNVERIFIED";  
-  
-  
-    $("profileWallet")  
-      .textContent =  
-      p.walletStatus ||  
-      "NOT_CONNECTED";  
-  
-  
-    $("profileTier")  
-      .textContent =  
-      p.referralTier ||  
-      "STARTER";  
-  
-  
-    $("kycBadge")  
-      .textContent =  
-      "● PI ACCOUNT STATUS";  
-  
-  
-    /* WALLET */  
-  
-    const wallet =  
-      await api(  
-        "/api/wallet",  
-        {  
-          body:{  
-            accessToken  
-          }  
-        }  
-      );  
-  
-  
-    const amount =  
-      Number(  
-        wallet.wallet.amt  
-      ).toFixed(8);  
-  
-  
-    $("balance")  
-      .textContent =  
-      amount;  
-  
-  
-    $("walletBalance")  
-      .textContent =  
-      amount;  
-  
-  
-    $("totalEarned")  
-      .textContent =  
-      amount +  
-      " AMT";  
-  
-  
-    /* REFERRAL */  
-  
-    const referral =  
-      await api(  
-        "/api/referral/status",  
-        {  
-          body:{  
-            accessToken  
-          }  
-        }  
-      );  
-  
-  
-    const r =  
-      referral.referral || {};  
-  
-  
-    const tier =  
-      r.tier ||  
-      p.referralTier ||  
-      "STARTER";  
-  
-  
-    const count =  
-      Number(  
-        r.count || 0  
-      );  
-  
-  
-    const active =  
-      Number(  
-        r.activeMiners || 0  
-      );  
-  
-  
-    const limit =  
-      Number(  
-        r.limit || 0  
-      );  
-  
-  
-    $("refCount")  
-      .textContent =  
-      count;  
-  
-  
-    $("activeMiners")  
-      .textContent =  
-      active;  
-  
-  
-    /*  
-      We keep the real backend limit here.  
-      The visual tier can show its benefit,  
-      but the backend remains the authority.  
-    */  
-  
-    const remaining =  
-      Math.max(  
-        0,  
-        limit - count  
-      );  
-  
-  
-    $("remainingSlots")  
-      .textContent =  
-      limit > 0  
-        ? remaining  
-        : "∞";  
-  
-  
-    $("tierNumber")  
-      .textContent =  
-      tier;  
-  
-  
-    $("tierName")  
-      .textContent =  
-      tier;  
-  
-  
-    $("teamTier")  
-      .textContent =  
-      tier;  
-  
-  
-    $("profileTier")  
-      .textContent =  
-      tier;  
-  
-  
-    $("referralInfo")  
-      .innerHTML =  
-      `  
-      <b>${tier}</b><br>  
-      Direct referrals: ${count}/${limit || "∞"}<br>  
-      Active miners: ${active}  
-      `;  
-  
-  
-    /*  
-      Premium tier visual.  
-      Actual referral rules still come  
-      from server.js.  
-    */  
-  
-    if(  
-      tier &&  
-      tier !== "STARTER"  
-    ){  
-  
-      $("tierBenefit")  
-        .innerHTML =  
-        `  
-        <span class="green">  
-        ✨ ${tier} BENEFITS ACTIVE  
-        </span>  
-        <br>  
-        Your referral tier is recognized by AMT.  
-        `;  
-  
-    }else{  
-  
-      $("tierBenefit")  
-        .textContent =  
-        "Build your referral team to unlock higher tiers.";  
-  
-    }  
-  
-  
-    /* TIER PROGRESS */  
-  
-    const progress =  
-      Math.min(  
-        100,  
-        Math.max(  
-          10,  
-          count * 10  
-        )  
-      );  
-  
-  
-    $("tierProgress")  
-      .style.width =  
-      progress + "%";  
-  
-  
-    /* MINING */  
-  
-    const mining =  
-      await api(  
-        "/api/mining/status",  
-        {  
-          body:{  
-            accessToken  
-          }  
-        }  
-      );  
-  
-  
-    if(mining.mining){  
-  
-      updateMiningUI(  
-        mining  
-      );  
-  
-  
-      show(  
-        mining.session?.claimAvailable  
-          ? `Mining complete. ${Number(mining.session.earned || 0).toFixed(8)} AMT ready to claim.`  
-          : `Mining active • ${Number(mining.session?.earned || 0).toFixed(8)} AMT earned so far.`,  
-        "ok"  
-      );  
-  
-    }else{  
-  
-      updateMiningUI(  
-        null  
-      );  
-  
-      show(  
-        "Ready to start AMT Testnet mining.",  
-        ""  
-      );  
-  
-    }  
-  
-  }catch(error){  
-  
-    console.error(  
-      "LOAD ALL ERROR:",  
-      error  
-    );  
-  
-    show(  
-      "AMT verification failed: " +  
-      error.message,  
-      "err"  
-    );  
-  
-  }  
-  
-}  
-  
-  
-/* ================= LOGIN ================= */  
-  
-async function login(){  
-  
-  try{  
-  
-    show(  
-      "Opening Pi authentication..."  
-    );  
-  
-  
-    if(!window.Pi){  
-  
-      throw new Error(  
-        "Pi SDK did not load."  
-      );  
-  
-    }  
-  
-  
-    Pi.init({  
-      version:"2.0",  
-      sandbox:true  
-    });  
-  
-  
-    const auth =  
-      await Pi.authenticate(  
-        [  
-          "username",  
-          "wallet_address"  
-        ],  
-        () => {}  
-      );  
-  
-  
-    accessToken =  
-      auth.accessToken;  
-  
-  
-    const verified =  
-      await api(  
-        "/api/auth/verify",  
-        {  
-          body:{  
-            accessToken  
-          }  
-        }  
-      );  
-  
-  
-    show(  
-      `Pi Sign-In successful: @${verified.user.username || "Pioneer"}`,  
-      "ok"  
-    );  
-  
-  
-    $("mineBtn")  
-      .disabled = false;  
-  
-  
-    $("refreshWalletBtn")  
-      .disabled = false;  
-  
-  
-    await loadAll();  
-  
-  }catch(error){  
-  
-    console.error(  
-      error  
-    );  
-  
-    show(  
-      "AMT verification failed: " +  
-      error.message,  
-      "err"  
-    );  
-  
-  }  
-  
-}  
-  
-  
-/* ================= START MINING ================= */  
-  
-$("mineBtn").onclick =  
-async function(){  
-  
-  try{  
-  
-    if(!accessToken){  
-  
-      show(  
-        "Please login with Pi first.",  
-        "err"  
-      );  
-  
-      return;  
-  
-    }  
-  
-  
-    await api(  
-      "/api/mining/start",  
-      {  
-        body:{  
-          accessToken  
-        }  
-      }  
-    );  
-  
-  
-    show(  
-      "Mining started successfully. Your session is stored in PostgreSQL.",  
-      "ok"  
-    );  
-  
-  
-    await loadAll();  
-  
-  }catch(error){  
-  
-    show(  
-      error.message,  
-      "err"  
-    );  
-  
-  }  
-  
-};  
-  
-  
-/* ================= CLAIM ================= */  
-  
-$("claimBtn").onclick =  
-async function(){  
-  
-  try{  
-  
-    if(!accessToken){  
-  
-      show(  
-        "Please login with Pi first.",  
-        "err"  
-      );  
-  
-      return;  
-  
-    }  
-  
-  
-    const result =  
-      await api(  
-        "/api/mining/claim",  
-        {  
-          body:{  
-            accessToken  
-          }  
-        }  
-      );  
-  
-  
-    show(  
-      `Claimed ${Number(result.claimed || 0).toFixed(8)} AMT. Ledger record saved.`,  
-      "ok"  
-    );  
-  
-  
-    await loadAll();  
-  
-  }catch(error){  
-  
-    show(  
-      error.message,  
-      "err"  
-    );  
-  
-  }  
-  
-};  
-  
-  
-/* ================= WALLET REFRESH ================= */  
-  
-$("refreshWalletBtn").onclick =  
-async function(){  
-  
-  try{  
-  
-    await loadAll();  
-  
-  }catch(error){  
-  
-    show(  
-      error.message,  
-      "err"  
-    );  
-  
-  }  
-  
-};  
-  
-  
-/* ================= PAYMENT ================= */  
-  
-$("paymentBtn").onclick =  
-function(){  
-  
-  show(  
-    "Payment UI is ready. We will connect the approved Pi payment flow next.",  
-    "ok"  
+});
+
+window.scrollTo({
+top:0,
+behavior:"smooth"
+});
+
+if(id==="walletSection"){
+refreshWallet();
+}
+
+if(id==="airdropSection"){
+loadAirdrop();
+}
+
+if(id==="referralSection"){
+loadReferral();
+}
+
+if(id==="circleSection"){
+loadSecurityCircle();
+}
+
+if(id==="profileSection"){
+loadProfile();
+}
+
+if(id==="stakingSection"){
+loadStaking();
+}
+
+if(id==="miningSection"){
+loadMiningStatus();
+}
+}
+
+/* ---------------------------------------------------------
+PI LOGIN
+--------------------------------------------------------- */
+
+async function loginWithPi(){
+
+try{
+
+if(!window.Pi){  
+  throw new Error(  
+    "Pi SDK is not available. Please open this app inside Pi Browser."  
   );  
-  
-};  
-  
-  
-/* ================= COPY INVITE ================= */  
-  
-$("copyInviteBtn").onclick =  
-async function(){  
-  
-  const code =  
-    $("inviteCode")  
-      .textContent  
-      .trim();  
-  
-  
-  if(  
-    !code ||  
-    code === "NOT AVAILABLE"  
-  ){  
-  
-    show(  
-      "Invite code is not available yet.",  
-      "err"  
-    );  
-  
-    return;  
-  
-  }  
-  
-  
-  try{  
-  
-    await navigator  
-      .clipboard  
-      .writeText(code);  
-  
-  
-    this.textContent =  
-      "✓ COPIED";  
-  
-  
-    setTimeout(  
-      () => {  
-        this.textContent =  
-          "📋 COPY";  
-      },  
-      1500  
-    );  
-  
-  
-  }catch(error){  
-  
-    show(  
-      "Unable to copy invite code.",  
-      "err"  
-    );  
-  
-  }  
-  
-};  
-  
-  
-/* ================= SHARE INVITE ================= */  
-  
-$("shareInviteBtn").onclick =  
-async function(){  
-  
-  const code =  
-    $("inviteCode")  
-      .textContent  
-      .trim();  
-  
-  
-  if(  
-    !code ||  
-    code === "NOT AVAILABLE"  
-  ){  
-  
-    show(  
-      "Invite code is not available yet.",  
-      "err"  
-    );  
-  
-    return;  
-  
-  }  
-  
-  
-  const shareText =  
-    `Join Alberto Marketplace Token (AMT) on Pi Testnet.\n\nMy invite code: ${code}`;  
-  
-  
-  try{  
-  
-    if(  
-      navigator.share  
-    ){  
-  
-      await navigator.share({  
-        title:  
-          "Alberto Marketplace Token",  
-        text:  
-          shareText  
-      });  
-  
-    }else{  
-  
-      await navigator  
-        .clipboard  
-        .writeText(  
-          shareText  
-        );  
-  
-      show(  
-        "Invite message copied.",  
-        "ok"  
-      );  
-  
-    }  
-  
-  }catch(error){  
-  
-    console.log(  
-      "Share cancelled."  
-    );  
-  
-  }  
-  
-};  
-  
-  
-/* ================= NAV ================= */  
-  
-document  
-  .querySelectorAll(".nav button")  
-  .forEach(button => {  
-  
-    button.onclick =  
-      () => {  
-  
-        setSection(  
-          button.dataset.section  
-        );  
-  
-      };  
-  
-  });  
-  
-  
-/* ================= HEALTH ================= */  
-  
-async function health(){  
-  
-  try{  
-  
-    const response =  
-      await fetch(  
-        API_BASE +  
-        "/api/health"  
-      );  
-  
-  
-    const data =  
-      await response.json();  
-  
-  
-    $("systemInfo")  
-      .textContent =  
-      JSON.stringify(  
-        data,  
-        null,  
-        2  
-      );  
-  
-  
-  }catch(error){  
-  
-    $("systemInfo")  
-      .textContent =  
-      "Backend not reachable:\n" +  
-      error.message;  
-  
-  }  
-  
 }  
-  
-  
-/* ================= INIT ================= */  
-  
-health();  
-  
-</script>  </body>  
+
+showToast("Connecting to Pi...");  
+
+Pi.init({  
+  version:"2.0",  
+  sandbox:true  
+});  
+
+const scopes=[  
+  "username",  
+  "payments"  
+];  
+
+const authResult=  
+  await Pi.authenticate(  
+    scopes,  
+    function(payment){  
+      console.log(  
+        "Incomplete payment:",  
+        payment  
+      );  
+    }  
+  );  
+
+if(!authResult ||  
+   !authResult.accessToken ||  
+   !authResult.user){  
+
+  throw new Error(  
+    "Pi authentication did not return a valid session."  
+  );  
+}  
+
+accessToken=  
+  authResult.accessToken;  
+
+currentUser=  
+  authResult.user;  
+
+await api("/api/users",{  
+  method:"POST",  
+  body:JSON.stringify({  
+    username:  
+      currentUser.username,  
+    uid:  
+      currentUser.uid  
+  })  
+});  
+
+localStorage.setItem(  
+  "amt_pi_access_token",  
+  accessToken  
+);  
+
+localStorage.setItem(  
+  "amt_pi_username",  
+  currentUser.username || ""  
+);  
+
+localStorage.setItem(  
+  "amt_pi_uid",  
+  currentUser.uid || ""  
+);  
+
+enterApp();  
+
+showToast(  
+  "Welcome, "+  
+  (currentUser.username || "Pioneer")+  
+  "!"  
+);
+
+}catch(error){
+
+console.error(error);  
+
+showToast(  
+  error.message ||  
+  "Pi login failed.",  
+  true  
+);
+
+}
+}
+
+async function restoreSession(){
+
+const savedToken=
+localStorage.getItem(
+"amt_pi_access_token"
+);
+
+const savedUsername=
+localStorage.getItem(
+"amt_pi_username"
+);
+
+const savedUid=
+localStorage.getItem(
+"amt_pi_uid"
+);
+
+if(!savedToken){
+return;
+}
+
+accessToken=savedToken;
+
+currentUser={
+username:
+savedUsername || "Pioneer",
+uid:
+savedUid || ""
+};
+
+try{
+
+await api("/api/balance");  
+
+enterApp();
+
+}catch(error){
+
+console.log(  
+  "Saved AMT session expired."  
+);  
+
+logoutPi(false);
+
+}
+}
+
+function enterApp(){
+
+$("loginSection")
+.classList.remove("active");
+
+$("bottomNav")
+.classList.remove("hidden");
+
+showSection("miningSection");
+
+loadAll();
+}
+
+function logoutPi(showMessage=true){
+
+accessToken=null;
+currentUser=null;
+
+localStorage.removeItem(
+"amt_pi_access_token"
+);
+
+localStorage.removeItem(
+"amt_pi_username"
+);
+
+localStorage.removeItem(
+"amt_pi_uid"
+);
+
+if(miningInterval){
+clearInterval(miningInterval);
+miningInterval=null;
+}
+
+document.querySelectorAll(".section")
+.forEach(s=>{
+s.classList.remove("active");
+});
+
+$("loginSection")
+.classList.add("active");
+
+$("bottomNav")
+.classList.add("hidden");
+
+if(showMessage){
+showToast("Logged out.");
+}
+}
+
+/* ---------------------------------------------------------
+LOAD EVERYTHING
+--------------------------------------------------------- */
+
+async function loadAll(){
+
+await Promise.allSettled([
+refreshWallet(),
+loadMiningStatus(),
+loadAirdrop(),
+loadReferral(),
+loadSecurityCircle(),
+loadProfile(),
+loadStaking()
+]);
+}
+
+/* ---------------------------------------------------------
+WALLET
+--------------------------------------------------------- */
+
+async function refreshWallet(){
+
+try{
+
+const data=  
+  await api("/api/balance");  
+
+const balance=  
+  num(  
+    data.balance ??  
+    data.availableBalance ??  
+    data.amount ??  
+    0  
+  );  
+
+const available=  
+  num(  
+    data.availableBalance ??  
+    balance  
+  );  
+
+const staked=  
+  num(  
+    data.stakedPrincipal ??  
+    data.staked ??  
+    0  
+  );  
+
+$("walletBalance")  
+  .textContent=fmt(balance);  
+
+$("availableBalance")  
+  .textContent=  
+  fmt(available)+" AMT";  
+
+$("stakedBalance")  
+  .textContent=  
+  fmt(staked)+" AMT";  
+
+if(data.walletAddress){  
+
+  $("amtWalletAddress")  
+    .textContent=  
+    data.walletAddress;  
+
+}else if(data.ledgerWalletAddress){  
+
+  $("amtWalletAddress")  
+    .textContent=  
+    data.ledgerWalletAddress;  
+}
+
+}catch(error){
+
+console.log(error);  
+
+if(  
+  error.message.includes("401") ||  
+  error.message  
+    .toLowerCase()  
+    .includes("unauthorized")  
+){  
+  logoutPi(false);  
+}
+
+}
+}
+
+async function sendAMT(){
+
+const recipient=
+$("sendTo").value.trim();
+
+const amount=
+num($("sendAmount").value);
+
+if(!recipient){
+
+showToast(  
+  "Enter the recipient wallet address.",  
+  true  
+);  
+
+return;
+
+}
+
+if(amount<=0){
+
+showToast(  
+  "Enter a valid AMT amount.",  
+  true  
+);  
+
+return;
+
+}
+
+try{
+
+await api("/api/ledger/send",{  
+  method:"POST",  
+  body:JSON.stringify({  
+    recipient,  
+    amount  
+  })  
+});  
+
+$("sendTo").value="";  
+$("sendAmount").value="";  
+
+showToast(  
+  "AMT sent successfully."  
+);  
+
+await refreshWallet();
+
+}catch(error){
+
+showToast(  
+  error.message,  
+  true  
+);
+
+}
+}
+
+/* ---------------------------------------------------------
+MINING
+--------------------------------------------------------- */
+
+async function loadMiningStatus(){
+
+try{
+
+const data=  
+  await api("/api/mining/status");  
+
+const active=  
+  Boolean(  
+    data.active ??  
+    data.isMining ??  
+    data.session  
+  );  
+
+const completed=  
+  Boolean(  
+    data.completed ??  
+    data.claimable ??  
+    data.rewardReady  
+  );  
+
+const earned=  
+  num(  
+    data.earned ??  
+    data.currentEarned ??  
+    0  
+  );  
+
+$("currentEarned")  
+  .textContent=  
+  fmt(earned)+" AMT";  
+
+
+/*  
+ * IMPORTANT:  
+ * Backend keeps a finished mining session  
+ * as ACTIVE until the reward is claimed.  
+ *  
+ * Therefore:  
+ * active === true  
+ * completed === true  
+ *  
+ * means the reward is ready to claim.  
+ */  
+
+if(active && completed){  
+
+  $("miningStatus")  
+    .textContent=  
+    "REWARD READY";  
+
+  $("miniMiningStatus")  
+    .textContent=  
+    "Reward Ready";  
+
+  $("startMiningBtn")  
+    .disabled=true;  
+
+  $("claimMiningBtn")  
+    .classList.remove("hidden");  
+
+  $("miningTimer")  
+    .textContent=  
+    "00:00:00";  
+
+  $("miningProgress")  
+    .style.width=  
+    "100%";  
+
+  if(miningInterval){  
+
+    clearInterval(  
+      miningInterval  
+    );  
+
+    miningInterval=null;  
+  }  
+
+  return;  
+}  
+
+
+if(active){  
+
+  $("miningStatus")  
+    .textContent=  
+    "⛏️ MINING ACTIVE";  
+
+  $("miniMiningStatus")  
+    .textContent=  
+    "Active";  
+
+  $("startMiningBtn")  
+    .disabled=true;  
+
+  $("claimMiningBtn")  
+    .classList.add("hidden");  
+
+  startMiningClock(data);  
+
+  return;  
+}  
+
+
+$("miningStatus")  
+  .textContent=  
+  "MINING READY";  
+
+$("miniMiningStatus")  
+  .textContent=  
+  "Ready";  
+
+$("startMiningBtn")  
+  .disabled=false;  
+
+$("claimMiningBtn")  
+  .classList.add("hidden");  
+
+$("miningTimer")  
+  .textContent=  
+  "24:00:00";  
+
+$("miningProgress")  
+  .style.width=  
+  "0%";  
+
+if(miningInterval){  
+
+  clearInterval(  
+    miningInterval  
+  );  
+
+  miningInterval=null;  
+}
+
+}catch(error){
+
+console.log(  
+  "Mining status:",  
+  error  
+);
+
+}
+}
+
+function startMiningClock(data){
+
+if(miningInterval){
+
+clearInterval(  
+  miningInterval  
+);  
+
+miningInterval=null;
+
+}
+
+let remaining=
+num(
+data.remainingSeconds ??
+data.secondsRemaining ??
+86400
+);
+
+const total=86400;
+
+function tick(){
+
+remaining=  
+  Math.max(0,remaining);  
+
+const h=  
+  Math.floor(  
+    remaining/3600  
+  );  
+
+const m=  
+  Math.floor(  
+    (remaining%3600)/60  
+  );  
+
+const s=  
+  Math.floor(  
+    remaining%60  
+  );  
+
+$("miningTimer")  
+  .textContent=  
+  String(h).padStart(2,"0")+  
+  ":"+  
+  String(m).padStart(2,"0")+  
+  ":"+  
+  String(s).padStart(2,"0");  
+
+const progress=  
+  ((total-remaining)/total)*100;  
+
+$("miningProgress")  
+  .style.width=  
+  Math.max(  
+    0,  
+    Math.min(100,progress)  
+  )+"%";  
+
+
+if(remaining<=0){  
+
+  $("miningStatus")  
+    .textContent=  
+    "REWARD READY";  
+
+  $("miniMiningStatus")  
+    .textContent=  
+    "Reward Ready";  
+
+  $("startMiningBtn")  
+    .disabled=true;  
+
+  $("claimMiningBtn")  
+    .classList.remove("hidden");  
+
+  clearInterval(  
+    miningInterval  
+  );  
+
+  miningInterval=null;  
+
+  return;  
+}  
+
+remaining--;
+
+}
+
+tick();
+
+miningInterval=
+setInterval(
+tick,
+1000
+);
+}
+
+async function startMining(){
+
+const button=
+$("startMiningBtn");
+
+try{
+
+button.disabled=true;  
+
+await api("/api/mining/start",{  
+  method:"POST",  
+  body:JSON.stringify({})  
+});  
+
+showToast(  
+  "AMT mining started."  
+);  
+
+await loadMiningStatus();
+
+}catch(error){
+
+button.disabled=false;  
+
+showToast(  
+  error.message,  
+  true  
+);
+
+}
+}
+
+async function claimMining(){
+
+const button=
+$("claimMiningBtn");
+
+try{
+
+/*  
+ * IMPORTANT:  
+ * The backend route is /api/mining/claim.  
+ * There is NO /api/mining/stop route.  
+ */  
+
+button.disabled=true;  
+
+const data=  
+  await api("/api/mining/claim",{  
+    method:"POST",  
+    body:JSON.stringify({})  
+  });  
+
+const reward=  
+  num(  
+    data.reward ??  
+    data.amount ??  
+    data.claimedAmount ??  
+    0  
+  );  
+
+showToast(  
+  "Mining reward claimed: "+  
+  fmt(reward)+  
+  " AMT"  
+);  
+
+await loadMiningStatus();  
+
+await refreshWallet();
+
+}catch(error){
+
+console.error(  
+  "Mining claim:",  
+  error  
+);  
+
+showToast(  
+  error.message ||  
+  "Unable to claim AMT reward.",  
+  true  
+);
+
+}finally{
+
+button.disabled=false;
+
+}
+}
+
+/* ---------------------------------------------------------
+AIRDROP
+--------------------------------------------------------- */
+
+async function loadAirdrop(){
+
+try{
+
+const data=  
+  await api("/api/airdrop/status");  
+
+const claimed=  
+  Boolean(  
+    data.claimed ??  
+    data.alreadyClaimed  
+  );  
+
+$("airdropStatus")  
+  .textContent=  
+  claimed  
+    ? "CLAIMED"  
+    : "AVAILABLE";  
+
+$("airdropBtn")  
+  .disabled=claimed;  
+
+$("airdropBtn")  
+  .textContent=  
+  claimed  
+    ? "✅ AIRDROP CLAIMED"  
+    : "🎁 CLAIM AIRDROP";
+
+}catch(error){
+
+console.log(  
+  "Airdrop status:",  
+  error  
+);
+
+}
+}
+
+async function claimAirdrop(){
+
+try{
+
+const data=  
+  await api("/api/airdrop/claim",{  
+    method:"POST",  
+    body:JSON.stringify({})  
+  });  
+
+showToast(  
+  "Airdrop claimed: "+  
+  fmt(  
+    data.amount ??  
+    data.reward ??  
+    0  
+  )+  
+  " AMT"  
+);  
+
+await loadAirdrop();  
+await refreshWallet();
+
+}catch(error){
+
+showToast(  
+  error.message,  
+  true  
+);
+
+}
+}
+
+/* ---------------------------------------------------------
+REFERRAL
+--------------------------------------------------------- */
+
+async function loadReferral(){
+
+try{
+
+const data=  
+  await api("/api/referrals");  
+
+$("referralCode")  
+  .textContent=  
+  data.referralCode ??  
+  data.code ??  
+  "------";  
+
+$("referralCount")  
+  .textContent=  
+  data.referralCount ??  
+  data.count ??  
+  0;  
+
+$("activeMiners")  
+  .textContent=  
+  data.activeMiners ??  
+  0;
+
+}catch(error){
+
+console.log(  
+  "Referral:",  
+  error  
+);
+
+}
+}
+
+function copyReferral(){
+
+const code=
+$("referralCode")
+.textContent
+.trim();
+
+if(
+!code ||
+code==="------"
+){
+
+showToast(  
+  "Referral code is not ready.",  
+  true  
+);  
+
+return;
+
+}
+
+navigator.clipboard
+.writeText(code)
+.then(()=>{
+showToast(
+"Referral code copied."
+);
+})
+.catch(()=>{
+showToast(
+"Could not copy referral code.",
+true
+);
+});
+}
+
+async function applyReferral(){
+
+const code=
+$("referralInput")
+.value
+.trim();
+
+if(!code){
+
+showToast(  
+  "Enter a referral code.",  
+  true  
+);  
+
+return;
+
+}
+
+try{
+
+await api("/api/referrals/apply",{  
+  method:"POST",  
+  body:JSON.stringify({  
+    referralCode:code,  
+    code  
+  })  
+});  
+
+$("referralInput")  
+  .value="";  
+
+showToast(  
+  "Referral code applied."  
+);  
+
+await loadReferral();
+
+}catch(error){
+
+showToast(  
+  error.message,  
+  true  
+);
+
+}
+}
+
+/* ---------------------------------------------------------
+SECURITY CIRCLE
+--------------------------------------------------------- */
+
+async function loadSecurityCircle(){
+
+try{
+
+const data=  
+  await api("/api/security-circle");  
+
+const members=  
+  data.members ||  
+  data.securityCircle ||  
+  [];  
+
+$("circleCount")  
+  .textContent=  
+  members.length;  
+
+$("circleStatus")  
+  .textContent=  
+  members.length  
+    ? "ACTIVE"  
+    : "NO MEMBERS";  
+
+if(!members.length){  
+
+  $("circleList")  
+    .innerHTML=  
+    '<div class="empty">No security-circle members returned.</div>';  
+
+  return;  
+}  
+
+$("circleList")  
+  .innerHTML=  
+  members.map(member=>`  
+
+    <div class="stake-item">  
+
+      <div class="row">  
+
+        <b>${esc(  
+          member.username ??  
+          member.name ??  
+          "Pioneer"  
+        )}</b>  
+
+        <span class="muted">  
+          Pi  
+        </span>  
+
+      </div>  
+
+    </div>  
+
+  `).join("");
+
+}catch(error){
+
+$("circleStatus")  
+  .textContent=  
+  "Unavailable";  
+
+$("circleList")  
+  .innerHTML=  
+  '<div class="empty">Security Circle data is not available from the backend yet.</div>';  
+
+console.log(error);
+
+}
+}
+
+/* ---------------------------------------------------------
+PROFILE
+--------------------------------------------------------- */
+
+async function loadProfile(){
+
+try{
+
+const data=  
+  await api("/api/profile");  
+
+const username=  
+  data.username ??  
+  currentUser?.username ??  
+  "Pioneer";  
+
+const uid=  
+  data.uid ??  
+  data.piUid ??  
+  currentUser?.uid ??  
+  "—";  
+
+$("profileUsername")  
+  .textContent=  
+  username;  
+
+$("infoUsername")  
+  .textContent=  
+  username;  
+
+$("profileUid")  
+  .textContent=  
+  "Pi UID: "+uid;  
+
+$("infoUid")  
+  .textContent=  
+  uid;  
+
+$("infoKyc")  
+  .textContent=  
+  data.kycStatus ??  
+  data.kyc ??  
+  "UNVERIFIED";  
+
+const image=  
+  data.profileImageUrl ??  
+  data.profile_image_url ??  
+  data.avatarUrl ??  
+  data.avatar ??  
+  "";  
+
+renderAvatar(image);
+
+}catch(error){
+
+console.log(  
+  "Profile:",  
+  error  
+);  
+
+const username=  
+  currentUser?.username ||  
+  "Pioneer";  
+
+const uid=  
+  currentUser?.uid ||  
+  "—";  
+
+$("profileUsername")  
+  .textContent=  
+  username;  
+
+$("infoUsername")  
+  .textContent=  
+  username;  
+
+$("profileUid")  
+  .textContent=  
+  "Pi UID: "+uid;  
+
+$("infoUid")  
+  .textContent=  
+  uid;
+
+}
+}
+
+function renderAvatar(url){
+
+const box=
+$("avatarBox");
+
+if(!url){
+
+box.className=  
+  "avatar avatar-placeholder";  
+
+box.textContent="👤";  
+
+return;
+
+}
+
+/*
+
+avatarBox is a DIV in the HTML.
+
+Replace it with an IMG element when
+
+an image exists.
+*/
+
+
+box.outerHTML=
+'<img id="avatarBox" class="avatar" src="'+  
+esc(url)+  
+'" alt="AMT Profile Picture">';
+}
+
+async function uploadProfileImage(){
+
+const file=
+$("profileImageInput")
+.files[0];
+
+if(!file){
+
+showToast(  
+  "Choose a profile picture first.",  
+  true  
+);  
+
+return;
+
+}
+
+if(file.size>510241024){
+
+showToast(  
+  "Maximum image size is 5 MB.",  
+  true  
+);  
+
+return;
+
+}
+
+try{
+
+/*  
+ * server.js v2.1.1 expects:  
+ * { image: "data:image/..." }  
+ *  
+ * It does NOT expect multipart/FormData  
+ * for this endpoint.  
+ */  
+
+const reader=  
+  new FileReader();  
+
+const imageData=  
+  await new Promise(  
+    (resolve,reject)=>{  
+
+      reader.onload=()=>{  
+        resolve(  
+          reader.result  
+        );  
+      };  
+
+      reader.onerror=()=>{  
+        reject(  
+          new Error(  
+            "Unable to read image."  
+          )  
+        );  
+      };  
+
+      reader.readAsDataURL(file);  
+    }  
+  );  
+
+const data=  
+  await api("/api/profile/image",{  
+    method:"POST",  
+    body:JSON.stringify({  
+      image:imageData  
+    })  
+  });  
+
+const image=  
+  data.profileImageUrl ??  
+  data.profile_image_url ??  
+  data.url ??  
+  imageData;  
+
+renderAvatar(image);  
+
+$("profileImageInput")  
+  .value="";  
+
+showToast(  
+  "Profile picture updated."  
+);
+
+}catch(error){
+
+console.error(  
+  "Profile image:",  
+  error  
+);  
+
+showToast(  
+  error.message,  
+  true  
+);
+
+}
+}
+
+async function deleteProfileImage(){
+
+try{
+
+await api("/api/profile/image",{  
+  method:"DELETE"  
+});  
+
+renderAvatar("");  
+
+showToast(  
+  "Profile picture removed."  
+);
+
+}catch(error){
+
+showToast(  
+  error.message,  
+  true  
+);
+
+}
+}
+
+/* ---------------------------------------------------------
+STAKING
+--------------------------------------------------------- */
+
+function selectPool(pool){
+
+selectedStakePool=pool;
+
+$("selectedPool")
+.value=pool;
+
+document.querySelectorAll(".pool")
+.forEach(item=>{
+item.classList.remove("active");
+});
+
+const pools=
+document.querySelectorAll(".pool");
+
+if(pool==="30D"){
+pools[0]?.classList.add("active");
+}
+
+if(pool==="90D"){
+pools[1]?.classList.add("active");
+}
+
+if(pool==="180D"){
+pools[2]?.classList.add("active");
+}
+}
+
+async function loadStaking(){
+
+try{
+
+const summary=  
+  await api("/api/staking/status");  
+
+const available=  
+  num(  
+    summary.availableBalance ??  
+    summary.available ??  
+    0  
+  );  
+
+const principal=  
+  num(  
+    summary.stakedPrincipal ??  
+    summary.staked ??  
+    0  
+  );  
+
+const rewards=  
+  num(  
+    summary.pendingRewards ??  
+    summary.rewards ??  
+    0  
+  );  
+
+$("stakeAvailable")  
+  .textContent=  
+  fmt(available)+" AMT";  
+
+$("stakePrincipal")  
+  .textContent=  
+  fmt(principal)+" AMT";  
+
+$("stakeRewards")  
+  .textContent=  
+  fmt(rewards)+" AMT";  
+
+const stakes=  
+  summary.activeStakes ??  
+  summary.stakes ??  
+  [];  
+
+renderActiveStakes(stakes);  
+
+await loadStakingHistory();
+
+}catch(error){
+
+console.log(  
+  "Staking:",  
+  error  
+);  
+
+$("activeStakes")  
+  .innerHTML=  
+  '<div class="empty">No active stakes.</div>';
+
+}
+}
+
+function renderActiveStakes(stakes){
+
+if(
+!stakes ||
+!stakes.length
+){
+
+$("activeStakes")  
+  .innerHTML=  
+  '<div class="empty">No active stakes.</div>';  
+
+return;
+
+}
+
+$("activeStakes")
+.innerHTML=
+stakes.map(stake=>{
+
+const principal=  
+    num(stake.principal);  
+
+  const reward=  
+    num(  
+      stake.rewardAmount ??  
+      stake.reward_amount ??  
+      0  
+    );  
+
+  const unlock=  
+    stake.unlockAt ??  
+    stake.unlock_at ??  
+    "—";  
+
+  const unlocked=  
+    Boolean(  
+      stake.unlocked ??  
+      (  
+        unlock!=="—" &&  
+        new Date(unlock)<=new Date()  
+      )  
+    );  
+
+  return `  
+
+    <div class="stake-item">  
+
+      <div class="row">  
+
+        <b>${esc(  
+          stake.poolName ??  
+          stake.poolId ??  
+          "AMT STAKE"  
+        )}</b>  
+
+        <span style="color:#ffd450">  
+          ${fmt(principal)} AMT  
+        </span>  
+
+      </div>  
+
+      <div class="row">  
+        <span class="muted">  
+          Reward  
+        </span>  
+
+        <span>  
+          ${fmt(reward)} AMT  
+        </span>  
+      </div>  
+
+      <div class="row">  
+        <span class="muted">  
+          Unlock  
+        </span>  
+
+        <span>  
+          ${esc(  
+            formatDate(unlock)  
+          )}  
+        </span>  
+      </div>  
+
+      <button  
+        class="${unlocked ? "primary" : "secondary"}"  
+        style="margin-top:10px"  
+        ${unlocked ? "" : "disabled"}  
+        onclick="unstake('${esc(  
+          stake.id  
+        )}')">  
+
+        ${  
+          unlocked  
+            ? "💰 UNSTAKE + REWARD"  
+            : "🔒 LOCKED"  
+        }  
+
+      </button>  
+
+    </div>  
+  `;  
+
+}).join("");
+
+}
+
+async function createStake(){
+
+const poolId=
+$("selectedPool").value ||
+selectedStakePool;
+
+const amount=
+num(
+$("stakeAmount").value
+);
+
+if(amount<=0){
+
+showToast(  
+  "Enter an AMT amount to stake.",  
+  true  
+);  
+
+return;
+
+}
+
+try{
+
+const data=  
+  await api("/api/staking/stake",{  
+    method:"POST",  
+    body:JSON.stringify({  
+      poolId,  
+      amount  
+    })  
+  });  
+
+$("stakeAmount")  
+  .value="";  
+
+showToast(  
+  "Stake created: "+  
+  fmt(  
+    data.principal ??  
+    amount  
+  )+  
+  " AMT"  
+);  
+
+await loadStaking();  
+await refreshWallet();
+
+}catch(error){
+
+showToast(  
+  error.message,  
+  true  
+);
+
+}
+}
+
+async function unstake(stakeId){
+
+if(!confirm(
+"Unstake this AMT stake and receive principal + earned reward?"
+)){
+return;
+}
+
+try{
+
+const data=  
+  await api("/api/staking/unstake",{  
+    method:"POST",  
+    body:JSON.stringify({  
+      stakeId  
+    })  
+  });  
+
+showToast(  
+  "Unstaked successfully. "+  
+  fmt(  
+    data.totalPayout ??  
+    data.amount ??  
+    0  
+  )+  
+  " AMT returned."  
+);  
+
+await loadStaking();  
+await refreshWallet();
+
+}catch(error){
+
+showToast(  
+  error.message,  
+  true  
+);
+
+}
+}
+
+async function loadStakingHistory(){
+
+try{
+
+const data=  
+  await api("/api/staking/history");  
+
+const history=  
+  data.history ??  
+  data.stakes ??  
+  [];  
+
+if(!history.length){  
+
+  $("stakingHistory")  
+    .innerHTML=  
+    '<div class="empty">No staking history yet.</div>';  
+
+  return;  
+}  
+
+$("stakingHistory")  
+  .innerHTML=  
+  history.map(item=>`  
+
+    <div class="stake-item">  
+
+      <div class="row">  
+
+        <b>${esc(  
+          item.poolName ??  
+          item.poolId ??  
+          "AMT"  
+        )}</b>  
+
+        <span>  
+          ${fmt(  
+            item.principal ??  
+            0  
+          )} AMT  
+        </span>  
+
+      </div>  
+
+      <div class="row">  
+
+        <span class="muted">  
+          Status  
+        </span>  
+
+        <span>  
+          ${esc(  
+            item.status ??  
+            "—"  
+          )}  
+        </span>  
+
+      </div>  
+
+      <div class="row">  
+
+        <span class="muted">  
+          Reward  
+        </span>  
+
+        <span>  
+          ${fmt(  
+            item.rewardAmount ??  
+            0  
+          )} AMT  
+        </span>  
+
+      </div>  
+
+    </div>  
+
+  `).join("");
+
+}catch(error){
+
+console.log(error);
+
+}
+}
+
+function formatDate(value){
+
+if(
+!value ||
+value==="—"
+){
+return "—";
+}
+
+const date=
+new Date(value);
+
+if(
+Number.isNaN(
+date.getTime()
+)
+){
+return String(value);
+}
+
+return date.toLocaleString();
+}
+
+/* ---------------------------------------------------------
+MARKETPLACE
+--------------------------------------------------------- */
+
+function marketInfo(name){
+
+showToast(
+name+
+" marketplace item • Pi Testnet"
+);
+}
+
+/* ---------------------------------------------------------
+INITIALIZATION
+--------------------------------------------------------- */
+
+document.addEventListener(
+"DOMContentLoaded",
+()=>{
+selectPool("30D");
+restoreSession();
+}
+);
+
+window.addEventListener(
+"beforeunload",
+()=>{
+if(miningInterval){
+
+clearInterval(  
+    miningInterval  
+  );  
+}
+
+}
+);
+
+</script></body>
+
 </html>
