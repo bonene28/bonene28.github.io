@@ -912,7 +912,7 @@ async function authenticatePi() {
       return;
     }
 
-    Pi.init({ version: "2.0", sandbox: true });
+    Pi.init({ version: "2.0" });
 
     const authResult = await Pi.authenticate(
       ["username", "payments"],
@@ -1318,7 +1318,7 @@ async function buyTestPet() {
   const button = document.getElementById("testBuyButton");
   const status = document.getElementById("testBuyStatus");
   button.disabled = true;
-  status.textContent = "🧪 Opening PI TESTNET payment only...";
+  status.textContent = "Opening Pi Testnet payment...";
 
   try {
     const response = await fetch(`${BACKEND_URL}/api/market/test-product`, {
@@ -1350,7 +1350,7 @@ async function buyTestPet() {
           });
           const d = await r.json();
           if (!r.ok || !d.success) throw new Error(d.error || d.message || "Payment approval failed.");
-          status.textContent = "Payment approved. Complete the PI TESTNET payment in Pi. REAL PI IS NOT USED.";
+          status.textContent = "Payment approved. Complete the Pi Testnet payment in Pi.";
         },
         onReadyForServerCompletion: async function(paymentId, txid) {
           status.textContent = "Verifying and completing the Pi Testnet payment...";
