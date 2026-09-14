@@ -1064,14 +1064,18 @@ One eligible claim per account. Testnet only.
 </div>
 
 <div class="card">
-<div class="card-title">YOUR REFERRAL CODE</div>
+<div class="card-title">YOUR REFERRAL LINK</div>
 
-<div id="referralCode" style="font-size:27px;font-weight:900;color:#ffd54f">
+<div id="referralCode" style="font-size:13px;font-weight:800;color:#ffd54f;word-break:break-all;line-height:1.4">
 ------
 </div>
 
+<div class="muted" style="margin-top:8px;font-size:11px">
+Code: <span id="referralCodeOnly">------</span>
+</div>
+
 <button class="secondary" style="margin-top:12px" onclick="copyReferral()">
-📋 COPY REFERRAL CODE
+📋 COPY REFERRAL LINK
 </button>
 </div>
 
@@ -1641,6 +1645,9 @@ await showEcosystemLoading();
 
 enterApp();
 
+// Apply referral from link (?ref=username) if present
+await tryApplyPendingReferral();
+
 setTimeout(()=>{
 hideEcosystemLoading();
 },250);
@@ -1690,6 +1697,9 @@ try{
 await api("/api/balance");
 
 enterApp();
+
+// Apply referral from link if present
+await tryApplyPendingReferral();
 
 }catch(error){
 
@@ -2255,6 +2265,28 @@ true
    REFERRAL
 ============================================================ */
 
+const APP_BASE_URL = "https://bonene28.github.io";
+
+function getPendingReferralCode(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = (params.get("ref") || params.get("referral") || "").trim();
+    if(fromUrl){
+      localStorage.setItem("amt_pending_referral", fromUrl);
+      return fromUrl;
+    }
+    return (localStorage.getItem("amt_pending_referral") || "").trim();
+  }catch(e){
+    return "";
+  }
+}
+
+function clearPendingReferralCode(){
+  try{
+    localStorage.removeItem("amt_pending_referral");
+  }catch(e){}
+}
+
 async function loadReferral(){
 
 try{
@@ -2262,10 +2294,21 @@ try{
 const data=
 await api("/api/referrals");
 
-$("referralCode").textContent=
-data.referralCode??
-data.code??
-"------";
+const code =
+  (data.referralCode || data.code || data.username || "").trim();
+
+if(code && code !== "------"){
+  const fullLink = APP_BASE_URL + "/?ref=" + encodeURIComponent(code);
+  $("referralCode").textContent = fullLink;
+  if($("referralCodeOnly")){
+    $("referralCodeOnly").textContent = code;
+  }
+}else{
+  $("referralCode").textContent = "------";
+  if($("referralCodeOnly")){
+    $("referralCodeOnly").textContent = "------";
+  }
+}
 
 $("referralCount").textContent=
 data.referralCount??
@@ -2288,30 +2331,30 @@ error
 
 function copyReferral(){
 
-const code=
+const link =
 $("referralCode")
 .textContent
 .trim();
 
 if(
-!code||
-code==="------"
+!link||
+link==="------"
 ){
 
 return showToast(
-"Referral code is not ready.",
+"Referral link is not ready. Please login again.",
 true
 );
 
 }
 
 navigator.clipboard
-.writeText(code)
+.writeText(link)
 .then(()=>showToast(
-"Referral code copied."
+"Referral link copied!"
 ))
 .catch(()=>showToast(
-"Could not copy referral code.",
+"Could not copy referral link.",
 true
 ));
 
@@ -2335,18 +2378,20 @@ true
 
 try{
 
-await api("/api/referrals/apply",{
+// Prefer username-based auto-link endpoint
+await api("/api/referral/auto-link",{
 method:"POST",
 body:JSON.stringify({
-referralCode:code,
-code
+accessToken: accessToken,
+referralUsername: code
 })
 });
 
 $("referralInput").value="";
+clearPendingReferralCode();
 
 showToast(
-"Referral code applied."
+"Referral applied successfully."
 );
 
 await loadReferral();
@@ -2354,11 +2399,37 @@ await loadReferral();
 }catch(error){
 
 showToast(
-error.message,
+error.message || "Unable to apply referral.",
 true
 );
 
 }
+}
+
+/* Try to apply pending referral from URL (?ref=username) after login */
+async function tryApplyPendingReferral(){
+
+const pending = getPendingReferralCode();
+if(!pending || !accessToken) return;
+
+try{
+
+await api("/api/referral/auto-link",{
+method:"POST",
+body:JSON.stringify({
+accessToken: accessToken,
+referralUsername: pending
+})
+});
+
+clearPendingReferralCode();
+showToast("Referral from link applied: " + pending);
+
+}catch(error){
+  // silent fail - already linked or invalid
+  console.log("Pending referral:", error.message || error);
+}
+
 }
 
 /* ============================================================
@@ -3025,6 +3096,9 @@ document.addEventListener(
 ()=>{
 
 selectPool("30D");
+
+// Capture ?ref= from URL early (before login)
+getPendingReferralCode();
 
 restoreSession();
 
