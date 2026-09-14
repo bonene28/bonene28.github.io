@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.1.5
+FULL SERVER VERSION 2.2.0
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.1.5:
+VERSION 2.2.0:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -35,6 +35,9 @@ VERSION 2.1.5:
 - NEW: referralCode is now read from the saved referral_code column
 - FIXED: /api/referrals now returns referralCode + activeMiners
   (frontend was calling this endpoint and showing ------)
+- NEW: Referral Tier System (Bronze / Silver / Gold / Legend)
+- NEW: Per-referral rewards + one-time milestone bonuses
+- NEW: Automatic credit to AMT ledger when referral is linked
 ============================================================
 */
 
@@ -79,6 +82,33 @@ const AIRDROP_AMOUNT_AMT = Number(
 const MAX_DIRECT_REFERRALS = null;
 
 const MAX_SECURITY_CIRCLE = 5;
+
+/* =========================================================
+REFERRAL TIER SYSTEM
+========================================================= */
+
+const REFERRAL_TIERS = [
+  { name: "Bronze", min: 1, max: 5, rewardPerReferral: 0.5 },
+  { name: "Silver", min: 6, max: 15, rewardPerReferral: 1.0 },
+  { name: "Gold", min: 16, max: 50, rewardPerReferral: 1.5 },
+  { name: "Legend", min: 51, max: Infinity, rewardPerReferral: 2.0 }
+];
+
+const REFERRAL_MILESTONES = [
+  { count: 5, bonus: 2.0, key: "M5" },
+  { count: 15, bonus: 5.0, key: "M15" },
+  { count: 50, bonus: 15.0, key: "M50" }
+];
+
+function getReferralTier(count) {
+  const n = Number(count) || 0;
+  for (const tier of REFERRAL_TIERS) {
+    if (n >= tier.min && n <= tier.max) {
+      return tier;
+    }
+  }
+  return REFERRAL_TIERS[0];
+}
 
 const PI_PAYMENT_API_BASE =
   process.env.PI_PAYMENT_API_BASE ||
@@ -955,7 +985,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.1.5",
+      "2.2.0",
 
     features: [
       "Pi Login",
@@ -2541,6 +2571,73 @@ app.post(
 REFERRAL
 ========================================================= */
 
+/**
+ * Credit referral reward + milestone bonus to the referrer.
+ * Called after a new referral is successfully linked.
+ * Uses the same DB client/transaction when possible.
+ */
+async function creditReferralReward(
+  referrerMemberId,
+  newReferralCount,
+  db = pool
+) {
+  const tier = getReferralTier(newReferralCount);
+  const reward = Number(tier.rewardPerReferral.toFixed(8));
+  const results = {
+    tier: tier.name,
+    referralReward: reward,
+    milestoneBonus: 0,
+    totalCredited: 0
+  };
+
+  if (reward > 0) {
+    const ref = makeReference("AMT-REF");
+    await db.query(
+      `
+      INSERT INTO amt_ledger
+        (member_id, amount, type, reference)
+      VALUES
+        ($1, $2, 'REFERRAL_REWARD', $3)
+      `,
+      [referrerMemberId, reward, ref]
+    );
+    results.totalCredited += reward;
+  }
+
+  // Check milestones (one-time)
+  for (const mile of REFERRAL_MILESTONES) {
+    if (newReferralCount >= mile.count) {
+      const mileRef = `AMT-MILESTONE-${mile.key}-${referrerMemberId}`;
+
+      // Check if already claimed
+      const existing = await db.query(
+        `
+        SELECT id FROM amt_ledger
+        WHERE member_id = $1 AND reference = $2
+        LIMIT 1
+        `,
+        [referrerMemberId, mileRef]
+      );
+
+      if (!existing.rows.length) {
+        await db.query(
+          `
+          INSERT INTO amt_ledger
+            (member_id, amount, type, reference)
+          VALUES
+            ($1, $2, 'REFERRAL_MILESTONE', $3)
+          `,
+          [referrerMemberId, mile.bonus, mileRef]
+        );
+        results.milestoneBonus += mile.bonus;
+        results.totalCredited += mile.bonus;
+      }
+    }
+  }
+
+  return results;
+}
+
 async function addReferralToSecurityCircle(
   client,
   ownerMemberId,
@@ -2755,6 +2852,23 @@ app.post(
           referredMemberId
         );
 
+      const countRes = await client.query(
+        `
+        SELECT COUNT(*)::INT AS count
+        FROM referrals
+        WHERE referrer_member_id = $1
+          AND status = 'ACTIVE'
+        `,
+        [req.member.id]
+      );
+      const newCount = Number(countRes.rows[0]?.count || 0);
+
+      const rewardInfo = await creditReferralReward(
+        req.member.id,
+        newCount,
+        client
+      );
+
       await client.query(
         "COMMIT"
       );
@@ -2766,7 +2880,9 @@ app.post(
           true,
 
         addedToSecurityCircle:
-          addedToCircle
+          addedToCircle,
+
+        referralReward: rewardInfo
       });
 
     } catch (error) {
@@ -2966,6 +3082,24 @@ app.post(
             auth.member.id
           );
 
+        // Count after this new referral
+        const countRes = await client.query(
+          `
+          SELECT COUNT(*)::INT AS count
+          FROM referrals
+          WHERE referrer_member_id = $1
+            AND status = 'ACTIVE'
+          `,
+          [referrerMember.id]
+        );
+        const newCount = Number(countRes.rows[0]?.count || 0);
+
+        const rewardInfo = await creditReferralReward(
+          referrerMember.id,
+          newCount,
+          client
+        );
+
         await client.query(
           "COMMIT"
         );
@@ -2980,7 +3114,9 @@ app.post(
             referrerMember.username,
 
           addedToSecurityCircle:
-            addedToCircle
+            addedToCircle,
+
+          referralReward: rewardInfo
         });
 
       } catch (error) {
@@ -3085,6 +3221,11 @@ app.get(
         [req.member.id]
       );
 
+    const referralCount = Number(
+      countResult.rows[0]?.count || 0
+    );
+    const currentTier = getReferralTier(referralCount);
+
     res.json({
       ok: true,
 
@@ -3098,10 +3239,7 @@ app.get(
         req.member.username ||
         null,
 
-      referralCount:
-        Number(
-          countResult.rows[0]?.count || 0
-        ),
+      referralCount,
 
       maxDirectReferrals:
         "UNLIMITED",
@@ -3110,6 +3248,23 @@ app.get(
         Number(
           activeMiners.rows[0]?.count || 0
         ),
+
+      // Tier system info
+      tier: {
+        name: currentTier.name,
+        rewardPerReferral: currentTier.rewardPerReferral,
+        min: currentTier.min,
+        max: currentTier.max === Infinity ? null : currentTier.max
+      },
+
+      tiers: REFERRAL_TIERS.map(t => ({
+        name: t.name,
+        min: t.min,
+        max: t.max === Infinity ? null : t.max,
+        rewardPerReferral: t.rewardPerReferral
+      })),
+
+      milestones: REFERRAL_MILESTONES,
 
       referrals:
         referrals.rows
@@ -5038,6 +5193,9 @@ app.get(
           [req.member.id]
         );
 
+      const referralCount = result.rows.length;
+      const currentTier = getReferralTier(referralCount);
+
       res.json({
         ok: true,
 
@@ -5051,16 +5209,31 @@ app.get(
         username:
           req.member.username,
 
-        count:
-          result.rows.length,
+        count: referralCount,
 
-        referralCount:
-          result.rows.length,
+        referralCount,
 
         activeMiners:
           Number(
             activeMiners.rows[0]?.count || 0
           ),
+
+        // Tier system info
+        tier: {
+          name: currentTier.name,
+          rewardPerReferral: currentTier.rewardPerReferral,
+          min: currentTier.min,
+          max: currentTier.max === Infinity ? null : currentTier.max
+        },
+
+        tiers: REFERRAL_TIERS.map(t => ({
+          name: t.name,
+          min: t.min,
+          max: t.max === Infinity ? null : t.max,
+          rewardPerReferral: t.rewardPerReferral
+        })),
+
+        milestones: REFERRAL_MILESTONES,
 
         referrals:
           result.rows
@@ -5216,6 +5389,23 @@ app.post(
           referralMemberId
         );
 
+      const countRes = await client.query(
+        `
+        SELECT COUNT(*)::INT AS count
+        FROM referrals
+        WHERE referrer_member_id = $1
+          AND status = 'ACTIVE'
+        `,
+        [req.member.id]
+      );
+      const newCount = Number(countRes.rows[0]?.count || 0);
+
+      const rewardInfo = await creditReferralReward(
+        req.member.id,
+        newCount,
+        client
+      );
+
       await client.query(
         "COMMIT"
       );
@@ -5232,7 +5422,9 @@ app.post(
         referralMemberId,
 
         addedToSecurityCircle:
-          addedToCircle
+          addedToCircle,
+
+        referralReward: rewardInfo
       });
 
     } catch (error) {
@@ -5540,7 +5732,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.1.5"
+          "Version: 2.2.0"
         );
 
         console.log(
