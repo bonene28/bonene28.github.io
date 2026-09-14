@@ -1091,6 +1091,29 @@ Code: <span id="referralCodeOnly">------</span>
 </div>
 </div>
 
+<!-- TIER CARD -->
+<div class="card" style="margin-top:15px">
+<div class="card-title">YOUR TIER</div>
+
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+  <div>
+    <div id="tierName" style="font-size:22px;font-weight:900;color:#ffd54f">Bronze</div>
+    <div class="muted" style="margin-top:4px;font-size:11px">
+      Reward: <span id="tierReward">0.5</span> AMT per referral
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div class="muted" style="font-size:10px">Next Milestone</div>
+    <div id="nextMilestone" style="font-size:13px;font-weight:800;color:#caa2ff">5 refs</div>
+  </div>
+</div>
+
+<div class="progress" style="margin:10px 0 6px">
+  <span id="tierProgress" style="width:0%"></span>
+</div>
+<div class="muted" style="font-size:10px" id="tierProgressText">0 / 5 to next tier</div>
+</div>
+
 <div class="card" style="margin-top:15px">
 <div class="card-title">INVITE A PIONEER</div>
 
@@ -1101,7 +1124,8 @@ JOIN REFERRAL
 </button>
 
 <div class="notice">
-Referral rewards are controlled by the AMT Testnet backend.
+Bronze 1-5 (+0.5) · Silver 6-15 (+1.0) · Gold 16-50 (+1.5) · Legend 51+ (+2.0)<br>
+Milestones: 5→+2 · 15→+5 · 50→+15 AMT
 </div>
 </div>
 </section>
@@ -2310,14 +2334,62 @@ if(code && code !== "------"){
   }
 }
 
-$("referralCount").textContent=
-data.referralCount??
-data.count??
-0;
+const count = Number(data.referralCount ?? data.count ?? 0);
+
+$("referralCount").textContent = count;
 
 $("activeMiners").textContent=
 data.activeMiners??
 0;
+
+// ===== TIER DISPLAY =====
+const tier = data.tier || {};
+const tierName = tier.name || "Bronze";
+const reward = tier.rewardPerReferral ?? 0.5;
+
+if($("tierName")) $("tierName").textContent = tierName;
+if($("tierReward")) $("tierReward").textContent = reward;
+
+// Progress & next milestone
+const milestones = [5, 15, 50];
+let nextMile = null;
+for(const m of milestones){
+  if(count < m){
+    nextMile = m;
+    break;
+  }
+}
+
+if($("nextMilestone")){
+  $("nextMilestone").textContent = nextMile ? (nextMile + " refs") : "Max reached";
+}
+
+// Progress bar toward next tier boundary
+const tiers = [
+  {name:"Bronze", min:1, max:5},
+  {name:"Silver", min:6, max:15},
+  {name:"Gold", min:16, max:50},
+  {name:"Legend", min:51, max:999999}
+];
+
+let current = tiers.find(t => count >= t.min && count <= t.max) || tiers[0];
+let nextTier = tiers.find(t => t.min > count);
+
+let progressPct = 0;
+let progressText = "";
+
+if(nextTier){
+  const range = nextTier.min - current.min;
+  const done = Math.max(0, count - current.min + 1);
+  progressPct = Math.min(100, Math.round((done / range) * 100));
+  progressText = count + " / " + nextTier.min + " to " + nextTier.name;
+}else{
+  progressPct = 100;
+  progressText = count + " referrals · Legend tier";
+}
+
+if($("tierProgress")) $("tierProgress").style.width = progressPct + "%";
+if($("tierProgressText")) $("tierProgressText").textContent = progressText;
 
 }catch(error){
 
