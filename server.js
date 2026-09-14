@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.1.2
+FULL SERVER VERSION 2.1.3
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.1.2:
+VERSION 2.1.3:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -28,6 +28,8 @@ VERSION 2.1.2:
 - Added verified Pi Testnet wallet address to profile response
 - Added verified Pi Testnet wallet address to wallet response
 - AMT ledger address remains separate from Pi wallet address
+- FIXED: Explicitly return referralCode (= username) for every Pioneer
+  in /api/auth/verify, /api/profile, /api/wallet, and /api/referral/status
 ============================================================
 */
 
@@ -922,7 +924,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.1.2",
+      "2.1.3",
 
     features: [
       "Pi Login",
@@ -1096,7 +1098,13 @@ app.all(
           "Pi Testnet",
 
         environment:
-          "TESTNET"
+          "TESTNET",
+
+        // Referral code of this Pioneer (same as username)
+        referralCode:
+          req.member.username ||
+          req.piUser.username ||
+          null
       });
 
     } catch (error) {
@@ -1169,7 +1177,13 @@ app.get(
         "Pi Testnet",
 
       environment:
-        "TESTNET"
+        "TESTNET",
+
+      // Referral code of this Pioneer (same as username)
+      referralCode:
+        req.member.username ||
+        req.piUser.username ||
+        null
     });
   }
 );
@@ -1481,7 +1495,13 @@ app.get(
         false,
 
       walletType:
-        "AMT_TESTNET_LEDGER"
+        "AMT_TESTNET_LEDGER",
+
+      // Referral code of this Pioneer (same as username)
+      referralCode:
+        req.member.username ||
+        req.piUser.username ||
+        null
     });
   }
 );
@@ -3035,6 +3055,11 @@ app.get(
       ok: true,
 
       username:
+        req.member.username,
+
+      // Referral code of this Pioneer (same as username)
+      // This is what other miners should use when joining
+      referralCode:
         req.member.username,
 
       referralCount:
@@ -4724,7 +4749,13 @@ app.post(
           "Pi Testnet",
 
         environment:
-          "TESTNET"
+          "TESTNET",
+
+        // Referral code of this Pioneer (same as username)
+        referralCode:
+          req.member.username ||
+          req.piUser.username ||
+          null
       });
 
     } catch (error) {
@@ -5439,7 +5470,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.1.2"
+          "Version: 2.1.3"
         );
 
         console.log(
