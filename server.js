@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.1.4
+FULL SERVER VERSION 2.1.5
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.1.4:
+VERSION 2.1.5:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -33,6 +33,8 @@ VERSION 2.1.4:
 - NEW: Added referral_code column to members table
 - NEW: On every login, Pi username is permanently saved as referral_code
 - NEW: referralCode is now read from the saved referral_code column
+- FIXED: /api/referrals now returns referralCode + activeMiners
+  (frontend was calling this endpoint and showing ------)
 ============================================================
 */
 
@@ -953,7 +955,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.1.4",
+      "2.1.5",
 
     features: [
       "Pi Login",
@@ -5018,14 +5020,47 @@ app.get(
           [req.member.id]
         );
 
+      const activeMiners =
+        await pool.query(
+          `
+          SELECT
+            COUNT(*)::INT AS count
+          FROM referrals r
+          JOIN mining_sessions ms
+            ON ms.member_id =
+               r.referred_member_id
+          WHERE
+            r.referrer_member_id = $1
+            AND r.status = 'ACTIVE'
+            AND ms.status = 'ACTIVE'
+            AND NOW() < ms.ends_at
+          `,
+          [req.member.id]
+        );
+
       res.json({
         ok: true,
+
+        // Referral code of this Pioneer (saved from Pi username on login)
+        referralCode:
+          req.member.referral_code ||
+          req.member.username ||
+          req.piUser.username ||
+          null,
+
+        username:
+          req.member.username,
 
         count:
           result.rows.length,
 
         referralCount:
           result.rows.length,
+
+        activeMiners:
+          Number(
+            activeMiners.rows[0]?.count || 0
+          ),
 
         referrals:
           result.rows
@@ -5505,7 +5540,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.1.4"
+          "Version: 2.1.5"
         );
 
         console.log(
