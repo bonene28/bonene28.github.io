@@ -48,7 +48,6 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(720px,100%);z-index:100;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:rgba(8,6,14,.94);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.08)}
 .nav-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.nav-btn{min-width:0;border:0;padding:9px 3px;border-radius:13px;color:#82798c;background:transparent;font-size:10px;font-weight:800}.nav-btn .icon{display:block;font-size:19px;margin-bottom:3px}.nav-btn.active{color:#ffd64e;background:rgba(170,79,255,.13)}
 .toast{position:fixed;left:50%;bottom:95px;transform:translate(-50%,20px);width:calc(100% - 32px);max-width:650px;padding:13px 15px;border-radius:15px;background:#17101f;border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 35px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:.25s;z-index:200;font-size:12px}.toast.show{opacity:1;transform:translate(-50%,0)}.toast.success{border-color:rgba(65,255,135,.35)}.toast.error{border-color:rgba(255,70,95,.35)}
-.login-box{text-align:center;padding:20px 0 10px}.login-box h2{margin:0 0 7px}.login-box p{color:#93899f;font-size:12px;line-height:1.5}
 .wallet-address{word-break:break-all;font-family:monospace;color:#caa2ff;font-size:11px}
 .market-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.market-item{padding:13px;border-radius:17px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
 .market-art{height:115px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px;font-size:42px;background:radial-gradient(circle at 50% 30%,rgba(179,80,255,.4),transparent 50%),#10091a}
@@ -56,9 +55,522 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .empty{padding:25px 12px;text-align:center;color:#807688;font-size:12px}hr{border:0;border-top:1px solid rgba(255,255,255,.06);margin:15px 0}
 
 /* ============================================================
-   ALBERTO MARKETPLACE ECOSYSTEM LOGIN TRANSITION
-   FRONTEND ONLY - DOES NOT CHANGE APP/BACKEND LOGIC
+   CINEMATIC AMT LOGIN SCREEN
+   FRONTEND ONLY — NO BACKEND / API CHANGES
 ============================================================ */
+
+.login-cinematic{
+position:relative;
+min-height:calc(100vh - 96px);
+min-height:calc(100svh - 96px);
+margin:-2px -2px 0;
+padding:28px 8px 38px;
+display:flex;
+align-items:center;
+justify-content:center;
+overflow:hidden;
+border-radius:32px;
+background:
+radial-gradient(circle at 50% 34%,rgba(171,78,255,.20),transparent 22%),
+radial-gradient(circle at 50% 52%,rgba(255,211,76,.075),transparent 34%),
+radial-gradient(circle at 10% 90%,rgba(86,47,255,.13),transparent 28%),
+linear-gradient(150deg,#03020a 0%,#0b0615 48%,#04030a 100%);
+border:1px solid rgba(190,105,255,.18);
+box-shadow:0 20px 70px rgba(0,0,0,.38),inset 0 0 80px rgba(140,55,255,.06);
+}
+
+.login-cinematic::before{
+content:"";
+position:absolute;
+inset:0;
+background:
+linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+background-size:38px 38px;
+mask-image:radial-gradient(circle at center,#000,transparent 78%);
+opacity:.45;
+pointer-events:none;
+}
+
+.login-grid{
+position:absolute;
+inset:-30%;
+background:
+linear-gradient(rgba(183,91,255,.035) 1px,transparent 1px),
+linear-gradient(90deg,rgba(183,91,255,.035) 1px,transparent 1px);
+background-size:70px 70px;
+transform:perspective(500px) rotateX(62deg) translateY(20%);
+transform-origin:center;
+animation:loginGridMove 9s linear infinite;
+opacity:.55;
+pointer-events:none;
+}
+
+@keyframes loginGridMove{
+0%{transform:perspective(500px) rotateX(62deg) translateY(20%)}
+100%{transform:perspective(500px) rotateX(62deg) translateY(0%)}
+}
+
+.login-stage{
+position:relative;
+z-index:5;
+width:min(100%,590px);
+text-align:center;
+padding:10px 14px;
+}
+
+.login-top-badge{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:7px 12px;
+margin-bottom:16px;
+border-radius:999px;
+font-size:9px;
+font-weight:900;
+letter-spacing:2px;
+color:#bcaeca;
+background:rgba(255,255,255,.035);
+border:1px solid rgba(186,102,255,.22);
+box-shadow:0 0 22px rgba(167,73,255,.08);
+}
+
+.login-top-badge span{
+width:6px;
+height:6px;
+border-radius:50%;
+background:#63ff9b;
+box-shadow:0 0 12px #63ff9b;
+animation:loginPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loginPulse{
+0%,100%{opacity:.45;transform:scale(.8)}
+50%{opacity:1;transform:scale(1.2)}
+}
+
+.login-core{
+position:relative;
+width:245px;
+height:245px;
+margin:0 auto 13px;
+display:grid;
+place-items:center;
+}
+
+.login-core-ring{
+position:absolute;
+left:50%;
+top:50%;
+border-radius:50%;
+transform:translate(-50%,-50%);
+pointer-events:none;
+}
+
+.login-core-ring-a{
+width:215px;
+height:215px;
+border:1px solid rgba(255,215,75,.22);
+box-shadow:0 0 35px rgba(255,205,70,.06),inset 0 0 25px rgba(165,75,255,.08);
+animation:loginRingA 8s linear infinite;
+}
+
+.login-core-ring-b{
+width:185px;
+height:185px;
+border:1px dashed rgba(176,83,255,.45);
+animation:loginRingB 11s linear infinite reverse;
+}
+
+.login-core-ring-c{
+width:150px;
+height:150px;
+border:1px solid rgba(255,255,255,.08);
+box-shadow:0 0 30px rgba(177,82,255,.16);
+animation:loginRingC 4s ease-in-out infinite;
+}
+
+@keyframes loginRingA{
+to{transform:translate(-50%,-50%) rotate(360deg)}
+}
+
+@keyframes loginRingB{
+to{transform:translate(-50%,-50%) rotate(360deg)}
+}
+
+@keyframes loginRingC{
+0%,100%{transform:translate(-50%,-50%) scale(.96);opacity:.6}
+50%{transform:translate(-50%,-50%) scale(1.05);opacity:1}
+}
+
+.login-core-orbit{
+position:absolute;
+left:50%;
+top:50%;
+width:8px;
+height:8px;
+margin:-4px;
+border-radius:50%;
+z-index:4;
+}
+
+.login-core-orbit-a{
+background:#ffd957;
+box-shadow:0 0 12px #ffd957,0 0 30px rgba(255,215,87,.65);
+animation:loginOrbitA 4.5s linear infinite;
+}
+
+.login-core-orbit-b{
+width:6px;
+height:6px;
+margin:-3px;
+background:#a95cff;
+box-shadow:0 0 12px #a95cff,0 0 28px rgba(169,92,255,.7);
+animation:loginOrbitB 6s linear infinite reverse;
+}
+
+@keyframes loginOrbitA{
+0%{transform:rotate(0deg) translateX(108px)}
+100%{transform:rotate(360deg) translateX(108px)}
+}
+
+@keyframes loginOrbitB{
+0%{transform:rotate(0deg) translateX(91px)}
+100%{transform:rotate(360deg) translateX(91px)}
+}
+
+.login-core-logo{
+position:relative;
+z-index:6;
+width:112px;
+height:112px;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+border-radius:32px;
+color:#ffd958;
+background:
+radial-gradient(circle at 50% 25%,rgba(129,45,185,.9),rgba(31,13,49,.98) 62%),
+#12091e;
+border:1px solid rgba(255,218,92,.72);
+box-shadow:
+0 0 22px rgba(174,79,255,.58),
+0 0 65px rgba(174,79,255,.22),
+inset 0 0 30px rgba(0,0,0,.65);
+animation:loginLogo 2.3s ease-in-out infinite;
+}
+
+.login-core-logo::before{
+content:"";
+position:absolute;
+inset:8px;
+border-radius:25px;
+border:1px solid rgba(255,255,255,.07);
+}
+
+.login-core-logo span{
+position:relative;
+font-size:32px;
+font-weight:1000;
+letter-spacing:3px;
+text-shadow:0 0 18px rgba(255,216,82,.35);
+}
+
+.login-core-logo small{
+position:relative;
+margin-top:3px;
+font-size:7px;
+font-weight:900;
+letter-spacing:4px;
+color:#bbaacb;
+}
+
+@keyframes loginLogo{
+0%,100%{transform:scale(.96);box-shadow:0 0 22px rgba(174,79,255,.58),0 0 65px rgba(174,79,255,.22),inset 0 0 30px rgba(0,0,0,.65)}
+50%{transform:scale(1.035);box-shadow:0 0 30px rgba(255,210,72,.48),0 0 85px rgba(174,79,255,.34),inset 0 0 30px rgba(0,0,0,.65)}
+}
+
+.login-brand{
+margin-top:-4px;
+}
+
+.login-kicker{
+font-size:10px;
+font-weight:900;
+letter-spacing:4px;
+color:#a992bd;
+}
+
+.login-brand h1{
+margin:7px 0 0;
+font-size:clamp(31px,9vw,48px);
+line-height:.98;
+font-weight:1000;
+letter-spacing:3px;
+background:linear-gradient(90deg,#fff,#e9d9ff 42%,#ffd858 85%);
+-webkit-background-clip:text;
+background-clip:text;
+color:transparent;
+text-shadow:0 0 25px rgba(176,80,255,.15);
+}
+
+.login-line{
+width:170px;
+height:2px;
+margin:13px auto 10px;
+border-radius:99px;
+background:linear-gradient(90deg,transparent,#ffd653,#ad59ff,transparent);
+box-shadow:0 0 15px rgba(178,86,255,.35);
+}
+
+.login-brand p{
+margin:0;
+font-size:9px;
+font-weight:900;
+letter-spacing:5px;
+color:#796d86;
+}
+
+.login-copy{
+max-width:410px;
+margin:24px auto 16px;
+display:flex;
+flex-direction:column;
+gap:7px;
+}
+
+.login-copy strong{
+font-size:13px;
+letter-spacing:1px;
+color:#eee7f4;
+}
+
+.login-copy span{
+font-size:11px;
+line-height:1.55;
+color:#8f849b;
+}
+
+.login-pi-button{
+position:relative;
+width:min(100%,390px);
+min-height:68px;
+margin:0 auto;
+display:flex;
+align-items:center;
+gap:13px;
+padding:10px 14px;
+border:1px solid rgba(255,215,83,.62);
+border-radius:19px;
+color:#160b20;
+background:linear-gradient(105deg,#ffd955 0%,#ffca42 36%,#b35cff 100%);
+box-shadow:
+0 10px 35px rgba(168,77,255,.28),
+0 0 0 1px rgba(255,255,255,.06) inset,
+0 0 30px rgba(255,207,69,.09);
+transition:transform .2s ease,box-shadow .2s ease,filter .2s ease;
+overflow:hidden;
+}
+
+.login-pi-button::before{
+content:"";
+position:absolute;
+top:0;
+left:-100%;
+width:65%;
+height:100%;
+background:linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent);
+transform:skewX(-18deg);
+animation:loginButtonShine 3.5s ease-in-out infinite;
+}
+
+@keyframes loginButtonShine{
+0%,45%{left:-100%}
+70%,100%{left:150%}
+}
+
+.login-pi-button:hover{
+transform:translateY(-2px);
+box-shadow:0 14px 42px rgba(168,77,255,.38),0 0 35px rgba(255,207,69,.13);
+filter:saturate(1.08);
+}
+
+.login-pi-button:active{
+transform:translateY(1px) scale(.99);
+}
+
+.login-pi-icon{
+position:relative;
+z-index:2;
+width:45px;
+height:45px;
+flex-shrink:0;
+display:grid;
+place-items:center;
+border-radius:14px;
+font-family:Georgia,serif;
+font-size:28px;
+font-weight:900;
+color:#fff;
+background:rgba(61,24,89,.72);
+border:1px solid rgba(255,255,255,.22);
+box-shadow:0 5px 18px rgba(30,10,50,.25);
+}
+
+.login-pi-button>span:nth-child(2){
+position:relative;
+z-index:2;
+flex:1;
+display:flex;
+flex-direction:column;
+align-items:flex-start;
+text-align:left;
+}
+
+.login-pi-button b{
+font-size:13px;
+letter-spacing:1px;
+}
+
+.login-pi-button small{
+margin-top:3px;
+font-size:7px;
+font-weight:900;
+letter-spacing:1.5px;
+opacity:.65;
+}
+
+.login-pi-arrow{
+position:relative;
+z-index:2;
+font-size:30px;
+font-weight:300;
+line-height:1;
+opacity:.72;
+}
+
+.login-testnet-note{
+margin-top:15px;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:7px;
+font-size:8px;
+font-weight:900;
+letter-spacing:2px;
+color:#74687f;
+}
+
+.login-testnet-note span{
+color:#63ff9b;
+font-size:11px;
+text-shadow:0 0 10px #63ff9b;
+}
+
+.login-notice{
+width:min(100%,430px);
+margin:14px auto 0;
+padding:11px 13px;
+display:flex;
+flex-direction:column;
+gap:4px;
+border-radius:15px;
+background:rgba(255,255,255,.025);
+border:1px solid rgba(255,255,255,.055);
+color:#777080;
+font-size:9px;
+line-height:1.45;
+}
+
+.login-notice b{
+color:#aa9cb6;
+font-size:9px;
+letter-spacing:1px;
+}
+
+.login-wave{
+position:absolute;
+left:50%;
+top:42%;
+width:70px;
+height:70px;
+border:1px solid rgba(174,83,255,.48);
+border-radius:50%;
+transform:translate(-50%,-50%) scale(.2);
+opacity:0;
+pointer-events:none;
+animation:loginWave 4.5s ease-out infinite;
+}
+
+.login-wave-2{animation-delay:1.5s}
+.login-wave-3{animation-delay:3s}
+
+@keyframes loginWave{
+0%{transform:translate(-50%,-50%) scale(.2);opacity:.55}
+65%{opacity:.14}
+100%{transform:translate(-50%,-50%) scale(6);opacity:0}
+}
+
+@media(max-width:420px){
+main{padding:12px}
+.hero{padding:18px}
+.grid3{grid-template-columns:1fr 1fr}
+.grid3 .stat:last-child{grid-column:1/-1}
+.big-balance{font-size:29px}
+
+.login-cinematic{
+min-height:calc(100svh - 82px);
+padding:20px 5px 30px;
+border-radius:25px;
+}
+
+.login-stage{padding:6px 8px}
+
+.login-core{
+width:205px;
+height:205px;
+margin-bottom:6px;
+}
+
+.login-core-ring-a{width:180px;height:180px}
+.login-core-ring-b{width:155px;height:155px}
+.login-core-ring-c{width:125px;height:125px}
+
+.login-core-logo{
+width:91px;
+height:91px;
+border-radius:27px;
+}
+
+.login-core-logo span{font-size:26px}
+.login-core-logo small{font-size:6px}
+
+@keyframes loginOrbitA{
+0%{transform:rotate(0deg) translateX(91px)}
+100%{transform:rotate(360deg) translateX(91px)}
+}
+
+@keyframes loginOrbitB{
+0%{transform:rotate(0deg) translateX(77px)}
+100%{transform:rotate(360deg) translateX(77px)}
+}
+
+.login-kicker{font-size:8px;letter-spacing:3px}
+.login-brand h1{font-size:32px;letter-spacing:2px}
+.login-brand p{font-size:7px;letter-spacing:4px}
+.login-copy{margin-top:19px}
+.login-copy strong{font-size:12px}
+.login-copy span{font-size:10px}
+.login-pi-button{min-height:64px}
+.login-testnet-note{font-size:7px;letter-spacing:1.5px}
+.login-notice{font-size:8px}
+}
+
+/* ============================================================
+   ALBERTO MARKETPLACE ECOSYSTEM LOGIN TRANSITION
+============================================================ */
+
 .ecosystem-loading{
 position:fixed;
 inset:0;
@@ -127,9 +639,7 @@ border-radius:50%;
 background:#ffd653;
 box-shadow:0 0 15px #ffd653;
 }
-.ecosystem-orbit::before{
-transform:translateX(103px);
-}
+.ecosystem-orbit::before{transform:translateX(103px)}
 .ecosystem-orbit::after{
 transform:translateX(-103px);
 background:#a95cff;
@@ -151,13 +661,9 @@ font-size:27px;
 font-weight:1000;
 letter-spacing:1px;
 color:#ffd95a;
-background:
-radial-gradient(circle at 50% 35%,#6b2ba0,#160b27 68%);
+background:radial-gradient(circle at 50% 35%,#6b2ba0,#160b27 68%);
 border:1px solid rgba(255,216,91,.72);
-box-shadow:
-0 0 20px rgba(169,76,255,.55),
-0 0 65px rgba(169,76,255,.22),
-inset 0 0 25px rgba(0,0,0,.55);
+box-shadow:0 0 20px rgba(169,76,255,.55),0 0 65px rgba(169,76,255,.22),inset 0 0 25px rgba(0,0,0,.55);
 animation:ecosystemLogo 1.8s ease-in-out infinite;
 }
 @keyframes ecosystemLogo{
@@ -250,49 +756,29 @@ animation:ecosystemBlink 1s ease-in-out infinite;
 0%,100%{opacity:.35}
 50%{opacity:1}
 }
-
-@media(max-width:420px){
-main{padding:12px}.hero{padding:18px}.grid3{grid-template-columns:1fr 1fr}.grid3 .stat:last-child{grid-column:1/-1}.big-balance{font-size:29px}
-.ecosystem-orbit{width:185px;height:185px}
-.ecosystem-orbit::before{transform:translateX(90px)}
-.ecosystem-orbit::after{transform:translateX(-90px)}
-}
 </style>
 </head>
 
 <body>
 
-<!-- ============================================================
-     ALBERTO MARKETPLACE ECOSYSTEM CINEMATIC LOADING
-============================================================ -->
 <div id="ecosystemLoading" class="ecosystem-loading hidden" aria-hidden="true">
 <div class="ecosystem-wave"></div>
 <div class="ecosystem-wave"></div>
 <div class="ecosystem-wave"></div>
 <div class="ecosystem-wave"></div>
-
 <div class="ecosystem-orbit"></div>
 
 <div class="ecosystem-core">
 <div class="ecosystem-logo">AMT</div>
-
-<h1 class="ecosystem-title">
-ALBERTO <span class="gold">MARKETPLACE</span>
-</h1>
-
-<div class="ecosystem-subtitle">
-ECOSYSTEM
-</div>
-
+<h1 class="ecosystem-title">ALBERTO <span class="gold">MARKETPLACE</span></h1>
+<div class="ecosystem-subtitle">ECOSYSTEM</div>
 <div class="ecosystem-line"></div>
-
-<div class="ecosystem-enter">
-ENTERING MINING CORE
-</div>
+<div class="ecosystem-enter">ENTERING MINING CORE</div>
 </div>
 </div>
 
 <div class="app">
+
 <header>
 <div class="header-row">
 <div class="brand">
@@ -308,27 +794,116 @@ ENTERING MINING CORE
 
 <main>
 
+<!-- ============================================================
+     NEW CINEMATIC LOGIN SCREEN
+============================================================ -->
+
 <section id="loginSection" class="section active">
-<div class="hero">
-<h1>Welcome to <span>AMT</span></h1>
-<p>Alberto Marketplace Token</p>
-<div class="notice">
-<b>PI TESTNET ONLY</b><br>
-This application is for testing and development. AMT shown here has no Mainnet value.
-</div>
+
+<div class="login-cinematic">
+
+<div class="login-grid"></div>
+
+<div class="login-wave login-wave-1"></div>
+<div class="login-wave login-wave-2"></div>
+<div class="login-wave login-wave-3"></div>
+
+<div class="login-stage">
+
+<div class="login-top-badge">
+<span></span>
+PI TESTNET • AMT CORE
 </div>
 
-<div class="card">
-<div class="login-box">
-<div class="brand-logo" style="margin:auto;width:75px;height:75px;font-size:27px">AMT</div>
-<h2>Sign in with Pi</h2>
+<div class="login-core">
+
+<div class="login-core-ring login-core-ring-a"></div>
+<div class="login-core-ring login-core-ring-b"></div>
+<div class="login-core-ring login-core-ring-c"></div>
+
+<div class="login-core-orbit login-core-orbit-a"></div>
+<div class="login-core-orbit login-core-orbit-b"></div>
+
+<div class="login-core-logo">
+<span>AMT</span>
+<small>CORE</small>
+</div>
+
+</div>
+
+<div class="login-brand">
+
+<div class="login-kicker">
+ALBERTO MARKETPLACE
+</div>
+
+<h1>
+ECOSYSTEM
+</h1>
+
+<div class="login-line"></div>
+
 <p>
-Connect your Pi account to access mining, AMT wallet, rewards,
-referrals, security circle, staking and marketplace features.
+TESTNET MINING CORE
 </p>
-<button class="primary" onclick="loginWithPi()">🟣 LOGIN WITH PI</button>
+
 </div>
+
+<div class="login-copy">
+
+<strong>
+ENTER THE AMT ECOSYSTEM
+</strong>
+
+<span>
+Connect your Pi account to access mining, wallet,
+rewards and the Alberto Marketplace.
+</span>
+
 </div>
+
+<button
+class="login-pi-button"
+onclick="loginWithPi()"
+>
+
+<span class="login-pi-icon">
+π
+</span>
+
+<span>
+<b>LOGIN WITH PI</b>
+<small>SECURE PI AUTHENTICATION</small>
+</span>
+
+<span class="login-pi-arrow">
+›
+</span>
+
+</button>
+
+<div class="login-testnet-note">
+<span>●</span>
+PI TESTNET ONLY • AMT HAS NO MAINNET VALUE
+</div>
+
+<div class="login-notice">
+
+<b>
+TESTNET DEVELOPMENT
+</b>
+
+<span>
+This application is for testing and development.
+AMT shown here has no Mainnet value.
+</span>
+
+</div>
+
+</div>
+
+</div>
+
 </section>
 
 <section id="miningSection" class="section">
@@ -849,9 +1424,7 @@ let currentUser=null;
 let miningInterval=null;
 let selectedStakePool="30D";
 
-function $(id){
-return document.getElementById(id);
-}
+function $(id){return document.getElementById(id)}
 
 function esc(value){
 return String(value??"")
@@ -873,12 +1446,9 @@ return num(value).toFixed(8);
 
 function showToast(message,error=false){
 const el=$("toast");
-
 el.textContent=message;
 el.className="toast show "+(error?"error":"success");
-
 clearTimeout(showToast.timer);
-
 showToast.timer=setTimeout(()=>{
 el.className="toast";
 },3500);
@@ -989,7 +1559,6 @@ if(id==="miningSection")loadMiningStatus();
 
 /* ============================================================
    PI LOGIN
-   ONLY CHANGE: CINEMATIC TRANSITION AFTER SUCCESSFUL LOGIN
 ============================================================ */
 
 async function loginWithPi(){
@@ -1045,7 +1614,6 @@ throw new Error(
 accessToken=authResult.accessToken;
 currentUser=authResult.user;
 
-/* Existing backend registration remains unchanged */
 await api("/api/users",{
 method:"POST",
 body:JSON.stringify({
@@ -1054,7 +1622,6 @@ uid:currentUser.uid
 })
 });
 
-/* Existing session storage remains unchanged */
 localStorage.setItem(
 "amt_pi_access_token",
 accessToken
@@ -1070,23 +1637,14 @@ localStorage.setItem(
 currentUser.uid||""
 );
 
-/* ==========================================================
-   CINEMATIC ENTRY
-   Authentication is already successful here.
-   No backend/mining function is changed.
-========================================================== */
-
 await showEcosystemLoading();
 
-/* Existing app entry remains unchanged */
 enterApp();
 
-/* Give the mining dashboard a moment to appear */
 setTimeout(()=>{
 hideEcosystemLoading();
 },250);
 
-/* Existing welcome message remains */
 showToast(
 "Welcome, "+(currentUser.username||"Pioneer")+"!"
 );
