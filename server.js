@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.1.3
+FULL SERVER VERSION 2.1.4
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.1.3:
+VERSION 2.1.4:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -30,6 +30,9 @@ VERSION 2.1.3:
 - AMT ledger address remains separate from Pi wallet address
 - FIXED: Explicitly return referralCode (= username) for every Pioneer
   in /api/auth/verify, /api/profile, /api/wallet, and /api/referral/status
+- NEW: Added referral_code column to members table
+- NEW: On every login, Pi username is permanently saved as referral_code
+- NEW: referralCode is now read from the saved referral_code column
 ============================================================
 */
 
@@ -510,11 +513,13 @@ async function getAuthenticatedMember(
       INSERT INTO members
         (
           pi_uid,
-          username
+          username,
+          referral_code
         )
       VALUES
         (
           $1,
+          $2,
           $2
         )
 
@@ -526,6 +531,16 @@ async function getAuthenticatedMember(
             WHEN EXCLUDED.username <> ''
             THEN EXCLUDED.username
             ELSE members.username
+          END,
+
+        referral_code =
+          CASE
+            WHEN EXCLUDED.username <> ''
+            THEN EXCLUDED.username
+            ELSE COALESCE(
+              members.referral_code,
+              members.username
+            )
           END,
 
         updated_at = NOW()
@@ -630,6 +645,8 @@ async function initializeDatabase() {
       username TEXT NOT NULL
         DEFAULT '',
 
+      referral_code TEXT,
+
       kyc_status TEXT NOT NULL
         DEFAULT 'UNVERIFIED',
 
@@ -645,6 +662,18 @@ async function initializeDatabase() {
     ALTER TABLE members
       ADD COLUMN IF NOT EXISTS
       profile_image TEXT;
+
+    ALTER TABLE members
+      ADD COLUMN IF NOT EXISTS
+      referral_code TEXT;
+
+    -- Backfill existing members: set referral_code = username if still null
+    UPDATE members
+    SET referral_code = username
+    WHERE
+      (referral_code IS NULL OR referral_code = '')
+      AND username IS NOT NULL
+      AND username <> '';
   `);
 
   await pool.query(`
@@ -924,7 +953,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.1.3",
+      "2.1.4",
 
     features: [
       "Pi Login",
@@ -1100,8 +1129,9 @@ app.all(
         environment:
           "TESTNET",
 
-        // Referral code of this Pioneer (same as username)
+        // Referral code of this Pioneer (saved from Pi username on login)
         referralCode:
+          req.member.referral_code ||
           req.member.username ||
           req.piUser.username ||
           null
@@ -1179,8 +1209,9 @@ app.get(
       environment:
         "TESTNET",
 
-      // Referral code of this Pioneer (same as username)
+      // Referral code of this Pioneer (saved from Pi username on login)
       referralCode:
+        req.member.referral_code ||
         req.member.username ||
         req.piUser.username ||
         null
@@ -1497,8 +1528,9 @@ app.get(
       walletType:
         "AMT_TESTNET_LEDGER",
 
-      // Referral code of this Pioneer (same as username)
+      // Referral code of this Pioneer (saved from Pi username on login)
       referralCode:
+        req.member.referral_code ||
         req.member.username ||
         req.piUser.username ||
         null
@@ -3057,10 +3089,12 @@ app.get(
       username:
         req.member.username,
 
-      // Referral code of this Pioneer (same as username)
+      // Referral code of this Pioneer (saved from Pi username on login)
       // This is what other miners should use when joining
       referralCode:
-        req.member.username,
+        req.member.referral_code ||
+        req.member.username ||
+        null,
 
       referralCount:
         Number(
@@ -4751,8 +4785,9 @@ app.post(
         environment:
           "TESTNET",
 
-        // Referral code of this Pioneer (same as username)
+        // Referral code of this Pioneer (saved from Pi username on login)
         referralCode:
+          req.member.referral_code ||
           req.member.username ||
           req.piUser.username ||
           null
@@ -5470,7 +5505,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.1.3"
+          "Version: 2.1.4"
         );
 
         console.log(
