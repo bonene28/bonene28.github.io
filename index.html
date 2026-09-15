@@ -3195,6 +3195,22 @@ const PET_EMOJI = {
   Thunder: "⚡", Wind: "🌪️", Fire: "🔥"
 };
 
+const PET_COLORS = {
+  Earth: "linear-gradient(160deg,#3d2b1f,#6b4f3a)",
+  Water: "linear-gradient(160deg,#0b3d5c,#1a7aad)",
+  Nature: "linear-gradient(160deg,#1a3d1f,#2d7a3a)",
+  Ice: "linear-gradient(160deg,#1a3a4a,#4a8aaa)",
+  Thunder: "linear-gradient(160deg,#3d3a0b,#8a7a1a)",
+  Wind: "linear-gradient(160deg,#2a2a4a,#5a5a8a)",
+  Fire: "linear-gradient(160deg,#4a1a0b,#a33a1a)"
+};
+
+// Unique generated pet image per pet (looks more real than plain emoji)
+function petImageUrl(pet) {
+  const seed = encodeURIComponent(pet.id + pet.name);
+  return "https://api.dicebear.com/7.x/bottts/svg?seed=" + seed + "&size=128";
+}
+
 async function loadPets(element = "") {
   try {
     const q = element ? ("?element=" + encodeURIComponent(element)) : "";
@@ -3223,15 +3239,18 @@ function renderPetGrid(pets) {
     return;
   }
 
-  // Keep reference for modal lookup
   window._petMap = {};
   pets.forEach(p => { window._petMap[p.id] = p; });
 
   grid.innerHTML = pets.map(pet => {
     const emoji = PET_EMOJI[pet.element] || "🐾";
+    const bg = PET_COLORS[pet.element] || "linear-gradient(160deg,#2a1a3a,#1a1025)";
+    const img = petImageUrl(pet);
     return `
-      <div class="market-item" onclick="openPetById('${esc(pet.id)}')">
-        <div class="market-art">${emoji}</div>
+      <div class="market-item" onclick="openPetById('${esc(pet.id)}')" style="overflow:hidden">
+        <div class="market-art" style="background:${bg};position:relative">
+          <img src="${img}" alt="${esc(pet.name)}" style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4))" onerror="this.style.display='none';this.parentNode.innerHTML='${emoji}'">
+        </div>
         <div class="market-name">${esc(pet.name)}</div>
         <div class="market-price">${pet.priceAmt} AMT • ${esc(pet.rarity)}</div>
         <div class="muted" style="font-size:10px;margin-top:4px">${esc(pet.element)}</div>
@@ -3249,9 +3268,11 @@ function openPetById(petId) {
 function openPetModal(pet) {
   selectedPet = pet;
   const emoji = PET_EMOJI[pet.element] || "🐾";
+  const bg = PET_COLORS[pet.element] || "#1a1025";
+  const img = petImageUrl(pet);
 
   $("modalPetName").textContent = pet.name;
-  $("modalPetArt").textContent = emoji;
+  $("modalPetArt").innerHTML = '<div style="background:'+bg+';border-radius:18px;padding:16px;display:inline-block"><img src="'+img+'" style="width:96px;height:96px" onerror="this.parentNode.textContent=\''+emoji+'\'"></div>';
   $("modalElement").textContent = pet.element;
   $("modalRarity").textContent = pet.rarity;
   $("modalHp").textContent = pet.hp;
