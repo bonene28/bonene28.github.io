@@ -990,15 +990,19 @@ KYC may be required for applicable Mainnet functions.
 </div>
 
 <div class="card">
-<div class="card-title">AMT APP WALLET</div>
+<div class="card-title">WALLET ADDRESSES</div>
 
 <div class="notice">
-The address below identifies your AMT Testnet application ledger wallet.
-It is not presented as a fabricated blockchain wallet address.
+Two addresses are shown below. The Pi Wallet is from your Pi account. The AMT Ledger is the app wallet used for mining, transfers, and rewards.
 </div>
 
-<div style="margin-top:13px">
-<div class="muted">Wallet Address</div>
+<div style="margin-top:14px">
+<div class="muted">Pi Wallet Address</div>
+<div id="piWalletAddress" class="wallet-address" style="color:#8cffb3">Not synced</div>
+</div>
+
+<div style="margin-top:14px">
+<div class="muted">AMT Ledger Address</div>
 <div id="amtWalletAddress" class="wallet-address">Not connected</div>
 </div>
 
@@ -1814,7 +1818,13 @@ async function refreshWallet(){
 
 try{
 
-const data=await api("/api/balance");
+// Prefer full wallet endpoint, fallback to balance
+let data;
+try{
+  data = await api("/api/wallet");
+}catch(e){
+  data = await api("/api/balance");
+}
 
 const balance=num(
 data.balance??
@@ -1830,6 +1840,7 @@ balance
 
 const staked=num(
 data.stakedPrincipal??
+data.stakedBalance??
 data.staked??
 0
 );
@@ -1843,16 +1854,31 @@ fmt(available)+" AMT";
 $("stakedBalance").textContent=
 fmt(staked)+" AMT";
 
-if(data.walletAddress){
+// AMT Ledger Address
+const amtAddr =
+  data.ledgerWalletAddress ||
+  data.walletAddress ||
+  data.wallet?.walletAddress ||
+  null;
 
-$("amtWalletAddress").textContent=
-data.walletAddress;
+if(amtAddr){
+  $("amtWalletAddress").textContent = amtAddr;
+}else{
+  $("amtWalletAddress").textContent = "Not connected";
+}
 
-}else if(data.ledgerWalletAddress){
+// Pi Wallet Address (verified from Pi API)
+const piAddr =
+  data.piWalletAddress ||
+  data.piUser?.walletAddress ||
+  null;
 
-$("amtWalletAddress").textContent=
-data.ledgerWalletAddress;
-
+if($("piWalletAddress")){
+  if(piAddr){
+    $("piWalletAddress").textContent = piAddr;
+  }else{
+    $("piWalletAddress").textContent = "Not available from Pi";
+  }
 }
 
 }catch(error){
