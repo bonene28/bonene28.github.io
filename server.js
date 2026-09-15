@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.2.0
+FULL SERVER VERSION 2.3.0
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.2.0:
+VERSION 2.3.0:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -38,6 +38,7 @@ VERSION 2.2.0:
 - NEW: Referral Tier System (Bronze / Silver / Gold / Legend)
 - NEW: Per-referral rewards + one-time milestone bonuses
 - NEW: Automatic credit to AMT ledger when referral is linked
+- NEW: AMT Pet Marketplace (70 pets, 7 elements, buy with AMT)
 ============================================================
 */
 
@@ -985,7 +986,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.2.0",
+      "2.3.0",
 
     features: [
       "Pi Login",
@@ -4336,6 +4337,258 @@ app.get(
 );
 
 /* =========================================================
+AMT PET MARKETPLACE (Testnet - AMT Ledger)
+========================================================= */
+
+const PET_ELEMENTS = [
+  "Earth", "Water", "Nature", "Ice", "Thunder", "Wind", "Fire"
+];
+
+const PET_RARITIES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
+
+// 10 pets per element (70 total) - Testnet prices in AMT
+const AMT_PETS = [
+  // EARTH
+  { id: "earth-01", name: "Stone Pup", element: "Earth", rarity: "Common", priceAmt: 0.5, hp: 80, atk: 12, def: 18, spd: 8, ability: "Rock Skin - reduces damage by 10%" },
+  { id: "earth-02", name: "Mudling", element: "Earth", rarity: "Common", priceAmt: 0.5, hp: 70, atk: 14, def: 15, spd: 10, ability: "Quicksand - slows enemy" },
+  { id: "earth-03", name: "Pebble Fox", element: "Earth", rarity: "Uncommon", priceAmt: 1.0, hp: 90, atk: 16, def: 20, spd: 12, ability: "Boulder Toss" },
+  { id: "earth-04", name: "Clay Golem", element: "Earth", rarity: "Uncommon", priceAmt: 1.2, hp: 120, atk: 10, def: 28, spd: 5, ability: "Regenerate" },
+  { id: "earth-05", name: "Terra Hound", element: "Earth", rarity: "Rare", priceAmt: 2.5, hp: 110, atk: 22, def: 22, spd: 14, ability: "Earthquake" },
+  { id: "earth-06", name: "Crystal Mole", element: "Earth", rarity: "Rare", priceAmt: 2.8, hp: 95, atk: 20, def: 25, spd: 16, ability: "Crystal Shield" },
+  { id: "earth-07", name: "Granite Bear", element: "Earth", rarity: "Epic", priceAmt: 5.0, hp: 150, atk: 25, def: 30, spd: 8, ability: "Mountain Guard" },
+  { id: "earth-08", name: "Obsidian Drake", element: "Earth", rarity: "Epic", priceAmt: 6.0, hp: 130, atk: 30, def: 26, spd: 15, ability: "Obsidian Armor" },
+  { id: "earth-09", name: "Titan Tortoise", element: "Earth", rarity: "Legendary", priceAmt: 12.0, hp: 200, atk: 18, def: 45, spd: 4, ability: "Unbreakable Shell" },
+  { id: "earth-10", name: "Gaia Colossus", element: "Earth", rarity: "Legendary", priceAmt: 15.0, hp: 180, atk: 35, def: 40, spd: 7, ability: "Planet's Wrath" },
+
+  // WATER
+  { id: "water-01", name: "Bubble Fin", element: "Water", rarity: "Common", priceAmt: 0.5, hp: 65, atk: 13, def: 12, spd: 14, ability: "Bubble Shield" },
+  { id: "water-02", name: "Tide Cub", element: "Water", rarity: "Common", priceAmt: 0.5, hp: 75, atk: 11, def: 14, spd: 12, ability: "Splash" },
+  { id: "water-03", name: "Coral Sprite", element: "Water", rarity: "Uncommon", priceAmt: 1.0, hp: 85, atk: 17, def: 16, spd: 15, ability: "Coral Barrier" },
+  { id: "water-04", name: "River Otter", element: "Water", rarity: "Uncommon", priceAmt: 1.2, hp: 90, atk: 15, def: 15, spd: 18, ability: "Swift Current" },
+  { id: "water-05", name: "Aqua Serpent", element: "Water", rarity: "Rare", priceAmt: 2.5, hp: 105, atk: 24, def: 18, spd: 16, ability: "Tidal Wave" },
+  { id: "water-06", name: "Mist Jelly", element: "Water", rarity: "Rare", priceAmt: 2.8, hp: 100, atk: 19, def: 20, spd: 20, ability: "Mist Veil" },
+  { id: "water-07", name: "Kraken Pup", element: "Water", rarity: "Epic", priceAmt: 5.0, hp: 140, atk: 28, def: 22, spd: 12, ability: "Tentacle Grasp" },
+  { id: "water-08", name: "Ocean Wyrm", element: "Water", rarity: "Epic", priceAmt: 6.0, hp: 125, atk: 32, def: 20, spd: 17, ability: "Abyssal Pressure" },
+  { id: "water-09", name: "Leviathan Cub", element: "Water", rarity: "Legendary", priceAmt: 12.0, hp: 170, atk: 30, def: 28, spd: 14, ability: "Tsunami" },
+  { id: "water-10", name: "Poseidon Guard", element: "Water", rarity: "Legendary", priceAmt: 15.0, hp: 160, atk: 38, def: 32, spd: 13, ability: "Divine Tide" },
+
+  // NATURE
+  { id: "nature-01", name: "Sproutling", element: "Nature", rarity: "Common", priceAmt: 0.5, hp: 70, atk: 12, def: 13, spd: 11, ability: "Photosynthesis" },
+  { id: "nature-02", name: "Leaf Mouse", element: "Nature", rarity: "Common", priceAmt: 0.5, hp: 60, atk: 14, def: 10, spd: 16, ability: "Leaf Storm" },
+  { id: "nature-03", name: "Vine Cat", element: "Nature", rarity: "Uncommon", priceAmt: 1.0, hp: 85, atk: 16, def: 15, spd: 14, ability: "Vine Whip" },
+  { id: "nature-04", name: "Moss Bear", element: "Nature", rarity: "Uncommon", priceAmt: 1.2, hp: 110, atk: 13, def: 22, spd: 7, ability: "Nature's Blessing" },
+  { id: "nature-05", name: "Thorn Wolf", element: "Nature", rarity: "Rare", priceAmt: 2.5, hp: 100, atk: 23, def: 17, spd: 15, ability: "Thorn Armor" },
+  { id: "nature-06", name: "Bloom Fairy", element: "Nature", rarity: "Rare", priceAmt: 2.8, hp: 90, atk: 18, def: 16, spd: 19, ability: "Healing Bloom" },
+  { id: "nature-07", name: "Elder Treant", element: "Nature", rarity: "Epic", priceAmt: 5.0, hp: 160, atk: 20, def: 32, spd: 6, ability: "Root Bind" },
+  { id: "nature-08", name: "Spirit Deer", element: "Nature", rarity: "Epic", priceAmt: 6.0, hp: 120, atk: 26, def: 20, spd: 18, ability: "Forest Spirit" },
+  { id: "nature-09", name: "World Tree Seed", element: "Nature", rarity: "Legendary", priceAmt: 12.0, hp: 190, atk: 22, def: 38, spd: 8, ability: "Eternal Growth" },
+  { id: "nature-10", name: "Gaia Fox", element: "Nature", rarity: "Legendary", priceAmt: 15.0, hp: 145, atk: 36, def: 28, spd: 16, ability: "Nature's Fury" },
+
+  // ICE
+  { id: "ice-01", name: "Frost Cub", element: "Ice", rarity: "Common", priceAmt: 0.5, hp: 68, atk: 13, def: 14, spd: 11, ability: "Chill" },
+  { id: "ice-02", name: "Snow Puff", element: "Ice", rarity: "Common", priceAmt: 0.5, hp: 72, atk: 11, def: 15, spd: 10, ability: "Snowball" },
+  { id: "ice-03", name: "Ice Fox", element: "Ice", rarity: "Uncommon", priceAmt: 1.0, hp: 88, atk: 17, def: 16, spd: 15, ability: "Frost Bite" },
+  { id: "ice-04", name: "Glacier Crab", element: "Ice", rarity: "Uncommon", priceAmt: 1.2, hp: 100, atk: 14, def: 24, spd: 6, ability: "Ice Shell" },
+  { id: "ice-05", name: "Blizzard Hawk", element: "Ice", rarity: "Rare", priceAmt: 2.5, hp: 95, atk: 25, def: 15, spd: 20, ability: "Blizzard" },
+  { id: "ice-06", name: "Crystal Owl", element: "Ice", rarity: "Rare", priceAmt: 2.8, hp: 105, atk: 20, def: 19, spd: 14, ability: "Crystal Gaze" },
+  { id: "ice-07", name: "Frost Wyvern", element: "Ice", rarity: "Epic", priceAmt: 5.0, hp: 130, atk: 29, def: 22, spd: 16, ability: "Absolute Zero" },
+  { id: "ice-08", name: "Aurora Wolf", element: "Ice", rarity: "Epic", priceAmt: 6.0, hp: 125, atk: 27, def: 23, spd: 17, ability: "Aurora Shield" },
+  { id: "ice-09", name: "Iceberg Titan", element: "Ice", rarity: "Legendary", priceAmt: 12.0, hp: 185, atk: 24, def: 40, spd: 5, ability: "Frozen Domain" },
+  { id: "ice-10", name: "Cryo Phoenix", element: "Ice", rarity: "Legendary", priceAmt: 15.0, hp: 150, atk: 37, def: 30, spd: 15, ability: "Rebirth Frost" },
+
+  // THUNDER
+  { id: "thunder-01", name: "Spark Mouse", element: "Thunder", rarity: "Common", priceAmt: 0.5, hp: 55, atk: 16, def: 9, spd: 18, ability: "Static" },
+  { id: "thunder-02", name: "Zap Bug", element: "Thunder", rarity: "Common", priceAmt: 0.5, hp: 60, atk: 15, def: 10, spd: 17, ability: "Shock" },
+  { id: "thunder-03", name: "Volt Cat", element: "Thunder", rarity: "Uncommon", priceAmt: 1.0, hp: 80, atk: 19, def: 13, spd: 19, ability: "Lightning Dash" },
+  { id: "thunder-04", name: "Storm Hare", element: "Thunder", rarity: "Uncommon", priceAmt: 1.2, hp: 75, atk: 18, def: 12, spd: 21, ability: "Thunder Step" },
+  { id: "thunder-05", name: "Thunder Wolf", element: "Thunder", rarity: "Rare", priceAmt: 2.5, hp: 100, atk: 26, def: 16, spd: 18, ability: "Chain Lightning" },
+  { id: "thunder-06", name: "Plasma Fox", element: "Thunder", rarity: "Rare", priceAmt: 2.8, hp: 95, atk: 24, def: 15, spd: 20, ability: "Plasma Burst" },
+  { id: "thunder-07", name: "Storm Drake", element: "Thunder", rarity: "Epic", priceAmt: 5.0, hp: 125, atk: 32, def: 18, spd: 19, ability: "Thunderstorm" },
+  { id: "thunder-08", name: "Volt Phoenix", element: "Thunder", rarity: "Epic", priceAmt: 6.0, hp: 115, atk: 30, def: 17, spd: 22, ability: "Electric Rebirth" },
+  { id: "thunder-09", name: "Raiden Beast", element: "Thunder", rarity: "Legendary", priceAmt: 12.0, hp: 155, atk: 40, def: 22, spd: 18, ability: "Divine Thunder" },
+  { id: "thunder-10", name: "Zeus Cub", element: "Thunder", rarity: "Legendary", priceAmt: 15.0, hp: 145, atk: 42, def: 25, spd: 16, ability: "God Bolt" },
+
+  // WIND
+  { id: "wind-01", name: "Breeze Pup", element: "Wind", rarity: "Common", priceAmt: 0.5, hp: 58, atk: 12, def: 10, spd: 20, ability: "Gust" },
+  { id: "wind-02", name: "Cloud Kit", element: "Wind", rarity: "Common", priceAmt: 0.5, hp: 62, atk: 11, def: 11, spd: 19, ability: "Float" },
+  { id: "wind-03", name: "Gale Fox", element: "Wind", rarity: "Uncommon", priceAmt: 1.0, hp: 78, atk: 16, def: 13, spd: 22, ability: "Wind Slash" },
+  { id: "wind-04", name: "Sky Falcon", element: "Wind", rarity: "Uncommon", priceAmt: 1.2, hp: 70, atk: 18, def: 11, spd: 24, ability: "Dive" },
+  { id: "wind-05", name: "Tempest Hound", element: "Wind", rarity: "Rare", priceAmt: 2.5, hp: 95, atk: 23, def: 15, spd: 21, ability: "Tempest" },
+  { id: "wind-06", name: "Aero Sprite", element: "Wind", rarity: "Rare", priceAmt: 2.8, hp: 85, atk: 20, def: 14, spd: 25, ability: "Air Blade" },
+  { id: "wind-07", name: "Storm Eagle", element: "Wind", rarity: "Epic", priceAmt: 5.0, hp: 120, atk: 28, def: 18, spd: 23, ability: "Hurricane" },
+  { id: "wind-08", name: "Zephyr Drake", element: "Wind", rarity: "Epic", priceAmt: 6.0, hp: 110, atk: 27, def: 17, spd: 26, ability: "Sky Dominion" },
+  { id: "wind-09", name: "Wind God Cub", element: "Wind", rarity: "Legendary", priceAmt: 12.0, hp: 140, atk: 35, def: 22, spd: 28, ability: "Divine Gust" },
+  { id: "wind-10", name: "Sky Sovereign", element: "Wind", rarity: "Legendary", priceAmt: 15.0, hp: 135, atk: 38, def: 24, spd: 27, ability: "Heaven's Wind" },
+
+  // FIRE
+  { id: "fire-01", name: "Ember Pup", element: "Fire", rarity: "Common", priceAmt: 0.5, hp: 65, atk: 15, def: 11, spd: 13, ability: "Ember" },
+  { id: "fire-02", name: "Spark Cub", element: "Fire", rarity: "Common", priceAmt: 0.5, hp: 60, atk: 16, def: 10, spd: 14, ability: "Spark" },
+  { id: "fire-03", name: "Flame Fox", element: "Fire", rarity: "Uncommon", priceAmt: 1.0, hp: 82, atk: 19, def: 13, spd: 16, ability: "Flame Burst" },
+  { id: "fire-04", name: "Cinder Cat", element: "Fire", rarity: "Uncommon", priceAmt: 1.2, hp: 78, atk: 18, def: 12, spd: 17, ability: "Cinder Trail" },
+  { id: "fire-05", name: "Inferno Hound", element: "Fire", rarity: "Rare", priceAmt: 2.5, hp: 105, atk: 27, def: 16, spd: 15, ability: "Inferno" },
+  { id: "fire-06", name: "Magma Lizard", element: "Fire", rarity: "Rare", priceAmt: 2.8, hp: 115, atk: 24, def: 20, spd: 11, ability: "Magma Armor" },
+  { id: "fire-07", name: "Blaze Drake", element: "Fire", rarity: "Epic", priceAmt: 5.0, hp: 130, atk: 33, def: 19, spd: 16, ability: "Dragon Fire" },
+  { id: "fire-08", name: "Solar Wolf", element: "Fire", rarity: "Epic", priceAmt: 6.0, hp: 120, atk: 31, def: 18, spd: 18, ability: "Solar Flare" },
+  { id: "fire-09", name: "Phoenix Cub", element: "Fire", rarity: "Legendary", priceAmt: 12.0, hp: 155, atk: 36, def: 25, spd: 17, ability: "Rebirth Flame" },
+  { id: "fire-10", name: "Infernal King", element: "Fire", rarity: "Legendary", priceAmt: 15.0, hp: 165, atk: 42, def: 28, spd: 14, ability: "Hellfire" }
+];
+
+function getPetById(petId) {
+  return AMT_PETS.find(p => p.id === petId) || null;
+}
+
+// Create owned_pets table if needed
+async function ensurePetTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS owned_pets (
+      id BIGSERIAL PRIMARY KEY,
+      member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      pet_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      element TEXT NOT NULL,
+      rarity TEXT NOT NULL,
+      hp INT NOT NULL,
+      atk INT NOT NULL,
+      def INT NOT NULL,
+      spd INT NOT NULL,
+      ability TEXT NOT NULL,
+      purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(member_id, pet_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_owned_pets_member ON owned_pets(member_id);
+  `);
+}
+
+// Call during init (safe)
+ensurePetTables().catch(err => console.error("Pet tables init:", err.message));
+
+// List all pets (optionally filter by element)
+app.get("/api/pets", async (req, res) => {
+  try {
+    const element = String(req.query.element || "").trim();
+    let pets = AMT_PETS;
+    if (element) {
+      pets = AMT_PETS.filter(p => p.element.toLowerCase() === element.toLowerCase());
+    }
+    res.json({
+      ok: true,
+      total: pets.length,
+      elements: PET_ELEMENTS,
+      rarities: PET_RARITIES,
+      pets
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: "Unable to load pets." });
+  }
+});
+
+// Get single pet detail
+app.get("/api/pets/:petId", async (req, res) => {
+  const pet = getPetById(req.params.petId);
+  if (!pet) {
+    return res.status(404).json({ ok: false, error: "Pet not found." });
+  }
+  res.json({ ok: true, pet });
+});
+
+// Buy pet with AMT (application ledger)
+app.post("/api/pets/buy", requireAuth, async (req, res) => {
+  const petId = String(req.body?.petId || "").trim();
+  const pet = getPetById(petId);
+
+  if (!pet) {
+    return res.status(404).json({ ok: false, error: "Pet not found." });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    await client.query(
+      `SELECT id FROM members WHERE id = $1 FOR UPDATE`,
+      [req.member.id]
+    );
+
+    // Check if already owned
+    const owned = await client.query(
+      `SELECT id FROM owned_pets WHERE member_id = $1 AND pet_id = $2 LIMIT 1`,
+      [req.member.id, pet.id]
+    );
+    if (owned.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ ok: false, error: "You already own this pet." });
+    }
+
+    const balance = await getBalance(req.member.id, client);
+    if (balance < pet.priceAmt) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        ok: false,
+        error: "Insufficient AMT balance.",
+        balance,
+        required: pet.priceAmt
+      });
+    }
+
+    const reference = makeReference("AMT-PET");
+
+    // Deduct AMT
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference)
+       VALUES ($1, $2, 'PET_PURCHASE', $3)`,
+      [req.member.id, -pet.priceAmt, reference]
+    );
+
+    // Add owned pet
+    await client.query(
+      `INSERT INTO owned_pets
+        (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [
+        req.member.id, pet.id, pet.name, pet.element, pet.rarity,
+        pet.hp, pet.atk, pet.def, pet.spd, pet.ability
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    const newBalance = await getBalance(req.member.id);
+
+    res.json({
+      ok: true,
+      purchased: true,
+      pet,
+      paid: pet.priceAmt,
+      balance: newBalance,
+      reference
+    });
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("PET BUY ERROR:", error);
+    res.status(500).json({ ok: false, error: "Unable to buy pet." });
+  } finally {
+    client.release();
+  }
+});
+
+// My owned pets
+app.get("/api/pets/owned", requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM owned_pets WHERE member_id = $1 ORDER BY purchased_at DESC`,
+      [req.member.id]
+    );
+    res.json({
+      ok: true,
+      count: result.rows.length,
+      pets: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: "Unable to load owned pets." });
+  }
+});
+
+/* =========================================================
 PRIVATE PI TESTNET MARKETPLACE
 ========================================================= */
 
@@ -5732,7 +5985,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.2.0"
+          "Version: 2.3.0"
         );
 
         console.log(
