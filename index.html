@@ -1330,45 +1330,54 @@ SELECT 180D
 
 <section id="marketSection" class="section">
 <div class="hero">
-<h1>AMT <span>MARKETPLACE</span></h1>
-<p>Digital assets • Pets • NFT ecosystem</p>
+<h1>AMT <span>PET MARKET</span></h1>
+<p>Collect • Train • Battle • Testnet only</p>
 
 <div class="notice">
-Marketplace purchases are for Pi Testnet testing.
-No Mainnet value is implied.
+Buy pets using AMT. Click a pet to view full stats & ability.
 </div>
 </div>
 
-<div class="market-grid">
-
-<div class="market-item">
-<div class="market-art">🐺</div>
-<div class="market-name">SHADOW WOLF</div>
-<div class="market-price">35 Pi • RARE</div>
-<button class="small-btn" onclick="marketInfo('SHADOW WOLF')">VIEW</button>
+<!-- Element Filter -->
+<div class="card" style="margin-bottom:12px;padding:12px">
+<div style="display:flex;flex-wrap:wrap;gap:6px" id="elementFilters">
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('')">All</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('Earth')">Earth</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('Water')">Water</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('Nature')">Nature</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('Ice')">Ice</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('Thunder')">Thunder</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('Wind')">Wind</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('Fire')">Fire</button>
+</div>
 </div>
 
-<div class="market-item">
-<div class="market-art">🦅</div>
-<div class="market-name">STORM EAGLE</div>
-<div class="market-price">35 Pi • RARE</div>
-<button class="small-btn" onclick="marketInfo('STORM EAGLE')">VIEW</button>
+<div id="petGrid" class="market-grid">
+<div class="empty">Loading pets...</div>
 </div>
 
-<div class="market-item">
-<div class="market-art">🐯</div>
-<div class="market-name">GOLDEN TIGER</div>
-<div class="market-price">60 Pi • EPIC</div>
-<button class="small-btn" onclick="marketInfo('GOLDEN TIGER')">VIEW</button>
+<!-- Pet Detail Modal -->
+<div id="petModal" class="hidden" style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px">
+<div class="card" style="max-width:400px;width:100%;max-height:90vh;overflow:auto;margin:0">
+<div class="row">
+<div class="card-title" style="margin:0" id="modalPetName">Pet</div>
+<button class="small-btn" style="width:auto;padding:6px 12px" onclick="closePetModal()">✕</button>
 </div>
-
-<div class="market-item">
-<div class="market-art">🐉</div>
-<div class="market-name">INFERNO DRAGON</div>
-<div class="market-price">120 Pi • LEGENDARY</div>
-<button class="small-btn" onclick="marketInfo('INFERNO DRAGON')">VIEW</button>
+<div id="modalPetArt" style="font-size:64px;text-align:center;margin:12px 0">🐾</div>
+<div class="grid" style="margin-bottom:12px">
+<div class="stat"><div class="stat-label">Element</div><div class="stat-value" id="modalElement">—</div></div>
+<div class="stat"><div class="stat-label">Rarity</div><div class="stat-value" id="modalRarity">—</div></div>
+<div class="stat"><div class="stat-label">HP</div><div class="stat-value" id="modalHp">—</div></div>
+<div class="stat"><div class="stat-label">ATK</div><div class="stat-value" id="modalAtk">—</div></div>
+<div class="stat"><div class="stat-label">DEF</div><div class="stat-value" id="modalDef">—</div></div>
+<div class="stat"><div class="stat-label">SPD</div><div class="stat-value" id="modalSpd">—</div></div>
 </div>
-
+<div class="notice" style="margin-bottom:12px">
+<b>Ability:</b> <span id="modalAbility">—</span>
+</div>
+<div style="font-size:18px;font-weight:900;color:#ffd54f;margin-bottom:12px" id="modalPrice">0 AMT</div>
+<button class="primary" id="buyPetBtn" onclick="buySelectedPet()">BUY WITH AMT</button>
+</div>
 </div>
 </section>
 
@@ -1587,6 +1596,7 @@ if(id==="circleSection")loadSecurityCircle();
 if(id==="profileSection")loadProfile();
 if(id==="stakingSection")loadStaking();
 if(id==="miningSection")loadMiningStatus();
+if(id==="marketSection")loadPets(currentElementFilter || "");
 }
 
 /* ============================================================
@@ -3173,16 +3183,123 @@ return date.toLocaleString();
 }
 
 /* ============================================================
-   MARKET
+   PET MARKETPLACE
 ============================================================ */
 
-function marketInfo(name){
+let allPets = [];
+let selectedPet = null;
+let currentElementFilter = "";
 
-showToast(
-name+
-" marketplace item • Pi Testnet"
-);
+const PET_EMOJI = {
+  Earth: "🪨", Water: "💧", Nature: "🌿", Ice: "❄️",
+  Thunder: "⚡", Wind: "🌪️", Fire: "🔥"
+};
 
+async function loadPets(element = "") {
+  try {
+    const q = element ? ("?element=" + encodeURIComponent(element)) : "";
+    const data = await api("/api/pets" + q);
+    allPets = data.pets || [];
+    renderPetGrid(allPets);
+  } catch (error) {
+    console.log("Pets:", error);
+    if ($("petGrid")) {
+      $("petGrid").innerHTML = '<div class="empty">Unable to load pets. Deploy latest server.js first.</div>';
+    }
+  }
+}
+
+function filterPets(element) {
+  currentElementFilter = element;
+  loadPets(element);
+}
+
+function renderPetGrid(pets) {
+  const grid = $("petGrid");
+  if (!grid) return;
+
+  if (!pets.length) {
+    grid.innerHTML = '<div class="empty">No pets found.</div>';
+    return;
+  }
+
+  // Keep reference for modal lookup
+  window._petMap = {};
+  pets.forEach(p => { window._petMap[p.id] = p; });
+
+  grid.innerHTML = pets.map(pet => {
+    const emoji = PET_EMOJI[pet.element] || "🐾";
+    return `
+      <div class="market-item" onclick="openPetById('${esc(pet.id)}')">
+        <div class="market-art">${emoji}</div>
+        <div class="market-name">${esc(pet.name)}</div>
+        <div class="market-price">${pet.priceAmt} AMT • ${esc(pet.rarity)}</div>
+        <div class="muted" style="font-size:10px;margin-top:4px">${esc(pet.element)}</div>
+        <button class="small-btn" style="margin-top:8px">VIEW STATS</button>
+      </div>
+    `;
+  }).join("");
+}
+
+function openPetById(petId) {
+  const pet = (window._petMap && window._petMap[petId]) || allPets.find(p => p.id === petId);
+  if (pet) openPetModal(pet);
+}
+
+function openPetModal(pet) {
+  selectedPet = pet;
+  const emoji = PET_EMOJI[pet.element] || "🐾";
+
+  $("modalPetName").textContent = pet.name;
+  $("modalPetArt").textContent = emoji;
+  $("modalElement").textContent = pet.element;
+  $("modalRarity").textContent = pet.rarity;
+  $("modalHp").textContent = pet.hp;
+  $("modalAtk").textContent = pet.atk;
+  $("modalDef").textContent = pet.def;
+  $("modalSpd").textContent = pet.spd;
+  $("modalAbility").textContent = pet.ability;
+  $("modalPrice").textContent = pet.priceAmt + " AMT";
+
+  const modal = $("petModal");
+  modal.classList.remove("hidden");
+  modal.style.display = "flex";
+}
+
+function closePetModal() {
+  selectedPet = null;
+  const modal = $("petModal");
+  modal.classList.add("hidden");
+  modal.style.display = "none";
+}
+
+async function buySelectedPet() {
+  if (!selectedPet) return;
+
+  const btn = $("buyPetBtn");
+  try {
+    btn.disabled = true;
+    btn.textContent = "BUYING...";
+
+    const data = await api("/api/pets/buy", {
+      method: "POST",
+      body: JSON.stringify({ petId: selectedPet.id })
+    });
+
+    showToast("Purchased " + selectedPet.name + "! -" + data.paid + " AMT");
+    closePetModal();
+    await refreshWallet();
+
+  } catch (error) {
+    showToast(error.message || "Purchase failed.", true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "BUY WITH AMT";
+  }
+}
+
+function marketInfo(name) {
+  showToast(name + " • Use the new Pet Market");
 }
 
 /* ============================================================
