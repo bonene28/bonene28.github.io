@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.0
+FULL SERVER VERSION 2.4.0
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.0:
+VERSION 2.4.0:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -38,7 +38,9 @@ VERSION 2.3.0:
 - NEW: Referral Tier System (Bronze / Silver / Gold / Legend)
 - NEW: Per-referral rewards + one-time milestone bonuses
 - NEW: Automatic credit to AMT ledger when referral is linked
-- NEW: AMT Pet Marketplace (70 pets, 7 elements, buy with AMT)
+- NEW: AMT Pet Marketplace (70 real Common pets, 7 elements)
+- NEW: Full Pet System - Care, Training, Breeding, Eggs, Hatch
+- NEW: Public Sell / Listings, Battle (PvE)
 ============================================================
 */
 
@@ -986,7 +988,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.0",
+      "2.4.0",
 
     features: [
       "Pi Login",
@@ -4337,107 +4339,1003 @@ app.get(
 );
 
 /* =========================================================
-AMT PET MARKETPLACE (Testnet - AMT Ledger)
+AMT PET MARKETPLACE + FULL PET SYSTEM (v2.4.0)
 ========================================================= */
 
 const PET_ELEMENTS = [
-  "Earth", "Water", "Nature", "Ice", "Thunder", "Wind", "Fire"
+  "Earth", "Water", "Nature", "Ice", "Fire", "Wind", "Thunder"
 ];
 
 const PET_RARITIES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
 
-// 10 pets per element (70 total) - Testnet prices in AMT
 const AMT_PETS = [
-  // EARTH
-  { id: "earth-01", name: "Stone Pup", element: "Earth", rarity: "Common", priceAmt: 0.5, hp: 80, atk: 12, def: 18, spd: 8, ability: "Rock Skin - reduces damage by 10%" },
-  { id: "earth-02", name: "Mudling", element: "Earth", rarity: "Common", priceAmt: 0.5, hp: 70, atk: 14, def: 15, spd: 10, ability: "Quicksand - slows enemy" },
-  { id: "earth-03", name: "Pebble Fox", element: "Earth", rarity: "Uncommon", priceAmt: 1.0, hp: 90, atk: 16, def: 20, spd: 12, ability: "Boulder Toss" },
-  { id: "earth-04", name: "Clay Golem", element: "Earth", rarity: "Uncommon", priceAmt: 1.2, hp: 120, atk: 10, def: 28, spd: 5, ability: "Regenerate" },
-  { id: "earth-05", name: "Terra Hound", element: "Earth", rarity: "Rare", priceAmt: 2.5, hp: 110, atk: 22, def: 22, spd: 14, ability: "Earthquake" },
-  { id: "earth-06", name: "Crystal Mole", element: "Earth", rarity: "Rare", priceAmt: 2.8, hp: 95, atk: 20, def: 25, spd: 16, ability: "Crystal Shield" },
-  { id: "earth-07", name: "Granite Bear", element: "Earth", rarity: "Epic", priceAmt: 5.0, hp: 150, atk: 25, def: 30, spd: 8, ability: "Mountain Guard" },
-  { id: "earth-08", name: "Obsidian Drake", element: "Earth", rarity: "Epic", priceAmt: 6.0, hp: 130, atk: 30, def: 26, spd: 15, ability: "Obsidian Armor" },
-  { id: "earth-09", name: "Titan Tortoise", element: "Earth", rarity: "Legendary", priceAmt: 12.0, hp: 200, atk: 18, def: 45, spd: 4, ability: "Unbreakable Shell" },
-  { id: "earth-10", name: "Gaia Colossus", element: "Earth", rarity: "Legendary", priceAmt: 15.0, hp: 180, atk: 35, def: 40, spd: 7, ability: "Planet's Wrath" },
-
-  // WATER
-  { id: "water-01", name: "Bubble Fin", element: "Water", rarity: "Common", priceAmt: 0.5, hp: 65, atk: 13, def: 12, spd: 14, ability: "Bubble Shield" },
-  { id: "water-02", name: "Tide Cub", element: "Water", rarity: "Common", priceAmt: 0.5, hp: 75, atk: 11, def: 14, spd: 12, ability: "Splash" },
-  { id: "water-03", name: "Coral Sprite", element: "Water", rarity: "Uncommon", priceAmt: 1.0, hp: 85, atk: 17, def: 16, spd: 15, ability: "Coral Barrier" },
-  { id: "water-04", name: "River Otter", element: "Water", rarity: "Uncommon", priceAmt: 1.2, hp: 90, atk: 15, def: 15, spd: 18, ability: "Swift Current" },
-  { id: "water-05", name: "Aqua Serpent", element: "Water", rarity: "Rare", priceAmt: 2.5, hp: 105, atk: 24, def: 18, spd: 16, ability: "Tidal Wave" },
-  { id: "water-06", name: "Mist Jelly", element: "Water", rarity: "Rare", priceAmt: 2.8, hp: 100, atk: 19, def: 20, spd: 20, ability: "Mist Veil" },
-  { id: "water-07", name: "Kraken Pup", element: "Water", rarity: "Epic", priceAmt: 5.0, hp: 140, atk: 28, def: 22, spd: 12, ability: "Tentacle Grasp" },
-  { id: "water-08", name: "Ocean Wyrm", element: "Water", rarity: "Epic", priceAmt: 6.0, hp: 125, atk: 32, def: 20, spd: 17, ability: "Abyssal Pressure" },
-  { id: "water-09", name: "Leviathan Cub", element: "Water", rarity: "Legendary", priceAmt: 12.0, hp: 170, atk: 30, def: 28, spd: 14, ability: "Tsunami" },
-  { id: "water-10", name: "Poseidon Guard", element: "Water", rarity: "Legendary", priceAmt: 15.0, hp: 160, atk: 38, def: 32, spd: 13, ability: "Divine Tide" },
-
-  // NATURE
-  { id: "nature-01", name: "Sproutling", element: "Nature", rarity: "Common", priceAmt: 0.5, hp: 70, atk: 12, def: 13, spd: 11, ability: "Photosynthesis" },
-  { id: "nature-02", name: "Leaf Mouse", element: "Nature", rarity: "Common", priceAmt: 0.5, hp: 60, atk: 14, def: 10, spd: 16, ability: "Leaf Storm" },
-  { id: "nature-03", name: "Vine Cat", element: "Nature", rarity: "Uncommon", priceAmt: 1.0, hp: 85, atk: 16, def: 15, spd: 14, ability: "Vine Whip" },
-  { id: "nature-04", name: "Moss Bear", element: "Nature", rarity: "Uncommon", priceAmt: 1.2, hp: 110, atk: 13, def: 22, spd: 7, ability: "Nature's Blessing" },
-  { id: "nature-05", name: "Thorn Wolf", element: "Nature", rarity: "Rare", priceAmt: 2.5, hp: 100, atk: 23, def: 17, spd: 15, ability: "Thorn Armor" },
-  { id: "nature-06", name: "Bloom Fairy", element: "Nature", rarity: "Rare", priceAmt: 2.8, hp: 90, atk: 18, def: 16, spd: 19, ability: "Healing Bloom" },
-  { id: "nature-07", name: "Elder Treant", element: "Nature", rarity: "Epic", priceAmt: 5.0, hp: 160, atk: 20, def: 32, spd: 6, ability: "Root Bind" },
-  { id: "nature-08", name: "Spirit Deer", element: "Nature", rarity: "Epic", priceAmt: 6.0, hp: 120, atk: 26, def: 20, spd: 18, ability: "Forest Spirit" },
-  { id: "nature-09", name: "World Tree Seed", element: "Nature", rarity: "Legendary", priceAmt: 12.0, hp: 190, atk: 22, def: 38, spd: 8, ability: "Eternal Growth" },
-  { id: "nature-10", name: "Gaia Fox", element: "Nature", rarity: "Legendary", priceAmt: 15.0, hp: 145, atk: 36, def: 28, spd: 16, ability: "Nature's Fury" },
-
-  // ICE
-  { id: "ice-01", name: "Frost Cub", element: "Ice", rarity: "Common", priceAmt: 0.5, hp: 68, atk: 13, def: 14, spd: 11, ability: "Chill" },
-  { id: "ice-02", name: "Snow Puff", element: "Ice", rarity: "Common", priceAmt: 0.5, hp: 72, atk: 11, def: 15, spd: 10, ability: "Snowball" },
-  { id: "ice-03", name: "Ice Fox", element: "Ice", rarity: "Uncommon", priceAmt: 1.0, hp: 88, atk: 17, def: 16, spd: 15, ability: "Frost Bite" },
-  { id: "ice-04", name: "Glacier Crab", element: "Ice", rarity: "Uncommon", priceAmt: 1.2, hp: 100, atk: 14, def: 24, spd: 6, ability: "Ice Shell" },
-  { id: "ice-05", name: "Blizzard Hawk", element: "Ice", rarity: "Rare", priceAmt: 2.5, hp: 95, atk: 25, def: 15, spd: 20, ability: "Blizzard" },
-  { id: "ice-06", name: "Crystal Owl", element: "Ice", rarity: "Rare", priceAmt: 2.8, hp: 105, atk: 20, def: 19, spd: 14, ability: "Crystal Gaze" },
-  { id: "ice-07", name: "Frost Wyvern", element: "Ice", rarity: "Epic", priceAmt: 5.0, hp: 130, atk: 29, def: 22, spd: 16, ability: "Absolute Zero" },
-  { id: "ice-08", name: "Aurora Wolf", element: "Ice", rarity: "Epic", priceAmt: 6.0, hp: 125, atk: 27, def: 23, spd: 17, ability: "Aurora Shield" },
-  { id: "ice-09", name: "Iceberg Titan", element: "Ice", rarity: "Legendary", priceAmt: 12.0, hp: 185, atk: 24, def: 40, spd: 5, ability: "Frozen Domain" },
-  { id: "ice-10", name: "Cryo Phoenix", element: "Ice", rarity: "Legendary", priceAmt: 15.0, hp: 150, atk: 37, def: 30, spd: 15, ability: "Rebirth Frost" },
-
-  // THUNDER
-  { id: "thunder-01", name: "Spark Mouse", element: "Thunder", rarity: "Common", priceAmt: 0.5, hp: 55, atk: 16, def: 9, spd: 18, ability: "Static" },
-  { id: "thunder-02", name: "Zap Bug", element: "Thunder", rarity: "Common", priceAmt: 0.5, hp: 60, atk: 15, def: 10, spd: 17, ability: "Shock" },
-  { id: "thunder-03", name: "Volt Cat", element: "Thunder", rarity: "Uncommon", priceAmt: 1.0, hp: 80, atk: 19, def: 13, spd: 19, ability: "Lightning Dash" },
-  { id: "thunder-04", name: "Storm Hare", element: "Thunder", rarity: "Uncommon", priceAmt: 1.2, hp: 75, atk: 18, def: 12, spd: 21, ability: "Thunder Step" },
-  { id: "thunder-05", name: "Thunder Wolf", element: "Thunder", rarity: "Rare", priceAmt: 2.5, hp: 100, atk: 26, def: 16, spd: 18, ability: "Chain Lightning" },
-  { id: "thunder-06", name: "Plasma Fox", element: "Thunder", rarity: "Rare", priceAmt: 2.8, hp: 95, atk: 24, def: 15, spd: 20, ability: "Plasma Burst" },
-  { id: "thunder-07", name: "Storm Drake", element: "Thunder", rarity: "Epic", priceAmt: 5.0, hp: 125, atk: 32, def: 18, spd: 19, ability: "Thunderstorm" },
-  { id: "thunder-08", name: "Volt Phoenix", element: "Thunder", rarity: "Epic", priceAmt: 6.0, hp: 115, atk: 30, def: 17, spd: 22, ability: "Electric Rebirth" },
-  { id: "thunder-09", name: "Raiden Beast", element: "Thunder", rarity: "Legendary", priceAmt: 12.0, hp: 155, atk: 40, def: 22, spd: 18, ability: "Divine Thunder" },
-  { id: "thunder-10", name: "Zeus Cub", element: "Thunder", rarity: "Legendary", priceAmt: 15.0, hp: 145, atk: 42, def: 25, spd: 16, ability: "God Bolt" },
-
-  // WIND
-  { id: "wind-01", name: "Breeze Pup", element: "Wind", rarity: "Common", priceAmt: 0.5, hp: 58, atk: 12, def: 10, spd: 20, ability: "Gust" },
-  { id: "wind-02", name: "Cloud Kit", element: "Wind", rarity: "Common", priceAmt: 0.5, hp: 62, atk: 11, def: 11, spd: 19, ability: "Float" },
-  { id: "wind-03", name: "Gale Fox", element: "Wind", rarity: "Uncommon", priceAmt: 1.0, hp: 78, atk: 16, def: 13, spd: 22, ability: "Wind Slash" },
-  { id: "wind-04", name: "Sky Falcon", element: "Wind", rarity: "Uncommon", priceAmt: 1.2, hp: 70, atk: 18, def: 11, spd: 24, ability: "Dive" },
-  { id: "wind-05", name: "Tempest Hound", element: "Wind", rarity: "Rare", priceAmt: 2.5, hp: 95, atk: 23, def: 15, spd: 21, ability: "Tempest" },
-  { id: "wind-06", name: "Aero Sprite", element: "Wind", rarity: "Rare", priceAmt: 2.8, hp: 85, atk: 20, def: 14, spd: 25, ability: "Air Blade" },
-  { id: "wind-07", name: "Storm Eagle", element: "Wind", rarity: "Epic", priceAmt: 5.0, hp: 120, atk: 28, def: 18, spd: 23, ability: "Hurricane" },
-  { id: "wind-08", name: "Zephyr Drake", element: "Wind", rarity: "Epic", priceAmt: 6.0, hp: 110, atk: 27, def: 17, spd: 26, ability: "Sky Dominion" },
-  { id: "wind-09", name: "Wind God Cub", element: "Wind", rarity: "Legendary", priceAmt: 12.0, hp: 140, atk: 35, def: 22, spd: 28, ability: "Divine Gust" },
-  { id: "wind-10", name: "Sky Sovereign", element: "Wind", rarity: "Legendary", priceAmt: 15.0, hp: 135, atk: 38, def: 24, spd: 27, ability: "Heaven's Wind" },
-
-  // FIRE
-  { id: "fire-01", name: "Ember Pup", element: "Fire", rarity: "Common", priceAmt: 0.5, hp: 65, atk: 15, def: 11, spd: 13, ability: "Ember" },
-  { id: "fire-02", name: "Spark Cub", element: "Fire", rarity: "Common", priceAmt: 0.5, hp: 60, atk: 16, def: 10, spd: 14, ability: "Spark" },
-  { id: "fire-03", name: "Flame Fox", element: "Fire", rarity: "Uncommon", priceAmt: 1.0, hp: 82, atk: 19, def: 13, spd: 16, ability: "Flame Burst" },
-  { id: "fire-04", name: "Cinder Cat", element: "Fire", rarity: "Uncommon", priceAmt: 1.2, hp: 78, atk: 18, def: 12, spd: 17, ability: "Cinder Trail" },
-  { id: "fire-05", name: "Inferno Hound", element: "Fire", rarity: "Rare", priceAmt: 2.5, hp: 105, atk: 27, def: 16, spd: 15, ability: "Inferno" },
-  { id: "fire-06", name: "Magma Lizard", element: "Fire", rarity: "Rare", priceAmt: 2.8, hp: 115, atk: 24, def: 20, spd: 11, ability: "Magma Armor" },
-  { id: "fire-07", name: "Blaze Drake", element: "Fire", rarity: "Epic", priceAmt: 5.0, hp: 130, atk: 33, def: 19, spd: 16, ability: "Dragon Fire" },
-  { id: "fire-08", name: "Solar Wolf", element: "Fire", rarity: "Epic", priceAmt: 6.0, hp: 120, atk: 31, def: 18, spd: 18, ability: "Solar Flare" },
-  { id: "fire-09", name: "Phoenix Cub", element: "Fire", rarity: "Legendary", priceAmt: 12.0, hp: 155, atk: 36, def: 25, spd: 17, ability: "Rebirth Flame" },
-  { id: "fire-10", name: "Infernal King", element: "Fire", rarity: "Legendary", priceAmt: 15.0, hp: 165, atk: 42, def: 28, spd: 14, ability: "Hellfire" }
+  {
+    "id": "earth-terra",
+    "name": "Terra",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 80,
+    "atk": 12,
+    "def": 18,
+    "spd": 8,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-terra.png",
+    "number": 1
+  },
+  {
+    "id": "earth-boulder",
+    "name": "Boulder",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 95,
+    "atk": 10,
+    "def": 22,
+    "spd": 6,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-boulder.png",
+    "number": 2
+  },
+  {
+    "id": "earth-clayto",
+    "name": "Clayto",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 75,
+    "atk": 14,
+    "def": 16,
+    "spd": 10,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-clayto.png",
+    "number": 3
+  },
+  {
+    "id": "earth-stonepaw",
+    "name": "Stonepaw",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 85,
+    "atk": 15,
+    "def": 17,
+    "spd": 11,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-stonepaw.png",
+    "number": 4
+  },
+  {
+    "id": "earth-granite",
+    "name": "Granite",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 100,
+    "atk": 11,
+    "def": 24,
+    "spd": 5,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-granite.png",
+    "number": 5
+  },
+  {
+    "id": "earth-muddo",
+    "name": "Muddo",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 90,
+    "atk": 13,
+    "def": 19,
+    "spd": 8,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-muddo.png",
+    "number": 6
+  },
+  {
+    "id": "earth-stonix",
+    "name": "Stonix",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 88,
+    "atk": 16,
+    "def": 18,
+    "spd": 12,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-stonix.png",
+    "number": 7
+  },
+  {
+    "id": "earth-earthen",
+    "name": "Earthen",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 82,
+    "atk": 14,
+    "def": 17,
+    "spd": 13,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-earthen.png",
+    "number": 8
+  },
+  {
+    "id": "earth-golem",
+    "name": "Golem",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 110,
+    "atk": 9,
+    "def": 28,
+    "spd": 4,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-golem.png",
+    "number": 9
+  },
+  {
+    "id": "earth-pebble",
+    "name": "Pebble",
+    "element": "Earth",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 70,
+    "atk": 15,
+    "def": 14,
+    "spd": 14,
+    "ability": "Stone Guard",
+    "image": "pets/common/earth-pebble.png",
+    "number": 10
+  },
+  {
+    "id": "water-aqua",
+    "name": "Aqua",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 70,
+    "atk": 13,
+    "def": 12,
+    "spd": 14,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-aqua.png",
+    "number": 11
+  },
+  {
+    "id": "water-marina",
+    "name": "Marina",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 75,
+    "atk": 12,
+    "def": 13,
+    "spd": 15,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-marina.png",
+    "number": 12
+  },
+  {
+    "id": "water-splash",
+    "name": "Splash",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 65,
+    "atk": 14,
+    "def": 11,
+    "spd": 16,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-splash.png",
+    "number": 13
+  },
+  {
+    "id": "water-bubble",
+    "name": "Bubble",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 72,
+    "atk": 11,
+    "def": 14,
+    "spd": 13,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-bubble.png",
+    "number": 14
+  },
+  {
+    "id": "water-tide",
+    "name": "Tide",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 80,
+    "atk": 15,
+    "def": 13,
+    "spd": 12,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-tide.png",
+    "number": 15
+  },
+  {
+    "id": "water-coral",
+    "name": "Coral",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 78,
+    "atk": 14,
+    "def": 15,
+    "spd": 11,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-coral.png",
+    "number": 16
+  },
+  {
+    "id": "water-nereid",
+    "name": "Nereid",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 74,
+    "atk": 16,
+    "def": 12,
+    "spd": 15,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-nereid.png",
+    "number": 17
+  },
+  {
+    "id": "water-oceanix",
+    "name": "Oceanix",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 85,
+    "atk": 13,
+    "def": 16,
+    "spd": 10,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-oceanix.png",
+    "number": 18
+  },
+  {
+    "id": "water-wave",
+    "name": "Wave",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 76,
+    "atk": 17,
+    "def": 11,
+    "spd": 16,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-wave.png",
+    "number": 19
+  },
+  {
+    "id": "water-ripple",
+    "name": "Ripple",
+    "element": "Water",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 68,
+    "atk": 12,
+    "def": 12,
+    "spd": 18,
+    "ability": "Tidal Flow",
+    "image": "pets/common/water-ripple.png",
+    "number": 20
+  },
+  {
+    "id": "nature-leafy",
+    "name": "Leafy",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 72,
+    "atk": 12,
+    "def": 13,
+    "spd": 12,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-leafy.png",
+    "number": 21
+  },
+  {
+    "id": "nature-sprout",
+    "name": "Sprout",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 68,
+    "atk": 13,
+    "def": 12,
+    "spd": 14,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-sprout.png",
+    "number": 22
+  },
+  {
+    "id": "nature-bloom",
+    "name": "Bloom",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 75,
+    "atk": 14,
+    "def": 14,
+    "spd": 11,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-bloom.png",
+    "number": 23
+  },
+  {
+    "id": "nature-forest",
+    "name": "Forest",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 90,
+    "atk": 11,
+    "def": 18,
+    "spd": 8,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-forest.png",
+    "number": 24
+  },
+  {
+    "id": "nature-verdant",
+    "name": "Verdant",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 82,
+    "atk": 15,
+    "def": 15,
+    "spd": 12,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-verdant.png",
+    "number": 25
+  },
+  {
+    "id": "nature-moss",
+    "name": "Moss",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 88,
+    "atk": 10,
+    "def": 20,
+    "spd": 7,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-moss.png",
+    "number": 26
+  },
+  {
+    "id": "nature-willow",
+    "name": "Willow",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 78,
+    "atk": 13,
+    "def": 16,
+    "spd": 13,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-willow.png",
+    "number": 27
+  },
+  {
+    "id": "nature-vine",
+    "name": "Vine",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 76,
+    "atk": 16,
+    "def": 14,
+    "spd": 12,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-vine.png",
+    "number": 28
+  },
+  {
+    "id": "nature-thorn",
+    "name": "Thorn",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 80,
+    "atk": 17,
+    "def": 15,
+    "spd": 11,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-thorn.png",
+    "number": 29
+  },
+  {
+    "id": "nature-flora",
+    "name": "Flora",
+    "element": "Nature",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 74,
+    "atk": 14,
+    "def": 15,
+    "spd": 13,
+    "ability": "Nature's Blessing",
+    "image": "pets/common/nature-flora.png",
+    "number": 30
+  },
+  {
+    "id": "ice-frosty",
+    "name": "Frosty",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 70,
+    "atk": 13,
+    "def": 14,
+    "spd": 12,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-frosty.png",
+    "number": 31
+  },
+  {
+    "id": "ice-glacier",
+    "name": "Glacier",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 95,
+    "atk": 10,
+    "def": 22,
+    "spd": 6,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-glacier.png",
+    "number": 32
+  },
+  {
+    "id": "ice-snowball",
+    "name": "Snowball",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 75,
+    "atk": 12,
+    "def": 15,
+    "spd": 11,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-snowball.png",
+    "number": 33
+  },
+  {
+    "id": "ice-blizzard",
+    "name": "Blizzard",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 78,
+    "atk": 16,
+    "def": 13,
+    "spd": 14,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-blizzard.png",
+    "number": 34
+  },
+  {
+    "id": "ice-iceberg",
+    "name": "Iceberg",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 100,
+    "atk": 9,
+    "def": 25,
+    "spd": 5,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-iceberg.png",
+    "number": 35
+  },
+  {
+    "id": "ice-chill",
+    "name": "Chill",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 72,
+    "atk": 14,
+    "def": 13,
+    "spd": 13,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-chill.png",
+    "number": 36
+  },
+  {
+    "id": "ice-crystal",
+    "name": "Crystal",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 80,
+    "atk": 15,
+    "def": 16,
+    "spd": 12,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-crystal.png",
+    "number": 37
+  },
+  {
+    "id": "ice-polar",
+    "name": "Polar",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 88,
+    "atk": 12,
+    "def": 18,
+    "spd": 9,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-polar.png",
+    "number": 38
+  },
+  {
+    "id": "ice-frostbite",
+    "name": "Frostbite",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 76,
+    "atk": 17,
+    "def": 14,
+    "spd": 13,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-frostbite.png",
+    "number": 39
+  },
+  {
+    "id": "ice-shard",
+    "name": "Shard",
+    "element": "Ice",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 74,
+    "atk": 15,
+    "def": 15,
+    "spd": 14,
+    "ability": "Frost Armor",
+    "image": "pets/common/ice-shard.png",
+    "number": 40
+  },
+  {
+    "id": "fire-flame",
+    "name": "Flame",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 68,
+    "atk": 16,
+    "def": 11,
+    "spd": 13,
+    "ability": "Burn",
+    "image": "pets/common/fire-flame.png",
+    "number": 41
+  },
+  {
+    "id": "fire-blaze",
+    "name": "Blaze",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 72,
+    "atk": 17,
+    "def": 12,
+    "spd": 12,
+    "ability": "Burn",
+    "image": "pets/common/fire-blaze.png",
+    "number": 42
+  },
+  {
+    "id": "fire-ember",
+    "name": "Ember",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 70,
+    "atk": 15,
+    "def": 12,
+    "spd": 14,
+    "ability": "Burn",
+    "image": "pets/common/fire-ember.png",
+    "number": 43
+  },
+  {
+    "id": "fire-inferno",
+    "name": "Inferno",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 85,
+    "atk": 18,
+    "def": 13,
+    "spd": 11,
+    "ability": "Burn",
+    "image": "pets/common/fire-inferno.png",
+    "number": 44
+  },
+  {
+    "id": "fire-phoenix",
+    "name": "Phoenix",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 80,
+    "atk": 16,
+    "def": 14,
+    "spd": 13,
+    "ability": "Burn",
+    "image": "pets/common/fire-phoenix.png",
+    "number": 45
+  },
+  {
+    "id": "fire-cinder",
+    "name": "Cinder",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 74,
+    "atk": 15,
+    "def": 13,
+    "spd": 13,
+    "ability": "Burn",
+    "image": "pets/common/fire-cinder.png",
+    "number": 46
+  },
+  {
+    "id": "fire-spark",
+    "name": "Spark",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 65,
+    "atk": 18,
+    "def": 10,
+    "spd": 16,
+    "ability": "Burn",
+    "image": "pets/common/fire-spark.png",
+    "number": 47
+  },
+  {
+    "id": "fire-magma",
+    "name": "Magma",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 90,
+    "atk": 14,
+    "def": 18,
+    "spd": 8,
+    "ability": "Burn",
+    "image": "pets/common/fire-magma.png",
+    "number": 48
+  },
+  {
+    "id": "fire-lava",
+    "name": "Lava",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 88,
+    "atk": 17,
+    "def": 15,
+    "spd": 10,
+    "ability": "Burn",
+    "image": "pets/common/fire-lava.png",
+    "number": 49
+  },
+  {
+    "id": "fire-ash",
+    "name": "Ash",
+    "element": "Fire",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 76,
+    "atk": 16,
+    "def": 12,
+    "spd": 14,
+    "ability": "Burn",
+    "image": "pets/common/fire-ash.png",
+    "number": 50
+  },
+  {
+    "id": "wind-breeze",
+    "name": "Breeze",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 60,
+    "atk": 12,
+    "def": 10,
+    "spd": 20,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-breeze.png",
+    "number": 51
+  },
+  {
+    "id": "wind-zephyr",
+    "name": "Zephyr",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 65,
+    "atk": 13,
+    "def": 11,
+    "spd": 19,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-zephyr.png",
+    "number": 52
+  },
+  {
+    "id": "wind-skylar",
+    "name": "Skylar",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 68,
+    "atk": 14,
+    "def": 11,
+    "spd": 18,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-skylar.png",
+    "number": 53
+  },
+  {
+    "id": "wind-gale",
+    "name": "Gale",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 72,
+    "atk": 15,
+    "def": 12,
+    "spd": 17,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-gale.png",
+    "number": 54
+  },
+  {
+    "id": "wind-cloud",
+    "name": "Cloud",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 78,
+    "atk": 11,
+    "def": 14,
+    "spd": 15,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-cloud.png",
+    "number": 55
+  },
+  {
+    "id": "wind-aero",
+    "name": "Aero",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 70,
+    "atk": 14,
+    "def": 11,
+    "spd": 18,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-aero.png",
+    "number": 56
+  },
+  {
+    "id": "wind-whisper",
+    "name": "Whisper",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 62,
+    "atk": 13,
+    "def": 10,
+    "spd": 21,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-whisper.png",
+    "number": 57
+  },
+  {
+    "id": "wind-tornado",
+    "name": "Tornado",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 80,
+    "atk": 16,
+    "def": 13,
+    "spd": 16,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-tornado.png",
+    "number": 58
+  },
+  {
+    "id": "wind-cyclone",
+    "name": "Cyclone",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 82,
+    "atk": 15,
+    "def": 14,
+    "spd": 15,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-cyclone.png",
+    "number": 59
+  },
+  {
+    "id": "wind-nimbus",
+    "name": "Nimbus",
+    "element": "Wind",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 85,
+    "atk": 12,
+    "def": 15,
+    "spd": 14,
+    "ability": "Swift Wind",
+    "image": "pets/common/wind-nimbus.png",
+    "number": 60
+  },
+  {
+    "id": "thunder-bolt",
+    "name": "Bolt",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 65,
+    "atk": 18,
+    "def": 10,
+    "spd": 17,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-bolt.png",
+    "number": 61
+  },
+  {
+    "id": "thunder-storm",
+    "name": "Storm",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 75,
+    "atk": 16,
+    "def": 13,
+    "spd": 15,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-storm.png",
+    "number": 62
+  },
+  {
+    "id": "thunder-zap",
+    "name": "Zap",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 68,
+    "atk": 17,
+    "def": 11,
+    "spd": 18,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-zap.png",
+    "number": 63
+  },
+  {
+    "id": "thunder-razor",
+    "name": "Razor",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 80,
+    "atk": 19,
+    "def": 12,
+    "spd": 14,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-razor.png",
+    "number": 64
+  },
+  {
+    "id": "thunder-thunderpaw",
+    "name": "Thunderpaw",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 72,
+    "atk": 16,
+    "def": 12,
+    "spd": 16,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-thunderpaw.png",
+    "number": 65
+  },
+  {
+    "id": "thunder-volt",
+    "name": "Volt",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 70,
+    "atk": 17,
+    "def": 11,
+    "spd": 17,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-volt.png",
+    "number": 66
+  },
+  {
+    "id": "thunder-flash",
+    "name": "Flash",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 62,
+    "atk": 15,
+    "def": 10,
+    "spd": 20,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-flash.png",
+    "number": 67
+  },
+  {
+    "id": "thunder-surge",
+    "name": "Surge",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 85,
+    "atk": 18,
+    "def": 14,
+    "spd": 13,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-surge.png",
+    "number": 68
+  },
+  {
+    "id": "thunder-flux",
+    "name": "Flux",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 78,
+    "atk": 16,
+    "def": 13,
+    "spd": 15,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-flux.png",
+    "number": 69
+  },
+  {
+    "id": "thunder-tempest",
+    "name": "Tempest",
+    "element": "Thunder",
+    "rarity": "Common",
+    "priceAmt": 0.5,
+    "hp": 88,
+    "atk": 20,
+    "def": 13,
+    "spd": 14,
+    "ability": "Static Shock",
+    "image": "pets/common/thunder-tempest.png",
+    "number": 70
+  }
 ];
+
 
 function getPetById(petId) {
   return AMT_PETS.find(p => p.id === petId) || null;
 }
 
-// Create owned_pets table if needed
 async function ensurePetTables() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS owned_pets (
@@ -4447,22 +5345,57 @@ async function ensurePetTables() {
       name TEXT NOT NULL,
       element TEXT NOT NULL,
       rarity TEXT NOT NULL,
+      level INT NOT NULL DEFAULT 1,
+      exp INT NOT NULL DEFAULT 0,
       hp INT NOT NULL,
       atk INT NOT NULL,
       def INT NOT NULL,
       spd INT NOT NULL,
       ability TEXT NOT NULL,
-      purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      UNIQUE(member_id, pet_id)
+      image TEXT,
+      energy INT NOT NULL DEFAULT 100,
+      happiness INT NOT NULL DEFAULT 100,
+      is_listed BOOLEAN NOT NULL DEFAULT FALSE,
+      purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_owned_pets_member ON owned_pets(member_id);
+
+    CREATE TABLE IF NOT EXISTS pet_eggs (
+      id BIGSERIAL PRIMARY KEY,
+      member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      parent1_id BIGINT,
+      parent2_id BIGINT,
+      element TEXT NOT NULL,
+      rarity TEXT NOT NULL DEFAULT 'Common',
+      status TEXT NOT NULL DEFAULT 'READY',
+      hatch_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS pet_listings (
+      id BIGSERIAL PRIMARY KEY,
+      seller_member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      owned_pet_id BIGINT NOT NULL REFERENCES owned_pets(id) ON DELETE CASCADE,
+      price_amt NUMERIC(20,8) NOT NULL,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS pet_battles (
+      id BIGSERIAL PRIMARY KEY,
+      member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      owned_pet_id BIGINT NOT NULL,
+      opponent_name TEXT NOT NULL,
+      result TEXT NOT NULL,
+      reward_amt NUMERIC(20,8) NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 }
 
-// Call during init (safe)
 ensurePetTables().catch(err => console.error("Pet tables init:", err.message));
 
-// List all pets (optionally filter by element)
+/* ---------- Catalog ---------- */
 app.get("/api/pets", async (req, res) => {
   try {
     const element = String(req.query.element || "").trim();
@@ -4470,121 +5403,451 @@ app.get("/api/pets", async (req, res) => {
     if (element) {
       pets = AMT_PETS.filter(p => p.element.toLowerCase() === element.toLowerCase());
     }
-    res.json({
-      ok: true,
-      total: pets.length,
-      elements: PET_ELEMENTS,
-      rarities: PET_RARITIES,
-      pets
-    });
-  } catch (error) {
+    res.json({ ok: true, total: pets.length, elements: PET_ELEMENTS, rarities: PET_RARITIES, pets });
+  } catch (e) {
     res.status(500).json({ ok: false, error: "Unable to load pets." });
   }
 });
 
-// Get single pet detail
 app.get("/api/pets/:petId", async (req, res) => {
   const pet = getPetById(req.params.petId);
-  if (!pet) {
-    return res.status(404).json({ ok: false, error: "Pet not found." });
-  }
+  if (!pet) return res.status(404).json({ ok: false, error: "Pet not found." });
   res.json({ ok: true, pet });
 });
 
-// Buy pet with AMT (application ledger)
+/* ---------- Buy from market ---------- */
 app.post("/api/pets/buy", requireAuth, async (req, res) => {
   const petId = String(req.body?.petId || "").trim();
   const pet = getPetById(petId);
-
-  if (!pet) {
-    return res.status(404).json({ ok: false, error: "Pet not found." });
-  }
+  if (!pet) return res.status(404).json({ ok: false, error: "Pet not found." });
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-
-    await client.query(
-      `SELECT id FROM members WHERE id = $1 FOR UPDATE`,
-      [req.member.id]
-    );
-
-    // Check if already owned
-    const owned = await client.query(
-      `SELECT id FROM owned_pets WHERE member_id = $1 AND pet_id = $2 LIMIT 1`,
-      [req.member.id, pet.id]
-    );
-    if (owned.rows.length) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ ok: false, error: "You already own this pet." });
-    }
+    await client.query(`SELECT id FROM members WHERE id = $1 FOR UPDATE`, [req.member.id]);
 
     const balance = await getBalance(req.member.id, client);
     if (balance < pet.priceAmt) {
       await client.query("ROLLBACK");
-      return res.status(400).json({
-        ok: false,
-        error: "Insufficient AMT balance.",
-        balance,
-        required: pet.priceAmt
-      });
+      return res.status(400).json({ ok: false, error: "Insufficient AMT balance.", balance, required: pet.priceAmt });
     }
 
     const reference = makeReference("AMT-PET");
-
-    // Deduct AMT
     await client.query(
-      `INSERT INTO amt_ledger (member_id, amount, type, reference)
-       VALUES ($1, $2, 'PET_PURCHASE', $3)`,
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_PURCHASE',$3)`,
       [req.member.id, -pet.priceAmt, reference]
     );
-
-    // Add owned pet
-    await client.query(
+    const ins = await client.query(
       `INSERT INTO owned_pets
-        (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [
-        req.member.id, pet.id, pet.name, pet.element, pet.rarity,
-        pet.hp, pet.atk, pet.def, pet.spd, pet.ability
-      ]
+        (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability, image)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [req.member.id, pet.id, pet.name, pet.element, pet.rarity, pet.hp, pet.atk, pet.def, pet.spd, pet.ability, pet.image]
     );
-
     await client.query("COMMIT");
-
-    const newBalance = await getBalance(req.member.id);
-
-    res.json({
-      ok: true,
-      purchased: true,
-      pet,
-      paid: pet.priceAmt,
-      balance: newBalance,
-      reference
-    });
-  } catch (error) {
+    res.json({ ok: true, purchased: true, pet: ins.rows[0], paid: pet.priceAmt, balance: await getBalance(req.member.id), reference });
+  } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
-    console.error("PET BUY ERROR:", error);
+    console.error("PET BUY ERROR:", e);
     res.status(500).json({ ok: false, error: "Unable to buy pet." });
   } finally {
     client.release();
   }
 });
 
-// My owned pets
+/* ---------- My pets ---------- */
 app.get("/api/pets/owned", requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT * FROM owned_pets WHERE member_id = $1 ORDER BY purchased_at DESC`,
       [req.member.id]
     );
+    res.json({ ok: true, count: result.rows.length, pets: result.rows });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: "Unable to load owned pets." });
+  }
+});
+
+/* ---------- Care (feed / play) ---------- */
+app.post("/api/pets/care", requireAuth, async (req, res) => {
+  const ownedId = Number(req.body?.ownedPetId);
+  const action = String(req.body?.action || "feed").toLowerCase(); // feed | play
+  if (!Number.isInteger(ownedId)) return res.status(400).json({ ok: false, error: "ownedPetId required." });
+
+  const cost = action === "play" ? 0.1 : 0.2;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const pet = await client.query(
+      `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2 FOR UPDATE`,
+      [ownedId, req.member.id]
+    );
+    if (!pet.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+    const balance = await getBalance(req.member.id, client);
+    if (balance < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Insufficient AMT." });
+    }
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_CARE',$3)`,
+      [req.member.id, -cost, makeReference("AMT-CARE")]
+    );
+    const energyGain = action === "feed" ? 30 : 15;
+    const happyGain = action === "play" ? 30 : 15;
+    const updated = await client.query(
+      `UPDATE owned_pets SET
+        energy = LEAST(100, energy + $1),
+        happiness = LEAST(100, happiness + $2)
+       WHERE id = $3 RETURNING *`,
+      [energyGain, happyGain, ownedId]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, action, cost, pet: updated.rows[0] });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    res.status(500).json({ ok: false, error: "Care failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Training ---------- */
+app.post("/api/pets/train", requireAuth, async (req, res) => {
+  const ownedId = Number(req.body?.ownedPetId);
+  const stat = String(req.body?.stat || "atk").toLowerCase(); // hp|atk|def|spd
+  if (!Number.isInteger(ownedId)) return res.status(400).json({ ok: false, error: "ownedPetId required." });
+  if (!["hp","atk","def","spd"].includes(stat)) return res.status(400).json({ ok: false, error: "Invalid stat." });
+
+  const cost = 0.5;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const pet = await client.query(
+      `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2 FOR UPDATE`,
+      [ownedId, req.member.id]
+    );
+    if (!pet.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+    if (Number(pet.rows[0].energy) < 20) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Pet needs more energy. Care first." });
+    }
+    const balance = await getBalance(req.member.id, client);
+    if (balance < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Insufficient AMT." });
+    }
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_TRAIN',$3)`,
+      [req.member.id, -cost, makeReference("AMT-TRAIN")]
+    );
+    const gain = stat === "hp" ? 5 : 2;
+    const updated = await client.query(
+      `UPDATE owned_pets SET
+        ${stat} = ${stat} + $1,
+        energy = GREATEST(0, energy - 20),
+        exp = exp + 10,
+        level = CASE WHEN exp + 10 >= level * 50 THEN level + 1 ELSE level END
+       WHERE id = $2 RETURNING *`,
+      [gain, ownedId]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, trained: stat, gain, cost, pet: updated.rows[0] });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("TRAIN ERROR:", e);
+    res.status(500).json({ ok: false, error: "Training failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Breeding → Egg ---------- */
+app.post("/api/pets/breed", requireAuth, async (req, res) => {
+  const p1 = Number(req.body?.pet1Id);
+  const p2 = Number(req.body?.pet2Id);
+  if (!Number.isInteger(p1) || !Number.isInteger(p2) || p1 === p2) {
+    return res.status(400).json({ ok: false, error: "Two different owned pet IDs required." });
+  }
+  const cost = 1.0;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const pets = await client.query(
+      `SELECT * FROM owned_pets WHERE id IN ($1,$2) AND member_id = $3 FOR UPDATE`,
+      [p1, p2, req.member.id]
+    );
+    if (pets.rows.length !== 2) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Both pets must be owned by you." });
+    }
+    const balance = await getBalance(req.member.id, client);
+    if (balance < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Insufficient AMT. Breeding costs 1 AMT." });
+    }
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_BREED',$3)`,
+      [req.member.id, -cost, makeReference("AMT-BREED")]
+    );
+    const element = pets.rows[0].element === pets.rows[1].element
+      ? pets.rows[0].element
+      : pets.rows[Math.floor(Math.random()*2)].element;
+    const hatchAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+    const egg = await client.query(
+      `INSERT INTO pet_eggs (member_id, parent1_id, parent2_id, element, rarity, status, hatch_at)
+       VALUES ($1,$2,$3,$4,'Common','INCUBATING',$5) RETURNING *`,
+      [req.member.id, p1, p2, element, hatchAt]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, egg: egg.rows[0], cost, message: "Egg is incubating. Hatch in 2 hours." });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("BREED ERROR:", e);
+    res.status(500).json({ ok: false, error: "Breeding failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- My eggs ---------- */
+app.get("/api/pets/eggs", requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM pet_eggs WHERE member_id = $1 ORDER BY created_at DESC`,
+      [req.member.id]
+    );
+    res.json({ ok: true, eggs: result.rows });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: "Unable to load eggs." });
+  }
+});
+
+/* ---------- Hatch egg ---------- */
+app.post("/api/pets/hatch", requireAuth, async (req, res) => {
+  const eggId = Number(req.body?.eggId);
+  if (!Number.isInteger(eggId)) return res.status(400).json({ ok: false, error: "eggId required." });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const eggRes = await client.query(
+      `SELECT * FROM pet_eggs WHERE id = $1 AND member_id = $2 FOR UPDATE`,
+      [eggId, req.member.id]
+    );
+    if (!eggRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Egg not found." });
+    }
+    const egg = eggRes.rows[0];
+    if (egg.status === "HATCHED") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Already hatched." });
+    }
+    if (egg.hatch_at && new Date(egg.hatch_at) > new Date()) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        ok: false,
+        error: "Still incubating.",
+        hatchAt: egg.hatch_at
+      });
+    }
+    // Pick a random common pet of same element
+    const poolPets = AMT_PETS.filter(p => p.element === egg.element);
+    const base = poolPets[Math.floor(Math.random() * poolPets.length)] || AMT_PETS[0];
+    const ins = await client.query(
+      `INSERT INTO owned_pets
+        (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability, image)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [req.member.id, base.id + "-hatch", base.name, base.element, "Common",
+       base.hp + 5, base.atk + 1, base.def + 1, base.spd + 1, base.ability, base.image]
+    );
+    await client.query(
+      `UPDATE pet_eggs SET status = 'HATCHED' WHERE id = $1`,
+      [eggId]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, hatched: true, pet: ins.rows[0] });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("HATCH ERROR:", e);
+    res.status(500).json({ ok: false, error: "Hatch failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Public Sell (list) ---------- */
+app.post("/api/pets/list", requireAuth, async (req, res) => {
+  const ownedId = Number(req.body?.ownedPetId);
+  const price = Number(req.body?.priceAmt);
+  if (!Number.isInteger(ownedId) || !(price > 0)) {
+    return res.status(400).json({ ok: false, error: "ownedPetId and priceAmt required." });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const pet = await client.query(
+      `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2 FOR UPDATE`,
+      [ownedId, req.member.id]
+    );
+    if (!pet.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+    if (pet.rows[0].is_listed) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Already listed." });
+    }
+    await client.query(`UPDATE owned_pets SET is_listed = TRUE WHERE id = $1`, [ownedId]);
+    const listing = await client.query(
+      `INSERT INTO pet_listings (seller_member_id, owned_pet_id, price_amt)
+       VALUES ($1,$2,$3) RETURNING *`,
+      [req.member.id, ownedId, price]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, listing: listing.rows[0] });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    res.status(500).json({ ok: false, error: "List failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Public listings ---------- */
+app.get("/api/pets/listings", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT l.*, p.name, p.element, p.rarity, p.hp, p.atk, p.def, p.spd, p.ability, p.image, p.level,
+             m.username AS seller_username
+      FROM pet_listings l
+      JOIN owned_pets p ON p.id = l.owned_pet_id
+      JOIN members m ON m.id = l.seller_member_id
+      WHERE l.status = 'ACTIVE'
+      ORDER BY l.created_at DESC
+      LIMIT 100
+    `);
+    res.json({ ok: true, listings: result.rows });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: "Unable to load listings." });
+  }
+});
+
+/* ---------- Buy from public sell ---------- */
+app.post("/api/pets/buy-listing", requireAuth, async (req, res) => {
+  const listingId = Number(req.body?.listingId);
+  if (!Number.isInteger(listingId)) return res.status(400).json({ ok: false, error: "listingId required." });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const listing = await client.query(
+      `SELECT * FROM pet_listings WHERE id = $1 AND status = 'ACTIVE' FOR UPDATE`,
+      [listingId]
+    );
+    if (!listing.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Listing not found." });
+    }
+    const L = listing.rows[0];
+    if (Number(L.seller_member_id) === Number(req.member.id)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Cannot buy your own listing." });
+    }
+    const price = Number(L.price_amt);
+    const balance = await getBalance(req.member.id, client);
+    if (balance < price) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Insufficient AMT." });
+    }
+    // Pay seller
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_SALE',$3)`,
+      [L.seller_member_id, price, makeReference("AMT-SALE")]
+    );
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_BUY_LISTING',$3)`,
+      [req.member.id, -price, makeReference("AMT-BUY")]
+    );
+    // Transfer ownership
+    await client.query(
+      `UPDATE owned_pets SET member_id = $1, is_listed = FALSE WHERE id = $2`,
+      [req.member.id, L.owned_pet_id]
+    );
+    await client.query(
+      `UPDATE pet_listings SET status = 'SOLD' WHERE id = $1`,
+      [listingId]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, purchased: true, price });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("BUY LISTING ERROR:", e);
+    res.status(500).json({ ok: false, error: "Purchase failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Battle (simple PvE) ---------- */
+app.post("/api/pets/battle", requireAuth, async (req, res) => {
+  const ownedId = Number(req.body?.ownedPetId);
+  if (!Number.isInteger(ownedId)) return res.status(400).json({ ok: false, error: "ownedPetId required." });
+
+  const client = await pool.connect();
+  try {
+    const petRes = await client.query(
+      `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2`,
+      [ownedId, req.member.id]
+    );
+    if (!petRes.rows.length) return res.status(404).json({ ok: false, error: "Pet not found." });
+    const pet = petRes.rows[0];
+    if (Number(pet.energy) < 15) {
+      return res.status(400).json({ ok: false, error: "Pet needs energy. Care first." });
+    }
+
+    // Simple battle formula
+    const enemyPower = 40 + Math.floor(Math.random() * 40);
+    const myPower = Number(pet.atk) + Number(pet.spd) * 0.5 + Number(pet.level) * 3;
+    const win = myPower >= enemyPower;
+    const reward = win ? 0.3 : 0.05;
+    const opponents = ["Wild Slime","Shadow Pup","Stone Mite","Frost Bat","Ember Rat"];
+    const opponent = opponents[Math.floor(Math.random() * opponents.length)];
+
+    await client.query(
+      `UPDATE owned_pets SET energy = GREATEST(0, energy - 15),
+        exp = exp + $1 WHERE id = $2`,
+      [win ? 20 : 5, ownedId]
+    );
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_BATTLE',$3)`,
+      [req.member.id, reward, makeReference("AMT-BATTLE")]
+    );
+    await client.query(
+      `INSERT INTO pet_battles (member_id, owned_pet_id, opponent_name, result, reward_amt)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [req.member.id, ownedId, opponent, win ? "WIN" : "LOSS", reward]
+    );
+
     res.json({
       ok: true,
-      count: result.rows.length,
-      pets: result.rows
+      result: win ? "WIN" : "LOSS",
+      opponent,
+      myPower: Math.round(myPower),
+      enemyPower,
+      reward,
+      petName: pet.name
     });
-  } catch (error) {
-    res.status(500).json({ ok: false, error: "Unable to load owned pets." });
+  } catch (e) {
+    console.error("BATTLE ERROR:", e);
+    res.status(500).json({ ok: false, error: "Battle failed." });
+  } finally {
+    client.release();
   }
 });
 
@@ -5985,7 +7248,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.0"
+          "Version: 2.4.0"
         );
 
         console.log(
