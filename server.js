@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.1.9
+FULL SERVER VERSION 2.2.0
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.1.9:
+VERSION 2.2.0:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -36,6 +36,7 @@ VERSION 2.1.9:
 - CHANGED: New airdrop campaign AMT100_V2 (old 1 AMT claims no longer block new claim)
 - FIXED: Profile picture size limit increased to ~2MB
 - ADDED: Tier system (Bronze → Silver → Gold → Platinum → Diamond → Legend)
+- FIXED: Multiple referral field names for frontend compatibility (code, referralCode, inviteCode, referralLink, etc.)
 ============================================================
 */
 
@@ -994,7 +995,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.1.9",
+      "2.2.0",
 
     features: [
       "Pi Login",
@@ -1263,11 +1264,11 @@ app.get(
       environment:
         "TESTNET",
 
-      // Referral code of this Pioneer (same as username)
-      referralCode:
-        req.member.username ||
-        req.piUser.username ||
-        null,
+      // Multiple field names for frontend compatibility
+      referralCode: req.member.username || req.piUser.username || null,
+      code: req.member.username || req.piUser.username || null,
+      inviteCode: req.member.username || req.piUser.username || null,
+      referral_code: req.member.username || req.piUser.username || null,
 
       referralCount,
 
@@ -3199,25 +3200,32 @@ app.get(
 
     const tierInfo = getTierByReferrals(referralCount);
 
+    const code = req.member.username || "";
+
     res.json({
       ok: true,
 
-      username:
-        req.member.username,
+      username: code,
 
-      // Referral code of this Pioneer (same as username)
-      referralCode:
-        req.member.username,
+      // Multiple field names for frontend compatibility
+      referralCode: code,
+      code: code,
+      inviteCode: code,
+      referral_code: code,
+      invite_code: code,
+
+      // Referral link (frontend can also build its own)
+      referralLink: code ? `https://bonene28.github.io/?ref=${code}` : "",
+      referral_link: code ? `https://bonene28.github.io/?ref=${code}` : "",
+      link: code ? `https://bonene28.github.io/?ref=${code}` : "",
 
       referralCount,
 
-      maxDirectReferrals:
-        "UNLIMITED",
+      maxDirectReferrals: "UNLIMITED",
 
-      activeMiners:
-        Number(
-          activeMiners.rows[0]?.count || 0
-        ),
+      activeMiners: Number(
+        activeMiners.rows[0]?.count || 0
+      ),
 
       // Tier system (Bronze → Legend)
       tier: {
@@ -3237,8 +3245,7 @@ app.get(
 
       tiers: TIER_LEVELS,
 
-      referrals:
-        referrals.rows
+      referrals: referrals.rows
     });
   }
 );
