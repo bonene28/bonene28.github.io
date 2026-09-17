@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.1.8
+FULL SERVER VERSION 2.1.9
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.1.8:
+VERSION 2.1.9:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -35,6 +35,7 @@ VERSION 2.1.8:
 - CHANGED: Global 48-hour wait for EVERYONE (new and old users) before claim
 - CHANGED: New airdrop campaign AMT100_V2 (old 1 AMT claims no longer block new claim)
 - FIXED: Profile picture size limit increased to ~2MB
+- ADDED: Tier system (Bronze → Silver → Gold → Platinum → Diamond → Legend)
 ============================================================
 */
 
@@ -92,6 +93,45 @@ const AIRDROP_UNLOCK_AT = process.env.AIRDROP_UNLOCK_AT
 const MAX_DIRECT_REFERRALS = null;
 
 const MAX_SECURITY_CIRCLE = 5;
+
+/* =========================================================
+TIER SYSTEM (Bronze → Legend)
+Based on number of direct referrals
+========================================================= */
+
+const TIER_LEVELS = [
+  { id: "BRONZE",   name: "Bronze",   minReferrals: 0,   color: "#CD7F32" },
+  { id: "SILVER",   name: "Silver",   minReferrals: 5,   color: "#C0C0C0" },
+  { id: "GOLD",     name: "Gold",     minReferrals: 15,  color: "#FFD700" },
+  { id: "PLATINUM", name: "Platinum", minReferrals: 30,  color: "#E5E4E2" },
+  { id: "DIAMOND",  name: "Diamond",  minReferrals: 50,  color: "#B9F2FF" },
+  { id: "LEGEND",   name: "Legend",   minReferrals: 100, color: "#FF4500" }
+];
+
+function getTierByReferrals(referralCount) {
+  const count = Number(referralCount) || 0;
+  let current = TIER_LEVELS[0];
+
+  for (const tier of TIER_LEVELS) {
+    if (count >= tier.minReferrals) {
+      current = tier;
+    }
+  }
+
+  // Find next tier
+  const currentIndex = TIER_LEVELS.findIndex(t => t.id === current.id);
+  const nextTier = currentIndex < TIER_LEVELS.length - 1
+    ? TIER_LEVELS[currentIndex + 1]
+    : null;
+
+  return {
+    current,
+    next: nextTier,
+    referralsToNext: nextTier
+      ? nextTier.minReferrals - count
+      : 0
+  };
+}
 
 const PI_PAYMENT_API_BASE =
   process.env.PI_PAYMENT_API_BASE ||
@@ -954,7 +994,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.1.8",
+      "2.1.9",
 
     features: [
       "Pi Login",
@@ -1163,6 +1203,20 @@ app.get(
   "/api/profile",
   requireAuth,
   async (req, res) => {
+    // Get referral count for tier
+    const countResult = await pool.query(
+      `
+      SELECT COUNT(*)::INT AS count
+      FROM referrals
+      WHERE referrer_member_id = $1
+        AND status = 'ACTIVE'
+      `,
+      [req.member.id]
+    );
+
+    const referralCount = Number(countResult.rows[0]?.count || 0);
+    const tierInfo = getTierByReferrals(referralCount);
+
     res.json({
       ok: true,
 
@@ -1213,7 +1267,25 @@ app.get(
       referralCode:
         req.member.username ||
         req.piUser.username ||
-        null
+        null,
+
+      referralCount,
+
+      // Tier system (Bronze → Legend)
+      tier: {
+        id: tierInfo.current.id,
+        name: tierInfo.current.name,
+        color: tierInfo.current.color,
+        minReferrals: tierInfo.current.minReferrals,
+        next: tierInfo.next
+          ? {
+              id: tierInfo.next.id,
+              name: tierInfo.next.name,
+              minReferrals: tierInfo.next.minReferrals
+            }
+          : null,
+        referralsToNext: tierInfo.referralsToNext
+      }
     });
   }
 );
@@ -3121,6 +3193,12 @@ app.get(
         [req.member.id]
       );
 
+    const referralCount = Number(
+      countResult.rows[0]?.count || 0
+    );
+
+    const tierInfo = getTierByReferrals(referralCount);
+
     res.json({
       ok: true,
 
@@ -3128,14 +3206,10 @@ app.get(
         req.member.username,
 
       // Referral code of this Pioneer (same as username)
-      // This is what other miners should use when joining
       referralCode:
         req.member.username,
 
-      referralCount:
-        Number(
-          countResult.rows[0]?.count || 0
-        ),
+      referralCount,
 
       maxDirectReferrals:
         "UNLIMITED",
@@ -3144,6 +3218,24 @@ app.get(
         Number(
           activeMiners.rows[0]?.count || 0
         ),
+
+      // Tier system (Bronze → Legend)
+      tier: {
+        id: tierInfo.current.id,
+        name: tierInfo.current.name,
+        color: tierInfo.current.color,
+        minReferrals: tierInfo.current.minReferrals,
+        next: tierInfo.next
+          ? {
+              id: tierInfo.next.id,
+              name: tierInfo.next.name,
+              minReferrals: tierInfo.next.minReferrals
+            }
+          : null,
+        referralsToNext: tierInfo.referralsToNext
+      },
+
+      tiers: TIER_LEVELS,
 
       referrals:
         referrals.rows
