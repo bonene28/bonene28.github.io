@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.1
+FULL SERVER VERSION 2.4.2
 
 IMPORTANT:
 - TESTNET ONLY
@@ -17,6 +17,12 @@ IMPORTANT:
 - Staking is application-ledger accounting
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
+
+VERSION 2.4.2:
+- Fixed profile picture saving (increased body limit to 10mb, image size to ~2MB)
+- Accepts multiple field names: image, profileImage, photo, profile_image, avatar
+- Better error messages when saving profile photo
+- Staking fully present (pools, status, stake, unstake, history)
 
 VERSION 2.4.1:
 - Airdrop amount changed to 100 AMT
@@ -210,7 +216,7 @@ app.use(
 
 app.use(
   express.json({
-    limit: "1mb"
+    limit: "10mb"
   })
 );
 
@@ -998,7 +1004,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.1",
+      "2.4.2",
 
     features: [
       "Pi Login",
@@ -1269,9 +1275,15 @@ app.post(
   requireAuth,
   async (req, res) => {
     try {
+      // Accept common field names used by different frontends
       const image =
         String(
-          req.body?.image || ""
+          req.body?.image ||
+          req.body?.profileImage ||
+          req.body?.photo ||
+          req.body?.profile_image ||
+          req.body?.avatar ||
+          ""
         ).trim();
 
       if (!image) {
@@ -1280,7 +1292,7 @@ app.post(
           .json({
             ok: false,
             error:
-              "Profile image is required."
+              "Profile image is required. Send base64 as 'image' or 'profileImage'."
           });
       }
 
@@ -1294,19 +1306,20 @@ app.post(
           .json({
             ok: false,
             error:
-              "Invalid image format."
+              "Invalid image format. Must start with data:image/ (base64)."
           });
       }
 
+      // Increased limit: ~3MB base64 (~2.2MB actual image)
       if (
-        image.length > 500000
+        image.length > 4000000
       ) {
         return res
           .status(413)
           .json({
             ok: false,
             error:
-              "Profile image is too large."
+              "Profile image is too large. Max ~2MB."
           });
       }
 
@@ -1328,7 +1341,9 @@ app.post(
         ok: true,
 
         profileImage:
-          image
+          image,
+
+        saved: true
       });
 
     } catch (error) {
@@ -1342,7 +1357,9 @@ app.post(
         .json({
           ok: false,
           error:
-            "Unable to save profile image."
+            "Unable to save profile image.",
+          detail:
+            error.message || null
         });
     }
   }
@@ -7154,9 +7171,15 @@ app.post(
   requireAuth,
   async (req, res) => {
     try {
+      // Accept common field names used by different frontends
       const image =
         String(
-          req.body?.image || ""
+          req.body?.image ||
+          req.body?.profileImage ||
+          req.body?.photo ||
+          req.body?.profile_image ||
+          req.body?.avatar ||
+          ""
         ).trim();
 
       if (!image) {
@@ -7165,7 +7188,7 @@ app.post(
           .json({
             ok: false,
             error:
-              "Profile image is required."
+              "Profile image is required. Send base64 as 'image' or 'profileImage'."
           });
       }
 
@@ -7179,19 +7202,20 @@ app.post(
           .json({
             ok: false,
             error:
-              "Invalid image format."
+              "Invalid image format. Must start with data:image/ (base64)."
           });
       }
 
+      // Increased limit: ~3MB base64 (~2.2MB actual image)
       if (
-        image.length > 500000
+        image.length > 4000000
       ) {
         return res
           .status(413)
           .json({
             ok: false,
             error:
-              "Profile image is too large."
+              "Profile image is too large. Max ~2MB."
           });
       }
 
@@ -7213,7 +7237,9 @@ app.post(
         ok: true,
 
         profileImage:
-          image
+          image,
+
+        saved: true
       });
 
     } catch (error) {
@@ -7227,7 +7253,9 @@ app.post(
         .json({
           ok: false,
           error:
-            "Unable to save profile image."
+            "Unable to save profile image.",
+          detail:
+            error.message || null
         });
     }
   }
@@ -7341,7 +7369,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.1"
+          "Version: 2.4.2"
         );
 
         console.log(
