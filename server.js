@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.2
+FULL SERVER VERSION 2.4.3
 
 IMPORTANT:
 - TESTNET ONLY
@@ -17,6 +17,11 @@ IMPORTANT:
 - Staking is application-ledger accounting
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
+
+VERSION 2.4.3:
+- OLD 1 AMT airdrop claims are cleared → users can claim new 100 AMT airdrop
+- Status treats amount < 100 as NOT claimed
+- Claim endpoint deletes old 1 AMT record then inserts 100 AMT
 
 VERSION 2.4.2:
 - Fixed profile picture saving (increased body limit to 10mb, image size to ~2MB)
@@ -1004,7 +1009,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.2",
+      "2.4.3",
 
     features: [
       "Pi Login",
@@ -2020,8 +2025,26 @@ app.get(
         [req.member.id]
       );
 
-    const claimed =
-      result.rows.length > 0;
+    /*
+     * Old 1 AMT claims are ignored.
+     * Only a claim with amount >= current AIRDROP_AMOUNT_AMT (100)
+     * counts as truly claimed.
+     */
+    let claimed = false;
+    let claimedAt = null;
+    let claimedAmount = null;
+
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      const oldAmount = Number(row.amount);
+
+      if (oldAmount >= AIRDROP_AMOUNT_AMT) {
+        claimed = true;
+        claimedAt = row.created_at;
+        claimedAmount = oldAmount;
+      }
+      // else: old 1 AMT claim → treat as NOT claimed (can claim 100)
+    }
 
     // 48-hour window from account creation
     const createdAt =
@@ -2080,10 +2103,9 @@ app.get(
           expiresAt
         ).toISOString(),
 
-      claimedAt:
-        claimed
-          ? result.rows[0].created_at
-          : null
+      claimedAt,
+
+      claimedAmount
     });
   }
 );
@@ -2141,7 +2163,7 @@ app.post(
       const existing =
         await client.query(
           `
-          SELECT id
+          SELECT id, amount
           FROM amt_airdrops
           WHERE member_id = $1
           FOR UPDATE
@@ -2152,17 +2174,37 @@ app.post(
       if (
         existing.rows.length
       ) {
-        await client.query(
-          "ROLLBACK"
-        );
+        const oldAmount =
+          Number(
+            existing.rows[0].amount
+          );
 
-        return res
-          .status(409)
-          .json({
-            ok: false,
-            error:
-              "Airdrop has already been claimed."
-          });
+        // Already claimed the new 100 AMT airdrop
+        if (
+          oldAmount >=
+          AIRDROP_AMOUNT_AMT
+        ) {
+          await client.query(
+            "ROLLBACK"
+          );
+
+          return res
+            .status(409)
+            .json({
+              ok: false,
+              error:
+                "Airdrop has already been claimed."
+            });
+        }
+
+        // Old 1 AMT claim → remove it so user can claim 100 AMT
+        await client.query(
+          `
+          DELETE FROM amt_airdrops
+          WHERE member_id = $1
+          `,
+          [req.member.id]
+        );
       }
 
       const reference =
@@ -7369,7 +7411,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.2"
+          "Version: 2.4.3"
         );
 
         console.log(
