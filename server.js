@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.1.7
+FULL SERVER VERSION 2.1.8
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.1.7:
+VERSION 2.1.8:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -33,6 +33,8 @@ VERSION 2.1.7:
 - CHANGED: Default airdrop amount from 1 AMT to 100 AMT
 - CHANGED: Airdrop is ONE-TIME only
 - CHANGED: Global 48-hour wait for EVERYONE (new and old users) before claim
+- CHANGED: New airdrop campaign AMT100_V2 (old 1 AMT claims no longer block new claim)
+- FIXED: Profile picture size limit increased to ~2MB
 ============================================================
 */
 
@@ -73,6 +75,9 @@ const MAXIMUM_BASE_REWARD = Number(
 const AIRDROP_AMOUNT_AMT = Number(
   process.env.AIRDROP_AMOUNT_AMT || "100"
 );
+
+// New airdrop campaign ID (old 1 AMT claims will be ignored)
+const AIRDROP_CAMPAIGN = process.env.AIRDROP_CAMPAIGN || "AMT100_V2";
 
 /*
   Global airdrop unlock time.
@@ -825,7 +830,7 @@ async function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS amt_airdrops (
       id BIGSERIAL PRIMARY KEY,
 
-      member_id BIGINT UNIQUE NOT NULL
+      member_id BIGINT NOT NULL
         REFERENCES members(id)
         ON DELETE CASCADE,
 
@@ -833,9 +838,21 @@ async function initializeDatabase() {
 
       reference TEXT UNIQUE NOT NULL,
 
+      campaign TEXT NOT NULL DEFAULT 'LEGACY',
+
       created_at TIMESTAMPTZ NOT NULL
         DEFAULT NOW()
     );
+
+    -- Support multiple airdrop campaigns (old 1 AMT vs new 100 AMT)
+    ALTER TABLE amt_airdrops
+      ADD COLUMN IF NOT EXISTS campaign TEXT NOT NULL DEFAULT 'LEGACY';
+
+    ALTER TABLE amt_airdrops
+      DROP CONSTRAINT IF EXISTS amt_airdrops_member_id_key;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_airdrop_member_campaign
+      ON amt_airdrops (member_id, campaign);
 
     CREATE TABLE IF NOT EXISTS amt_stakes (
       id BIGSERIAL PRIMARY KEY,
@@ -937,7 +954,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.1.7",
+      "2.1.8",
 
     features: [
       "Pi Login",
@@ -1235,15 +1252,16 @@ app.post(
           });
       }
 
+      // Allow up to ~2.5MB base64 image
       if (
-        image.length > 500000
+        image.length > 2500000
       ) {
         return res
           .status(413)
           .json({
             ok: false,
             error:
-              "Profile image is too large."
+              "Profile image is too large. Maximum allowed is about 2MB."
           });
       }
 
@@ -1925,7 +1943,7 @@ app.get(
   "/api/airdrop/status",
   requireAuth,
   async (req, res) => {
-    // Check if already claimed (one-time only)
+    // Check if already claimed THIS campaign (old 1 AMT claims are ignored)
     const claimedResult =
       await pool.query(
         `
@@ -1935,9 +1953,10 @@ app.get(
           created_at
         FROM amt_airdrops
         WHERE member_id = $1
+          AND campaign = $2
         LIMIT 1
         `,
-        [req.member.id]
+        [req.member.id, AIRDROP_CAMPAIGN]
       );
 
     const alreadyClaimed = claimedResult.rows.length > 0;
@@ -2010,16 +2029,17 @@ app.post(
         [req.member.id]
       );
 
-      // 1. Check if already claimed (one-time only)
+      // 1. Check if already claimed THIS campaign (old 1 AMT is ignored)
       const existing =
         await client.query(
           `
           SELECT id
           FROM amt_airdrops
           WHERE member_id = $1
+            AND campaign = $2
           FOR UPDATE
           `,
-          [req.member.id]
+          [req.member.id, AIRDROP_CAMPAIGN]
         );
 
       if (existing.rows.length) {
@@ -2027,7 +2047,7 @@ app.post(
 
         return res.status(409).json({
           ok: false,
-          error: "Airdrop has already been claimed. One-time only."
+          error: "This airdrop has already been claimed. One-time only."
         });
       }
 
@@ -2059,19 +2079,22 @@ app.post(
           (
             member_id,
             amount,
-            reference
+            reference,
+            campaign
           )
         VALUES
           (
             $1,
             $2,
-            $3
+            $3,
+            $4
           )
         `,
         [
           req.member.id,
           AIRDROP_AMOUNT_AMT,
-          reference
+          reference,
+          AIRDROP_CAMPAIGN
         ]
       );
 
@@ -5359,15 +5382,16 @@ app.post(
           });
       }
 
+      // Allow up to ~2.5MB base64 image
       if (
-        image.length > 500000
+        image.length > 2500000
       ) {
         return res
           .status(413)
           .json({
             ok: false,
             error:
-              "Profile image is too large."
+              "Profile image is too large. Maximum allowed is about 2MB."
           });
       }
 
