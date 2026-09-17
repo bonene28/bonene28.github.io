@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.0
+FULL SERVER VERSION 2.4.1
 
 IMPORTANT:
 - TESTNET ONLY
@@ -17,6 +17,12 @@ IMPORTANT:
 - Staking is application-ledger accounting
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
+
+VERSION 2.4.1:
+- Airdrop amount changed to 100 AMT
+- Airdrop now has 48-hour claim timer (from account creation)
+- Profile picture save endpoints preserved and working
+- All referral system preserved
 
 VERSION 2.4.0:
 - Preserved all existing Pioneer records
@@ -79,8 +85,12 @@ const MAXIMUM_BASE_REWARD = Number(
 );
 
 const AIRDROP_AMOUNT_AMT = Number(
-  process.env.AIRDROP_AMOUNT_AMT || "1"
+  process.env.AIRDROP_AMOUNT_AMT || "100"
 );
+
+/* 48-hour claim window for airdrop (from member created_at) */
+const AIRDROP_CLAIM_WINDOW_SECONDS =
+  48 * 60 * 60;
 
 const MAX_DIRECT_REFERRALS = null;
 
@@ -988,7 +998,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.0",
+      "2.4.1",
 
     features: [
       "Pi Login",
@@ -1972,7 +1982,7 @@ app.get(
 );
 
 /* =========================================================
-AIRDROP
+AIRDROP (100 AMT + 48-hour claim timer)
 ========================================================= */
 
 app.get(
@@ -1996,6 +2006,35 @@ app.get(
     const claimed =
       result.rows.length > 0;
 
+    // 48-hour window from account creation
+    const createdAt =
+      new Date(
+        req.member.created_at
+      ).getTime();
+
+    const expiresAt =
+      createdAt +
+      AIRDROP_CLAIM_WINDOW_SECONDS *
+        1000;
+
+    const now =
+      Date.now();
+
+    const remainingSeconds =
+      Math.max(
+        0,
+        Math.ceil(
+          (expiresAt - now) /
+            1000
+        )
+      );
+
+    const expired =
+      now >= expiresAt;
+
+    const canClaim =
+      !claimed && !expired;
+
     res.json({
       ok: true,
 
@@ -2008,7 +2047,21 @@ app.get(
         "Pi Testnet",
 
       type:
-        "ONE_TIME_TESTNET_AIRDROP",
+        "ONE_TIME_TESTNET_AIRDROP_48H",
+
+      claimWindowSeconds:
+        AIRDROP_CLAIM_WINDOW_SECONDS,
+
+      remainingSeconds,
+
+      expired,
+
+      canClaim,
+
+      expiresAt:
+        new Date(
+          expiresAt
+        ).toISOString(),
 
       claimedAt:
         claimed
@@ -2032,13 +2085,41 @@ app.post(
 
       await client.query(
         `
-        SELECT id
+        SELECT id, created_at
         FROM members
         WHERE id = $1
         FOR UPDATE
         `,
         [req.member.id]
       );
+
+      // Check 48-hour claim window
+      const createdAt =
+        new Date(
+          req.member.created_at
+        ).getTime();
+
+      const expiresAt =
+        createdAt +
+        AIRDROP_CLAIM_WINDOW_SECONDS *
+          1000;
+
+      if (
+        Date.now() >= expiresAt
+      ) {
+        await client.query(
+          "ROLLBACK"
+        );
+
+        return res
+          .status(400)
+          .json({
+            ok: false,
+            error:
+              "Airdrop claim window has expired (48 hours).",
+            expired: true
+          });
+      }
 
       const existing =
         await client.query(
@@ -2127,6 +2208,16 @@ app.post(
           req.member.id
         );
 
+      const remainingSeconds =
+        Math.max(
+          0,
+          Math.ceil(
+            (expiresAt -
+              Date.now()) /
+              1000
+          )
+        );
+
       res.json({
         ok: true,
 
@@ -2139,6 +2230,8 @@ app.post(
         reference,
 
         balance,
+
+        remainingSeconds,
 
         network:
           "Pi Testnet"
@@ -7248,7 +7341,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.0"
+          "Version: 2.4.1"
         );
 
         console.log(
@@ -7256,7 +7349,7 @@ async function startServer() {
         );
 
         console.log(
-          `Airdrop: ${AIRDROP_AMOUNT_AMT} AMT`
+          `Airdrop: ${AIRDROP_AMOUNT_AMT} AMT (48h claim window)`
         );
 
         console.log(
