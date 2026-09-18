@@ -229,6 +229,24 @@ box-shadow:0 0 12px #a95cff,0 0 28px rgba(169,92,255,.7);
 animation:loginOrbitB 6s linear infinite reverse;
 }
 
+.login-core-orbit-c{
+width:5px;
+height:5px;
+margin:-2.5px;
+background:#63e0ff;
+box-shadow:0 0 10px #63e0ff,0 0 22px rgba(99,224,255,.6);
+animation:loginOrbitC 5.2s linear infinite;
+}
+
+.login-core-orbit-d{
+width:4px;
+height:4px;
+margin:-2px;
+background:#ff7ab8;
+box-shadow:0 0 10px #ff7ab8,0 0 20px rgba(255,122,184,.55);
+animation:loginOrbitD 7s linear infinite reverse;
+}
+
 @keyframes loginOrbitA{
 0%{transform:rotate(0deg) translateX(108px)}
 100%{transform:rotate(360deg) translateX(108px)}
@@ -237,6 +255,16 @@ animation:loginOrbitB 6s linear infinite reverse;
 @keyframes loginOrbitB{
 0%{transform:rotate(0deg) translateX(91px)}
 100%{transform:rotate(360deg) translateX(91px)}
+}
+
+@keyframes loginOrbitC{
+0%{transform:rotate(0deg) translateX(100px)}
+100%{transform:rotate(360deg) translateX(100px)}
+}
+
+@keyframes loginOrbitD{
+0%{transform:rotate(0deg) translateX(78px)}
+100%{transform:rotate(360deg) translateX(78px)}
 }
 
 .login-core-logo{
@@ -571,6 +599,9 @@ border-radius:27px;
    ALBERTO MARKETPLACE ECOSYSTEM LOGIN TRANSITION
 ============================================================ */
 
+/* ============================================================
+   PRO MINING CORE FAN — shown on Login with Pi
+============================================================ */
 .ecosystem-loading{
 position:fixed;
 inset:0;
@@ -580,12 +611,12 @@ align-items:center;
 justify-content:center;
 overflow:hidden;
 background:
-radial-gradient(circle at 50% 42%,rgba(157,69,255,.22),transparent 25%),
-radial-gradient(circle at 50% 50%,rgba(255,203,65,.08),transparent 42%),
-linear-gradient(145deg,#03020a,#0b0615 48%,#020207);
+radial-gradient(circle at 50% 45%,rgba(157,69,255,.28),transparent 28%),
+radial-gradient(circle at 50% 50%,rgba(255,203,65,.12),transparent 48%),
+linear-gradient(145deg,#02010a,#0c0618 48%,#010106);
 opacity:1;
 visibility:visible;
-transition:opacity .65s ease,visibility .65s ease;
+transition:opacity .7s ease,visibility .7s ease;
 }
 .ecosystem-loading.hidden{
 display:flex!important;
@@ -596,80 +627,111 @@ pointer-events:none;
 .ecosystem-loading::before{
 content:"";
 position:absolute;
-inset:-30%;
+inset:-40%;
 background:
-radial-gradient(ellipse at center,transparent 25%,rgba(161,76,255,.07) 45%,transparent 65%);
-animation:ecosystemBackground 4s ease-in-out infinite;
+radial-gradient(ellipse at center,transparent 20%,rgba(161,76,255,.1) 42%,transparent 68%);
+animation:ecosystemBackground 5s ease-in-out infinite;
 }
 @keyframes ecosystemBackground{
-0%,100%{transform:scale(.9) rotate(0deg);opacity:.45}
-50%{transform:scale(1.15) rotate(8deg);opacity:1}
+0%,100%{transform:scale(.85) rotate(0deg);opacity:.4}
+50%{transform:scale(1.2) rotate(12deg);opacity:1}
 }
-.ecosystem-core{
-position:relative;
-z-index:3;
-width:min(92vw,560px);
-text-align:center;
-padding:30px 18px;
+
+/* Big spinning fan / turbine */
+.mc-fan-wrap{
+position:absolute;
+left:50%;
+top:42%;
+width:min(88vw,420px);
+height:min(88vw,420px);
+transform:translate(-50%,-50%);
+z-index:2;
+pointer-events:none;
 }
-.ecosystem-orbit{
+.mc-fan{
+position:absolute;
+inset:0;
+border-radius:50%;
+animation:mcFanSpin 8s linear infinite;
+}
+.mc-fan-blade{
 position:absolute;
 left:50%;
 top:50%;
-width:210px;
-height:210px;
-transform:translate(-50%,-58%);
-border:1px solid rgba(255,213,74,.24);
-border-radius:50%;
-box-shadow:
-0 0 35px rgba(165,76,255,.12),
-inset 0 0 35px rgba(165,76,255,.08);
-animation:ecosystemOrbit 5s linear infinite;
+width:42%;
+height:14%;
+margin-left:-21%;
+margin-top:-7%;
+border-radius:50% 8% 50% 8%;
+background:linear-gradient(90deg,
+transparent 0%,
+rgba(255,215,80,.15) 15%,
+rgba(180,90,255,.55) 45%,
+rgba(255,215,80,.75) 70%,
+rgba(255,255,255,.35) 100%);
+box-shadow:0 0 18px rgba(170,80,255,.35);
+transform-origin:center center;
 }
-.ecosystem-orbit::before,
-.ecosystem-orbit::after{
-content:"";
+.mc-fan-blade:nth-child(1){transform:rotate(0deg)}
+.mc-fan-blade:nth-child(2){transform:rotate(45deg)}
+.mc-fan-blade:nth-child(3){transform:rotate(90deg)}
+.mc-fan-blade:nth-child(4){transform:rotate(135deg)}
+.mc-fan-blade:nth-child(5){transform:rotate(180deg)}
+.mc-fan-blade:nth-child(6){transform:rotate(225deg)}
+.mc-fan-blade:nth-child(7){transform:rotate(270deg)}
+.mc-fan-blade:nth-child(8){transform:rotate(315deg)}
+@keyframes mcFanSpin{
+to{transform:rotate(360deg)}
+}
+.mc-fan-ring{
 position:absolute;
 left:50%;
 top:50%;
-width:7px;
-height:7px;
-margin:-3.5px;
 border-radius:50%;
-background:#ffd653;
-box-shadow:0 0 15px #ffd653;
+transform:translate(-50%,-50%);
+border:1px solid rgba(255,215,90,.25);
+box-shadow:0 0 40px rgba(170,80,255,.2),inset 0 0 30px rgba(170,80,255,.12);
 }
-.ecosystem-orbit::before{transform:translateX(103px)}
-.ecosystem-orbit::after{
-transform:translateX(-103px);
-background:#a95cff;
-box-shadow:0 0 15px #a95cff;
+.mc-fan-ring-1{width:100%;height:100%;animation:mcRingPulse 2.5s ease-in-out infinite}
+.mc-fan-ring-2{width:78%;height:78%;border-style:dashed;border-color:rgba(180,90,255,.4);animation:mcRingSpin 12s linear infinite reverse}
+.mc-fan-ring-3{width:58%;height:58%;border-color:rgba(255,215,90,.35);animation:mcRingPulse 2s ease-in-out infinite .4s}
+@keyframes mcRingSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes mcRingPulse{
+0%,100%{opacity:.55;box-shadow:0 0 25px rgba(170,80,255,.15)}
+50%{opacity:1;box-shadow:0 0 50px rgba(255,210,80,.3)}
 }
-@keyframes ecosystemOrbit{
-to{transform:translate(-50%,-58%) rotate(360deg)}
-}
-.ecosystem-logo{
-position:relative;
-z-index:5;
-width:92px;
-height:92px;
-margin:0 auto 25px;
+.mc-fan-hub{
+position:absolute;
+left:50%;
+top:50%;
+width:72px;
+height:72px;
+margin:-36px;
+border-radius:50%;
+z-index:4;
 display:grid;
 place-items:center;
-border-radius:27px;
-font-size:27px;
+font-size:18px;
 font-weight:1000;
 letter-spacing:1px;
 color:#ffd95a;
-background:radial-gradient(circle at 50% 35%,#6b2ba0,#160b27 68%);
-border:1px solid rgba(255,216,91,.72);
-box-shadow:0 0 20px rgba(169,76,255,.55),0 0 65px rgba(169,76,255,.22),inset 0 0 25px rgba(0,0,0,.55);
-animation:ecosystemLogo 1.8s ease-in-out infinite;
+background:radial-gradient(circle at 50% 30%,#7a35b0,#12091f 70%);
+border:2px solid rgba(255,216,90,.8);
+box-shadow:0 0 25px rgba(170,80,255,.6),0 0 60px rgba(255,200,60,.25),inset 0 0 20px rgba(0,0,0,.6);
+animation:ecosystemLogo 1.6s ease-in-out infinite;
 }
-@keyframes ecosystemLogo{
-0%,100%{transform:scale(.94);box-shadow:0 0 20px rgba(169,76,255,.55),0 0 65px rgba(169,76,255,.22),inset 0 0 25px rgba(0,0,0,.55)}
-50%{transform:scale(1.04);box-shadow:0 0 30px rgba(255,210,72,.55),0 0 90px rgba(169,76,255,.34),inset 0 0 25px rgba(0,0,0,.55)}
+
+.ecosystem-core{
+position:relative;
+z-index:5;
+width:min(92vw,560px);
+text-align:center;
+padding:30px 18px;
+margin-top:min(42vw,210px);
 }
+.ecosystem-orbit{display:none}
+.ecosystem-logo{display:none}
+
 .ecosystem-title{
 margin:0;
 font-size:clamp(22px,6vw,34px);
@@ -701,28 +763,28 @@ animation:ecosystemSubtitle 1.8s ease both;
 .ecosystem-wave{
 position:absolute;
 left:50%;
-top:45%;
+top:42%;
 width:80px;
 height:80px;
 border-radius:50%;
 border:1px solid rgba(178,89,255,.7);
 transform:translate(-50%,-50%) scale(.3);
 opacity:0;
-animation:ecosystemWave 3s ease-out infinite;
+animation:ecosystemWave 3.2s ease-out infinite;
 }
-.ecosystem-wave:nth-child(2){animation-delay:.65s}
-.ecosystem-wave:nth-child(3){animation-delay:1.3s}
-.ecosystem-wave:nth-child(4){animation-delay:1.95s}
+.ecosystem-wave:nth-child(2){animation-delay:.7s}
+.ecosystem-wave:nth-child(3){animation-delay:1.4s}
+.ecosystem-wave:nth-child(4){animation-delay:2.1s}
 @keyframes ecosystemWave{
-0%{transform:translate(-50%,-50%) scale(.3);opacity:.8}
-75%{opacity:.2}
-100%{transform:translate(-50%,-50%) scale(5.5);opacity:0}
+0%{transform:translate(-50%,-50%) scale(.3);opacity:.75}
+75%{opacity:.15}
+100%{transform:translate(-50%,-50%) scale(6);opacity:0}
 }
 .ecosystem-line{
 position:relative;
 width:min(310px,72vw);
 height:3px;
-margin:28px auto 0;
+margin:22px auto 0;
 overflow:hidden;
 border-radius:99px;
 background:rgba(255,255,255,.07);
@@ -737,7 +799,7 @@ width:35%;
 height:100%;
 border-radius:99px;
 background:linear-gradient(90deg,transparent,#ffd653,#b45cff,transparent);
-animation:ecosystemProgress 1.5s ease-in-out infinite;
+animation:ecosystemProgress 1.4s ease-in-out infinite;
 }
 @keyframes ecosystemProgress{
 0%{left:-35%}
@@ -756,6 +818,10 @@ animation:ecosystemBlink 1s ease-in-out infinite;
 0%,100%{opacity:.35}
 50%{opacity:1}
 }
+@keyframes ecosystemLogo{
+0%,100%{transform:scale(.94);box-shadow:0 0 25px rgba(170,80,255,.6),0 0 60px rgba(255,200,60,.25),inset 0 0 20px rgba(0,0,0,.6)}
+50%{transform:scale(1.06);box-shadow:0 0 35px rgba(255,210,80,.55),0 0 90px rgba(170,80,255,.4),inset 0 0 20px rgba(0,0,0,.6)}
+}
 </style>
 </head>
 
@@ -766,14 +832,30 @@ animation:ecosystemBlink 1s ease-in-out infinite;
 <div class="ecosystem-wave"></div>
 <div class="ecosystem-wave"></div>
 <div class="ecosystem-wave"></div>
-<div class="ecosystem-orbit"></div>
+
+<!-- Large Mining Core Fan -->
+<div class="mc-fan-wrap">
+  <div class="mc-fan-ring mc-fan-ring-1"></div>
+  <div class="mc-fan-ring mc-fan-ring-2"></div>
+  <div class="mc-fan-ring mc-fan-ring-3"></div>
+  <div class="mc-fan">
+    <div class="mc-fan-blade"></div>
+    <div class="mc-fan-blade"></div>
+    <div class="mc-fan-blade"></div>
+    <div class="mc-fan-blade"></div>
+    <div class="mc-fan-blade"></div>
+    <div class="mc-fan-blade"></div>
+    <div class="mc-fan-blade"></div>
+    <div class="mc-fan-blade"></div>
+  </div>
+  <div class="mc-fan-hub">AMT</div>
+</div>
 
 <div class="ecosystem-core">
-<div class="ecosystem-logo">AMT</div>
 <h1 class="ecosystem-title">ALBERTO <span class="gold">MARKETPLACE</span></h1>
-<div class="ecosystem-subtitle">ECOSYSTEM</div>
+<div class="ecosystem-subtitle">MINING CORE ONLINE</div>
 <div class="ecosystem-line"></div>
-<div class="ecosystem-enter">ENTERING MINING CORE</div>
+<div class="ecosystem-enter">ENTERING AMT ECOSYSTEM</div>
 </div>
 </div>
 
@@ -823,6 +905,8 @@ PI TESTNET • AMT CORE
 
 <div class="login-core-orbit login-core-orbit-a"></div>
 <div class="login-core-orbit login-core-orbit-b"></div>
+<div class="login-core-orbit login-core-orbit-c"></div>
+<div class="login-core-orbit login-core-orbit-d"></div>
 
 <div class="login-core-logo">
 <span>AMT</span>
@@ -1568,7 +1652,7 @@ el.classList.remove("hidden");
 el.setAttribute("aria-hidden","false");
 
 return new Promise(resolve=>{
-setTimeout(resolve,2500);
+setTimeout(resolve,3200);
 });
 }
 
