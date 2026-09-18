@@ -1229,18 +1229,35 @@ KYC may be required for applicable Mainnet functions.
 <div class="card-title">WALLET ADDRESSES</div>
 
 <div class="notice">
-Two addresses are shown below. The Pi Wallet is from your Pi account. The AMT Ledger is the app wallet used for mining, transfers, and rewards.
+Your wallets only. Other Pioneers cannot see or use your addresses.
+<br><br>
+• <b>Pi Wallet</b> — your Testnet G... address (link manually if Pi does not sync it)
+<br>
+• <b>AMT Ledger</b> — app wallet for mining, pets, staking, transfers
 </div>
 
 <div style="margin-top:14px">
-<div class="muted">Pi Wallet Address</div>
-<div id="piWalletAddress" class="wallet-address" style="color:#8cffb3">Not synced</div>
+<div class="muted">Pi Wallet Address (yours only)</div>
+<div id="piWalletAddress" class="wallet-address" style="color:#8cffb3">Not linked</div>
 </div>
 
 <div style="margin-top:14px">
-<div class="muted">AMT Ledger Address</div>
+<div class="muted">AMT Ledger Address (yours only)</div>
 <div id="amtWalletAddress" class="wallet-address">Not connected</div>
 </div>
+
+<hr>
+
+<div class="form-group">
+<label>Link your Pi Testnet wallet (G... address)</label>
+<input id="linkPiWalletInput" class="input" placeholder="GXXXXXXXX...">
+</div>
+<button class="primary" onclick="linkPiWallet()">
+🔗 LINK MY PI WALLET
+</button>
+<button class="secondary" style="margin-top:8px" onclick="unlinkPiWallet()">
+Unlink Pi Wallet
+</button>
 
 <hr>
 
@@ -2181,7 +2198,7 @@ if($("piWalletAddress")){
   if(piAddr){
     $("piWalletAddress").textContent = piAddr;
   }else{
-    $("piWalletAddress").textContent = "Not available from Pi";
+    $("piWalletAddress").textContent = "Not linked — paste your G... address below";
   }
 }
 
@@ -2197,6 +2214,50 @@ logoutPi(false);
 }
 
 }
+}
+
+async function linkPiWallet(){
+  const input = $("linkPiWalletInput");
+  const address = (input && input.value ? input.value : "").trim();
+
+  if(!address){
+    return showToast("Paste your Pi Testnet wallet address (starts with G).", true);
+  }
+
+  if(!/^G[A-Z2-7]{55}$/i.test(address)){
+    return showToast("Invalid address. Use your G... wallet from Pi Testnet.", true);
+  }
+
+  try{
+    const data = await api("/api/wallet/link-pi", {
+      method: "POST",
+      body: JSON.stringify({ piWalletAddress: address })
+    });
+
+    if($("piWalletAddress")){
+      $("piWalletAddress").textContent = data.piWalletAddress || address.toUpperCase();
+    }
+    if(input) input.value = "";
+
+    showToast("Pi wallet linked to your account only.");
+    await refreshWallet();
+  }catch(error){
+    showToast(error.message || "Failed to link wallet.", true);
+  }
+}
+
+async function unlinkPiWallet(){
+  if(!confirm("Unlink your Pi wallet from this account?")) return;
+
+  try{
+    await api("/api/wallet/link-pi", { method: "DELETE" });
+    if($("piWalletAddress")){
+      $("piWalletAddress").textContent = "Not linked — paste your G... address below";
+    }
+    showToast("Pi wallet unlinked.");
+  }catch(error){
+    showToast(error.message || "Failed to unlink.", true);
+  }
 }
 
 /* ============================================================
