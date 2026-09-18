@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.5
+FULL SERVER VERSION 2.4.6
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1033,7 +1033,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.5",
+      "2.4.6",
 
     features: [
       "Pi Login",
@@ -1633,6 +1633,104 @@ app.get(
         req.piUser.username ||
         null
     });
+  }
+);
+
+/* =========================================================
+LINK PI WALLET (own address only — never shared with others)
+========================================================= */
+
+function isValidPiWalletAddress(value) {
+  const addr = String(value || "").trim().toUpperCase();
+  // Stellar/Pi public key: G + 55 base32 chars = 56 total
+  if (!/^G[A-Z2-7]{55}$/.test(addr)) {
+    return null;
+  }
+  return addr;
+}
+
+app.post(
+  "/api/wallet/link-pi",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const raw =
+        req.body?.piWalletAddress ||
+        req.body?.walletAddress ||
+        req.body?.address ||
+        "";
+
+      const address =
+        isValidPiWalletAddress(raw);
+
+      if (!address) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Invalid Pi wallet address. Must be a G... address (56 characters)."
+        });
+      }
+
+      /*
+       * IMPORTANT:
+       * Saves ONLY to this authenticated member's row.
+       * Other Pioneers cannot read or use this address.
+       */
+      await pool.query(
+        `
+        UPDATE members
+        SET
+          pi_wallet_address = $1,
+          updated_at = NOW()
+        WHERE id = $2
+        `,
+        [address, req.member.id]
+      );
+
+      res.json({
+        ok: true,
+        linked: true,
+        piWalletAddress: address,
+        message:
+          "Pi wallet linked to your account only."
+      });
+    } catch (error) {
+      console.error("LINK PI WALLET ERROR:", error);
+      res.status(500).json({
+        ok: false,
+        error: "Unable to link Pi wallet."
+      });
+    }
+  }
+);
+
+app.delete(
+  "/api/wallet/link-pi",
+  requireAuth,
+  async (req, res) => {
+    try {
+      await pool.query(
+        `
+        UPDATE members
+        SET
+          pi_wallet_address = NULL,
+          updated_at = NOW()
+        WHERE id = $1
+        `,
+        [req.member.id]
+      );
+
+      res.json({
+        ok: true,
+        linked: false,
+        piWalletAddress: null
+      });
+    } catch (error) {
+      res.status(500).json({
+        ok: false,
+        error: "Unable to unlink Pi wallet."
+      });
+    }
   }
 );
 
@@ -7432,7 +7530,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.5"
+          "Version: 2.4.6"
         );
 
         console.log(
