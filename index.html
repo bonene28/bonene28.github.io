@@ -1226,6 +1226,28 @@ KYC may be required for applicable Mainnet functions.
 </div>
 
 <div class="card">
+<div class="card-title">YOUR BALANCES (3 TYPES)</div>
+<div class="notice" style="margin-bottom:12px">
+In-app AMT = mining app ledger. On-chain AMT = token on Pi Testnet. Test-Pi = native Pi on your linked wallet. Only your balances are shown.
+</div>
+<div class="grid3">
+<div class="stat">
+<div class="stat-label">In-app AMT</div>
+<div id="balInApp" class="stat-value">0</div>
+</div>
+<div class="stat">
+<div class="stat-label">On-chain AMT</div>
+<div id="balOnchainAmt" class="stat-value">—</div>
+</div>
+<div class="stat">
+<div class="stat-label">Test-Pi</div>
+<div id="balTestPi" class="stat-value">—</div>
+</div>
+</div>
+<div class="muted" id="onchainStatus" style="margin-top:10px;font-size:11px"></div>
+</div>
+
+<div class="card">
 <div class="card-title">WALLET ADDRESSES</div>
 
 <div class="notice">
@@ -2175,6 +2197,10 @@ fmt(available)+" AMT";
 $("stakedBalance").textContent=
 fmt(staked)+" AMT";
 
+if($("balInApp")){
+  $("balInApp").textContent = fmt(available) + " AMT";
+}
+
 // AMT Ledger Address
 const amtAddr =
   data.ledgerWalletAddress ||
@@ -2201,6 +2227,9 @@ if($("piWalletAddress")){
     $("piWalletAddress").textContent = "Not linked — paste your G... address below";
   }
 }
+
+// On-chain balances (own linked wallet only)
+await refreshOnchainBalances();
 
 }catch(error){
 
@@ -2254,9 +2283,49 @@ async function unlinkPiWallet(){
     if($("piWalletAddress")){
       $("piWalletAddress").textContent = "Not linked — paste your G... address below";
     }
+    if($("balOnchainAmt")) $("balOnchainAmt").textContent = "—";
+    if($("balTestPi")) $("balTestPi").textContent = "—";
+    if($("onchainStatus")) $("onchainStatus").textContent = "Link wallet to see on-chain balances.";
     showToast("Pi wallet unlinked.");
   }catch(error){
     showToast(error.message || "Failed to unlink.", true);
+  }
+}
+
+async function refreshOnchainBalances(){
+  try{
+    const data = await api("/api/wallet/onchain");
+
+    if($("balOnchainAmt")){
+      if(data.linked && data.onchainAmtBalance != null){
+        $("balOnchainAmt").textContent = Number(data.onchainAmtBalance).toFixed(4) + " AMT";
+      }else{
+        $("balOnchainAmt").textContent = "—";
+      }
+    }
+
+    if($("balTestPi")){
+      if(data.linked && data.testPiBalance != null){
+        $("balTestPi").textContent = Number(data.testPiBalance).toFixed(4) + " Test-π";
+      }else{
+        $("balTestPi").textContent = "—";
+      }
+    }
+
+    if($("onchainStatus")){
+      if(!data.linked){
+        $("onchainStatus").textContent = "Link your Pi wallet to load on-chain balances.";
+      }else if(data.accountExists === false){
+        $("onchainStatus").textContent = data.message || "Wallet not found on Pi Testnet yet.";
+      }else{
+        $("onchainStatus").textContent = "On-chain data from Pi Testnet · your wallet only";
+      }
+    }
+  }catch(e){
+    console.log("On-chain balances:", e);
+    if($("onchainStatus")){
+      $("onchainStatus").textContent = "Could not load on-chain balances.";
+    }
   }
 }
 
