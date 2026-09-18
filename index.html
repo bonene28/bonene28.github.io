@@ -1247,6 +1247,12 @@ In-app AMT = mining app ledger. On-chain AMT = token on Pi Testnet. Test-Pi = na
 <div class="muted" id="onchainStatus" style="margin-top:10px;font-size:11px"></div>
 </div>
 
+<!-- Deposit-to-treasury disabled: single Pioneer wallet only (no shared treasury) -->
+<div class="card hidden" id="onchainDepositCard">
+<div class="card-title">ON-CHAIN AMT → APP (UTILITY)</div>
+<div class="notice" id="depositInstructions">Disabled — no shared treasury wallet.</div>
+</div>
+
 <div class="card">
 <div class="card-title">WALLET ADDRESSES</div>
 
@@ -2326,6 +2332,43 @@ async function refreshOnchainBalances(){
     if($("onchainStatus")){
       $("onchainStatus").textContent = "Could not load on-chain balances.";
     }
+  }
+
+  await loadDepositInfo();
+}
+
+async function loadDepositInfo(){
+  try{
+    const data = await api("/api/onchain/deposit-info");
+    if($("depositTreasury")){
+      $("depositTreasury").textContent =
+        data.treasuryAddress || "Set AMT_ONCHAIN_TREASURY on server";
+    }
+  }catch(e){
+    console.log("Deposit info:", e);
+  }
+}
+
+async function claimOnchainDeposit(){
+  const input = $("depositTxHash");
+  const txHash = (input && input.value ? input.value : "").trim();
+
+  if(!txHash){
+    return showToast("Paste the transaction hash after sending on-chain AMT.", true);
+  }
+
+  try{
+    showToast("Verifying on-chain payment...");
+    const data = await api("/api/onchain/deposit-claim", {
+      method: "POST",
+      body: JSON.stringify({ txHash })
+    });
+
+    if(input) input.value = "";
+    showToast(data.message || ("Credited " + data.credited + " AMT"));
+    await refreshWallet();
+  }catch(error){
+    showToast(error.message || "Deposit claim failed.", true);
   }
 }
 
@@ -3636,13 +3679,114 @@ const PET_EMOJI = {
   Thunder: "⚡", Wind: "🌪️", Fire: "🔥"
 };
 
+/* Root filenames on GitHub: 01_terra_earth_common_lv1.png */
+const PET_FILE_BY_NAME = {
+  terra:"01_terra_earth_common_lv1.png",
+  boulder:"02_boulder_earth_common_lv1.png",
+  clayto:"03_clayto_earth_common_lv1.png",
+  stonepaw:"04_stonepaw_earth_common_lv1.png",
+  granite:"05_granite_earth_common_lv1.png",
+  muddo:"06_muddo_earth_common_lv1.png",
+  stonix:"07_stonix_earth_common_lv1.png",
+  earthen:"08_earthen_earth_common_lv1.png",
+  golem:"09_golem_earth_common_lv1.png",
+  pebble:"10_pebble_earth_common_lv1.png",
+  aqua:"01_aqua_water_common_lv1.png",
+  marina:"02_marina_water_common_lv1.png",
+  splash:"03_splash_water_common_lv1.png",
+  bubble:"04_bubble_water_common_lv1.png",
+  tide:"05_tide_water_common_lv1.png",
+  coral:"06_coral_water_common_lv1.png",
+  nereid:"07_nereid_water_common_lv1.png",
+  oceanix:"08_oceanix_water_common_lv1.png",
+  wave:"09_wave_water_common_lv1.png",
+  ripple:"10_ripple_water_common_lv1.png",
+  leafy:"01_leafy_nature_common_lv1.png",
+  sprout:"02_sprout_nature_common_lv1.png",
+  bloom:"03_bloom_nature_common_lv1.png",
+  forest:"04_forest_nature_common_lv1.png",
+  verdant:"05_verdant_nature_common_lv1.png",
+  moss:"06_moss_nature_common_lv1.png",
+  willow:"07_willow_nature_common_lv1.png",
+  vine:"08_vine_nature_common_lv1.png",
+  thorn:"09_thorn_nature_common_lv1.png",
+  flora:"10_flora_nature_common_lv1.png",
+  frosty:"01_frosty_ice_common_lv1.png",
+  glacier:"02_glacier_ice_common_lv1.png",
+  snowball:"03_snowball_ice_common_lv1.png",
+  blizzard:"04_blizzard_ice_common_lv1.png",
+  iceberg:"05_iceberg_ice_common_lv1.png",
+  chill:"06_chill_ice_common_lv1.png",
+  crystal:"07_crystal_ice_common_lv1.png",
+  polar:"08_polar_ice_common_lv1.png",
+  frostbite:"09_frostbite_ice_common_lv1.png",
+  shard:"10_shard_ice_common_lv1.png",
+  flame:"01_flame_fire_common_lv1.png",
+  blaze:"02_blaze_fire_common_lv1.png",
+  ember:"03_ember_fire_common_lv1.png",
+  inferno:"04_inferno_fire_common_lv1.png",
+  phoenix:"05_phoenix_fire_common_lv1.png",
+  cinder:"06_cinder_fire_common_lv1.png",
+  spark:"07_spark_fire_common_lv1.png",
+  magma:"08_magma_fire_common_lv1.png",
+  lava:"09_lava_fire_common_lv1.png",
+  ash:"10_ash_fire_common_lv1.png",
+  breeze:"01_breeze_wind_common_lv1.png",
+  zephyr:"02_zephyr_wind_common_lv1.png",
+  skylar:"03_skylar_wind_common_lv1.png",
+  gale:"04_gale_wind_common_lv1.png",
+  cloud:"05_cloud_wind_common_lv1.png",
+  aero:"06_aero_wind_common_lv1.png",
+  whisper:"07_whisper_wind_common_lv1.png",
+  tornado:"08_tornado_wind_common_lv1.png",
+  cyclone:"09_cyclone_wind_common_lv1.png",
+  nimbus:"10_nimbus_wind_common_lv1.png",
+  bolt:"01_bolt_thunder_common_lv1.png",
+  storm:"02_storm_thunder_common_lv1.png",
+  zap:"03_zap_thunder_common_lv1.png",
+  razor:"04_razor_thunder_common_lv1.png",
+  thunderpaw:"05_thunderpaw_thunder_common_lv1.png",
+  volt:"06_volt_thunder_common_lv1.png",
+  flash:"07_flash_thunder_common_lv1.png",
+  surge:"08_surge_thunder_common_lv1.png",
+  flux:"09_flux_thunder_common_lv1.png",
+  tempest:"10_tempest_thunder_common_lv1.png"
+};
+
 function petImg(pet) {
-  if (pet.image) return pet.image;
-  if (pet.pet_id && pet.pet_id.includes("-")) {
-    const parts = pet.pet_id.replace("-hatch","").split("-");
-    return "pets/common/" + parts[0] + "-" + parts[1] + ".png";
+  const nameKey = String(pet.name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+  // Match files already on GitHub root
+  if (nameKey && PET_FILE_BY_NAME[nameKey]) {
+    return PET_FILE_BY_NAME[nameKey];
   }
-  return "";
+
+  let path = pet.image || pet.imageUrl || pet.image_url || "";
+  if (path && (/^https?:\/\//i.test(path) || path.startsWith("data:"))) {
+    return path;
+  }
+
+  const element = String(pet.element || "").toLowerCase();
+  if (nameKey && element) {
+    return nameKey + "_" + element + "_common_lv1.png";
+  }
+
+  return path || "";
+}
+
+function petArtHtml(pet, size) {
+  size = size || 72;
+  const emoji = PET_EMOJI[pet.element] || "🐾";
+  const img = petImg(pet);
+  if (!img) {
+    return `<div class="pet-card-emoji">${emoji}</div>`;
+  }
+  return `<img class="pet-card-img" src="${esc(img)}" alt="${esc(pet.name||"pet")}"
+    style="width:${size}px;height:${size}px;object-fit:contain;border-radius:12px;position:relative;z-index:2;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4))"
+    onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <div class="pet-card-emoji" style="display:none">${emoji}</div>`;
 }
 
 function petTab(tab) {
@@ -3687,13 +3831,12 @@ function renderPetGrid(pets) {
   window._petMap = {};
   pets.forEach(p => { window._petMap[p.id] = p; });
   grid.innerHTML = pets.map(pet => {
-    const emoji = PET_EMOJI[pet.element] || "🐾";
     const elClass = petElementClass(pet.element);
     return `<div class="pet-card ${elClass}" onclick="openPetById('${esc(pet.id)}')">
       <div class="pet-card-top">
         <span class="pet-card-element">${esc(pet.element)}</span>
         <span class="pet-card-badge">${esc(pet.rarity || "Common")}</span>
-        <div class="pet-card-emoji">${emoji}</div>
+        ${petArtHtml(pet, 78)}
       </div>
       <div class="pet-card-body">
         <div class="pet-card-name">${esc(pet.name)}</div>
@@ -3713,7 +3856,6 @@ function openPetById(petId) {
 
 function openPetModal(pet) {
   selectedPet = pet;
-  const emoji = PET_EMOJI[pet.element] || "🐾";
   const elClass = petElementClass(pet.element);
   $("modalPetName").textContent = pet.name;
   $("modalPetArt").innerHTML = `
@@ -3721,7 +3863,7 @@ function openPetModal(pet) {
       <div class="pet-modal-art">
         <span class="pet-card-element" style="position:absolute;top:10px;left:10px">${esc(pet.element)}</span>
         <span class="pet-card-badge" style="position:absolute;top:10px;right:10px">${esc(pet.rarity || "Common")}</span>
-        <div class="pet-card-emoji">${emoji}</div>
+        ${petArtHtml(pet, 120)}
       </div>
       <div class="pet-modal-stats">
         <div class="pet-stat"><b>${pet.hp}</b><span>HP</span></div>
@@ -3779,13 +3921,12 @@ async function loadOwnedPets() {
     window._ownedMap = {};
     pets.forEach(p => { window._ownedMap[p.id] = p; });
     grid.innerHTML = pets.map(pet => {
-      const emoji = PET_EMOJI[pet.element] || "🐾";
       const elClass = petElementClass(pet.element);
       return `<div class="pet-card ${elClass}" onclick="openOwnedModal(${pet.id})">
         <div class="pet-card-top">
           <span class="pet-card-element">${esc(pet.element)}</span>
           <span class="pet-card-badge">Lv ${pet.level||1}</span>
-          <div class="pet-card-emoji">${emoji}</div>
+          ${petArtHtml(pet, 78)}
         </div>
         <div class="pet-card-body">
           <div class="pet-card-name">${esc(pet.name)}</div>
@@ -3805,12 +3946,8 @@ function openOwnedModal(id) {
   const pet = window._ownedMap && window._ownedMap[id];
   if (!pet) return;
   selectedOwned = pet;
-  const emoji = PET_EMOJI[pet.element] || "🐾";
-  const img = petImg(pet);
   $("ownedModalName").textContent = pet.name;
-  $("ownedModalArt").innerHTML = img
-    ? `<img src="${img}" style="width:100px;height:100px;object-fit:contain;border-radius:14px" onerror="this.outerHTML='${emoji}'">`
-    : `<div style="font-size:56px">${emoji}</div>`;
+  $("ownedModalArt").innerHTML = petArtHtml(pet, 100);
   $("ownedLv").textContent = pet.level || 1;
   $("ownedEnergy").textContent = pet.energy ?? 100;
   $("ownedHappy").textContent = pet.happiness ?? 100;
