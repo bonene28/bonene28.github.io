@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.3
+FULL SERVER VERSION 2.4.0
 
 IMPORTANT:
 - TESTNET ONLY
@@ -17,23 +17,6 @@ IMPORTANT:
 - Staking is application-ledger accounting
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
-
-VERSION 2.4.3:
-- OLD 1 AMT airdrop claims are cleared → users can claim new 100 AMT airdrop
-- Status treats amount < 100 as NOT claimed
-- Claim endpoint deletes old 1 AMT record then inserts 100 AMT
-
-VERSION 2.4.2:
-- Fixed profile picture saving (increased body limit to 10mb, image size to ~2MB)
-- Accepts multiple field names: image, profileImage, photo, profile_image, avatar
-- Better error messages when saving profile photo
-- Staking fully present (pools, status, stake, unstake, history)
-
-VERSION 2.4.1:
-- Airdrop amount changed to 100 AMT
-- Airdrop now has 48-hour claim timer (from account creation)
-- Profile picture save endpoints preserved and working
-- All referral system preserved
 
 VERSION 2.4.0:
 - Preserved all existing Pioneer records
@@ -96,12 +79,8 @@ const MAXIMUM_BASE_REWARD = Number(
 );
 
 const AIRDROP_AMOUNT_AMT = Number(
-  process.env.AIRDROP_AMOUNT_AMT || "100"
+  process.env.AIRDROP_AMOUNT_AMT || "1"
 );
-
-/* 48-hour claim window for airdrop (from member created_at) */
-const AIRDROP_CLAIM_WINDOW_SECONDS =
-  48 * 60 * 60;
 
 const MAX_DIRECT_REFERRALS = null;
 
@@ -221,7 +200,7 @@ app.use(
 
 app.use(
   express.json({
-    limit: "10mb"
+    limit: "1mb"
   })
 );
 
@@ -1009,7 +988,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.3",
+      "2.4.0",
 
     features: [
       "Pi Login",
@@ -1280,15 +1259,9 @@ app.post(
   requireAuth,
   async (req, res) => {
     try {
-      // Accept common field names used by different frontends
       const image =
         String(
-          req.body?.image ||
-          req.body?.profileImage ||
-          req.body?.photo ||
-          req.body?.profile_image ||
-          req.body?.avatar ||
-          ""
+          req.body?.image || ""
         ).trim();
 
       if (!image) {
@@ -1297,7 +1270,7 @@ app.post(
           .json({
             ok: false,
             error:
-              "Profile image is required. Send base64 as 'image' or 'profileImage'."
+              "Profile image is required."
           });
       }
 
@@ -1311,20 +1284,19 @@ app.post(
           .json({
             ok: false,
             error:
-              "Invalid image format. Must start with data:image/ (base64)."
+              "Invalid image format."
           });
       }
 
-      // Increased limit: ~3MB base64 (~2.2MB actual image)
       if (
-        image.length > 4000000
+        image.length > 500000
       ) {
         return res
           .status(413)
           .json({
             ok: false,
             error:
-              "Profile image is too large. Max ~2MB."
+              "Profile image is too large."
           });
       }
 
@@ -1346,9 +1318,7 @@ app.post(
         ok: true,
 
         profileImage:
-          image,
-
-        saved: true
+          image
       });
 
     } catch (error) {
@@ -1362,9 +1332,7 @@ app.post(
         .json({
           ok: false,
           error:
-            "Unable to save profile image.",
-          detail:
-            error.message || null
+            "Unable to save profile image."
         });
     }
   }
@@ -2004,7 +1972,7 @@ app.get(
 );
 
 /* =========================================================
-AIRDROP (100 AMT + 48-hour claim timer)
+AIRDROP
 ========================================================= */
 
 app.get(
@@ -2025,55 +1993,8 @@ app.get(
         [req.member.id]
       );
 
-    /*
-     * Old 1 AMT claims are ignored.
-     * Only a claim with amount >= current AIRDROP_AMOUNT_AMT (100)
-     * counts as truly claimed.
-     */
-    let claimed = false;
-    let claimedAt = null;
-    let claimedAmount = null;
-
-    if (result.rows.length > 0) {
-      const row = result.rows[0];
-      const oldAmount = Number(row.amount);
-
-      if (oldAmount >= AIRDROP_AMOUNT_AMT) {
-        claimed = true;
-        claimedAt = row.created_at;
-        claimedAmount = oldAmount;
-      }
-      // else: old 1 AMT claim → treat as NOT claimed (can claim 100)
-    }
-
-    // 48-hour window from account creation
-    const createdAt =
-      new Date(
-        req.member.created_at
-      ).getTime();
-
-    const expiresAt =
-      createdAt +
-      AIRDROP_CLAIM_WINDOW_SECONDS *
-        1000;
-
-    const now =
-      Date.now();
-
-    const remainingSeconds =
-      Math.max(
-        0,
-        Math.ceil(
-          (expiresAt - now) /
-            1000
-        )
-      );
-
-    const expired =
-      now >= expiresAt;
-
-    const canClaim =
-      !claimed && !expired;
+    const claimed =
+      result.rows.length > 0;
 
     res.json({
       ok: true,
@@ -2087,25 +2008,12 @@ app.get(
         "Pi Testnet",
 
       type:
-        "ONE_TIME_TESTNET_AIRDROP_48H",
+        "ONE_TIME_TESTNET_AIRDROP",
 
-      claimWindowSeconds:
-        AIRDROP_CLAIM_WINDOW_SECONDS,
-
-      remainingSeconds,
-
-      expired,
-
-      canClaim,
-
-      expiresAt:
-        new Date(
-          expiresAt
-        ).toISOString(),
-
-      claimedAt,
-
-      claimedAmount
+      claimedAt:
+        claimed
+          ? result.rows[0].created_at
+          : null
     });
   }
 );
@@ -2124,7 +2032,7 @@ app.post(
 
       await client.query(
         `
-        SELECT id, created_at
+        SELECT id
         FROM members
         WHERE id = $1
         FOR UPDATE
@@ -2132,38 +2040,10 @@ app.post(
         [req.member.id]
       );
 
-      // Check 48-hour claim window
-      const createdAt =
-        new Date(
-          req.member.created_at
-        ).getTime();
-
-      const expiresAt =
-        createdAt +
-        AIRDROP_CLAIM_WINDOW_SECONDS *
-          1000;
-
-      if (
-        Date.now() >= expiresAt
-      ) {
-        await client.query(
-          "ROLLBACK"
-        );
-
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error:
-              "Airdrop claim window has expired (48 hours).",
-            expired: true
-          });
-      }
-
       const existing =
         await client.query(
           `
-          SELECT id, amount
+          SELECT id
           FROM amt_airdrops
           WHERE member_id = $1
           FOR UPDATE
@@ -2174,37 +2054,17 @@ app.post(
       if (
         existing.rows.length
       ) {
-        const oldAmount =
-          Number(
-            existing.rows[0].amount
-          );
-
-        // Already claimed the new 100 AMT airdrop
-        if (
-          oldAmount >=
-          AIRDROP_AMOUNT_AMT
-        ) {
-          await client.query(
-            "ROLLBACK"
-          );
-
-          return res
-            .status(409)
-            .json({
-              ok: false,
-              error:
-                "Airdrop has already been claimed."
-            });
-        }
-
-        // Old 1 AMT claim → remove it so user can claim 100 AMT
         await client.query(
-          `
-          DELETE FROM amt_airdrops
-          WHERE member_id = $1
-          `,
-          [req.member.id]
+          "ROLLBACK"
         );
+
+        return res
+          .status(409)
+          .json({
+            ok: false,
+            error:
+              "Airdrop has already been claimed."
+          });
       }
 
       const reference =
@@ -2267,16 +2127,6 @@ app.post(
           req.member.id
         );
 
-      const remainingSeconds =
-        Math.max(
-          0,
-          Math.ceil(
-            (expiresAt -
-              Date.now()) /
-              1000
-          )
-        );
-
       res.json({
         ok: true,
 
@@ -2289,8 +2139,6 @@ app.post(
         reference,
 
         balance,
-
-        remainingSeconds,
 
         network:
           "Pi Testnet"
@@ -7213,15 +7061,9 @@ app.post(
   requireAuth,
   async (req, res) => {
     try {
-      // Accept common field names used by different frontends
       const image =
         String(
-          req.body?.image ||
-          req.body?.profileImage ||
-          req.body?.photo ||
-          req.body?.profile_image ||
-          req.body?.avatar ||
-          ""
+          req.body?.image || ""
         ).trim();
 
       if (!image) {
@@ -7230,7 +7072,7 @@ app.post(
           .json({
             ok: false,
             error:
-              "Profile image is required. Send base64 as 'image' or 'profileImage'."
+              "Profile image is required."
           });
       }
 
@@ -7244,20 +7086,19 @@ app.post(
           .json({
             ok: false,
             error:
-              "Invalid image format. Must start with data:image/ (base64)."
+              "Invalid image format."
           });
       }
 
-      // Increased limit: ~3MB base64 (~2.2MB actual image)
       if (
-        image.length > 4000000
+        image.length > 500000
       ) {
         return res
           .status(413)
           .json({
             ok: false,
             error:
-              "Profile image is too large. Max ~2MB."
+              "Profile image is too large."
           });
       }
 
@@ -7279,9 +7120,7 @@ app.post(
         ok: true,
 
         profileImage:
-          image,
-
-        saved: true
+          image
       });
 
     } catch (error) {
@@ -7295,9 +7134,7 @@ app.post(
         .json({
           ok: false,
           error:
-            "Unable to save profile image.",
-          detail:
-            error.message || null
+            "Unable to save profile image."
         });
     }
   }
@@ -7411,7 +7248,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.3"
+          "Version: 2.4.0"
         );
 
         console.log(
@@ -7419,7 +7256,7 @@ async function startServer() {
         );
 
         console.log(
-          `Airdrop: ${AIRDROP_AMOUNT_AMT} AMT (48h claim window)`
+          `Airdrop: ${AIRDROP_AMOUNT_AMT} AMT`
         );
 
         console.log(
