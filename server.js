@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.6
+FULL SERVER VERSION 2.4.7
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1033,7 +1033,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.6",
+      "2.4.7",
 
     features: [
       "Pi Login",
@@ -1729,6 +1729,142 @@ app.delete(
       res.status(500).json({
         ok: false,
         error: "Unable to unlink Pi wallet."
+      });
+    }
+  }
+);
+
+/* =========================================================
+ON-CHAIN BALANCES (Pi Testnet Horizon — own wallet only)
+========================================================= */
+
+const PI_HORIZON_BASE =
+  process.env.PI_HORIZON_BASE ||
+  "https://api.testnet.minepi.com";
+
+const PI_HORIZON_BASE_2 =
+  process.env.PI_HORIZON_BASE_2 ||
+  "https://api.testnet2.minepi.com";
+
+async function fetchHorizonAccount(address) {
+  const urls = [
+    `${PI_HORIZON_BASE}/accounts/${encodeURIComponent(address)}`,
+    `${PI_HORIZON_BASE_2}/accounts/${encodeURIComponent(address)}`
+  ];
+
+  let lastError = null;
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" }
+      });
+
+      if (response.status === 404) {
+        return { exists: false, balances: [] };
+      }
+
+      if (!response.ok) {
+        lastError = new Error(`Horizon ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      return {
+        exists: true,
+        balances: Array.isArray(data.balances) ? data.balances : [],
+        horizon: url.includes("testnet2") ? "testnet2" : "testnet"
+      };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("Horizon unavailable");
+}
+
+app.get(
+  "/api/wallet/onchain",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const address =
+        req.member.pi_wallet_address ||
+        req.piUser.walletAddress ||
+        null;
+
+      if (!address) {
+        return res.json({
+          ok: true,
+          linked: false,
+          piWalletAddress: null,
+          testPiBalance: null,
+          onchainAmtBalance: null,
+          otherTokens: [],
+          message:
+            "Link your Pi Testnet wallet first to see on-chain balances."
+        });
+      }
+
+      const account = await fetchHorizonAccount(address);
+
+      if (!account.exists) {
+        return res.json({
+          ok: true,
+          linked: true,
+          piWalletAddress: address,
+          accountExists: false,
+          testPiBalance: 0,
+          onchainAmtBalance: 0,
+          otherTokens: [],
+          message:
+            "Account not found on Pi Testnet yet (or not activated)."
+        });
+      }
+
+      let testPiBalance = 0;
+      let onchainAmtBalance = 0;
+      const otherTokens = [];
+
+      for (const b of account.balances) {
+        const amount = Number(b.balance || 0);
+
+        if (b.asset_type === "native") {
+          testPiBalance = amount;
+          continue;
+        }
+
+        const code = String(b.asset_code || "");
+        const issuer = String(b.asset_issuer || "");
+
+        if (code.toUpperCase() === "AMT") {
+          onchainAmtBalance += amount;
+        } else {
+          otherTokens.push({
+            code,
+            issuer,
+            balance: amount
+          });
+        }
+      }
+
+      res.json({
+        ok: true,
+        linked: true,
+        accountExists: true,
+        piWalletAddress: address,
+        testPiBalance,
+        onchainAmtBalance,
+        otherTokens,
+        horizon: account.horizon || "testnet",
+        network: "Pi Testnet"
+      });
+    } catch (error) {
+      console.error("ONCHAIN BALANCE ERROR:", error);
+      res.status(500).json({
+        ok: false,
+        error:
+          "Unable to fetch on-chain balances from Pi Testnet."
       });
     }
   }
@@ -7530,7 +7666,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.6"
+          "Version: 2.4.7"
         );
 
         console.log(
