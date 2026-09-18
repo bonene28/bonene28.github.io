@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.4
+FULL SERVER VERSION 2.4.5
 
 IMPORTANT:
 - TESTNET ONLY
@@ -577,13 +577,15 @@ async function getAuthenticatedMember(
         (
           pi_uid,
           username,
-          referral_code
+          referral_code,
+          pi_wallet_address
         )
       VALUES
         (
           $1,
           $2,
-          $2
+          $2,
+          $3
         )
 
       ON CONFLICT (pi_uid)
@@ -606,19 +608,30 @@ async function getAuthenticatedMember(
             )
           END,
 
+        /* Sync Pi wallet address whenever Pi API returns one */
+        pi_wallet_address =
+          CASE
+            WHEN EXCLUDED.pi_wallet_address IS NOT NULL
+              AND EXCLUDED.pi_wallet_address <> ''
+            THEN EXCLUDED.pi_wallet_address
+            ELSE members.pi_wallet_address
+          END,
+
         updated_at = NOW()
 
       RETURNING *
       `,
       [
         piUser.uid,
-        piUser.username
+        piUser.username,
+        piUser.walletAddress || null
       ]
     );
 
   const member =
     result.rows[0];
 
+  /* Always ensure AMT ledger wallet exists on every login */
   const wallet =
     await ensureAmtWallet(
       member.id
@@ -729,6 +742,10 @@ async function initializeDatabase() {
     ALTER TABLE members
       ADD COLUMN IF NOT EXISTS
       referral_code TEXT;
+
+    ALTER TABLE members
+      ADD COLUMN IF NOT EXISTS
+      pi_wallet_address TEXT;
 
     -- Backfill existing members: set referral_code = username if still null
     UPDATE members
@@ -1016,7 +1033,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.4",
+      "2.4.5",
 
     features: [
       "Pi Login",
@@ -1130,6 +1147,7 @@ app.all(
          */
         piWalletAddress:
           req.piUser.walletAddress ||
+          req.member.pi_wallet_address ||
           null,
 
         /*
@@ -1144,6 +1162,7 @@ app.all(
 
           walletAddress:
             req.piUser.walletAddress ||
+            req.member.pi_wallet_address ||
             null
         },
 
@@ -1243,10 +1262,11 @@ app.get(
           .profile_image || null,
 
       /*
-       * VERIFIED Pi wallet address.
+       * VERIFIED Pi wallet address (live from Pi API, else saved).
        */
       piWalletAddress:
         req.piUser.walletAddress ||
+        req.member.pi_wallet_address ||
         null,
 
       walletStatus:
@@ -1571,15 +1591,16 @@ app.get(
         "TESTNET",
 
       /*
-       * VERIFIED Pi Testnet wallet.
+       * VERIFIED Pi Testnet wallet (live from Pi API, else saved on login).
        */
       piWalletAddress:
         req.piUser.walletAddress ||
+        req.member.pi_wallet_address ||
         null,
 
       /*
        * AMT application ledger wallet.
-       * Kept unchanged for compatibility.
+       * Always created on login via ensureAmtWallet.
        */
       walletStatus:
         req.wallet
@@ -1595,6 +1616,9 @@ app.get(
       ledgerWalletAddress:
         req.wallet
           .wallet_address,
+
+      walletSynced:
+        true,
 
       isBlockchainWallet:
         false,
@@ -7408,7 +7432,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.4"
+          "Version: 2.4.5"
         );
 
         console.log(
