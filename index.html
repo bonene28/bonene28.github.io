@@ -49,10 +49,162 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .nav-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.nav-btn{min-width:0;border:0;padding:9px 3px;border-radius:13px;color:#82798c;background:transparent;font-size:10px;font-weight:800}.nav-btn .icon{display:block;font-size:19px;margin-bottom:3px}.nav-btn.active{color:#ffd64e;background:rgba(170,79,255,.13)}
 .toast{position:fixed;left:50%;bottom:95px;transform:translate(-50%,20px);width:calc(100% - 32px);max-width:650px;padding:13px 15px;border-radius:15px;background:#17101f;border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 35px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:.25s;z-index:200;font-size:12px}.toast.show{opacity:1;transform:translate(-50%,0)}.toast.success{border-color:rgba(65,255,135,.35)}.toast.error{border-color:rgba(255,70,95,.35)}
 .wallet-address{word-break:break-all;font-family:monospace;color:#caa2ff;font-size:11px}
-.market-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.market-item{padding:13px;border-radius:17px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.market-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.market-item{padding:0;border-radius:18px;background:linear-gradient(160deg,rgba(30,18,48,.98),rgba(10,7,18,.98));border:1px solid rgba(255,255,255,.08);overflow:hidden;transition:transform .15s,box-shadow .15s}
+.market-item:active{transform:scale(.98)}
 .market-art{height:115px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px;font-size:42px;background:radial-gradient(circle at 50% 30%,rgba(179,80,255,.4),transparent 50%),#10091a}
 .market-name{font-weight:900;font-size:13px}.market-price{color:#ffd34f;margin:5px 0 9px;font-size:12px}.small-btn{border:1px solid rgba(170,80,255,.3);border-radius:10px;padding:9px;width:100%;color:#fff;background:rgba(170,80,255,.1);font-size:11px;font-weight:800}
 .empty{padding:25px 12px;text-align:center;color:#807688;font-size:12px}hr{border:0;border-top:1px solid rgba(255,255,255,.06);margin:15px 0}
+
+/* ===== REAL PET CARDS ===== */
+.pet-card{
+position:relative;
+border-radius:18px;
+overflow:hidden;
+background:linear-gradient(165deg,#1a1028 0%,#0c0814 100%);
+border:1.5px solid rgba(255,255,255,.1);
+box-shadow:0 8px 28px rgba(0,0,0,.35);
+cursor:pointer;
+transition:transform .18s ease,box-shadow .18s ease;
+}
+.pet-card:active{transform:scale(.97)}
+.pet-card-top{
+position:relative;
+height:118px;
+display:flex;
+align-items:center;
+justify-content:center;
+overflow:hidden;
+}
+.pet-card-top::before{
+content:"";
+position:absolute;
+inset:0;
+opacity:.55;
+background:radial-gradient(circle at 50% 40%,var(--pet-glow,rgba(170,80,255,.5)),transparent 65%);
+}
+.pet-card-emoji{
+position:relative;
+z-index:2;
+font-size:52px;
+filter:drop-shadow(0 4px 12px rgba(0,0,0,.45));
+line-height:1;
+}
+.pet-card-badge{
+position:absolute;
+top:8px;
+right:8px;
+z-index:3;
+padding:3px 8px;
+border-radius:999px;
+font-size:8px;
+font-weight:900;
+letter-spacing:.5px;
+text-transform:uppercase;
+background:rgba(0,0,0,.55);
+border:1px solid rgba(255,255,255,.15);
+color:#ffd95a;
+}
+.pet-card-element{
+position:absolute;
+top:8px;
+left:8px;
+z-index:3;
+padding:3px 7px;
+border-radius:999px;
+font-size:8px;
+font-weight:800;
+letter-spacing:.3px;
+background:rgba(0,0,0,.5);
+border:1px solid var(--pet-border,rgba(170,80,255,.4));
+color:#fff;
+}
+.pet-card-body{padding:10px 11px 12px}
+.pet-card-name{
+font-size:13px;
+font-weight:900;
+letter-spacing:.3px;
+color:#fff;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+.pet-card-price{
+margin-top:3px;
+font-size:12px;
+font-weight:800;
+color:#ffd452;
+}
+.pet-card-stats{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:4px;
+margin-top:9px;
+}
+.pet-stat{
+text-align:center;
+padding:5px 2px;
+border-radius:9px;
+background:rgba(255,255,255,.04);
+border:1px solid rgba(255,255,255,.06);
+}
+.pet-stat b{
+display:block;
+font-size:11px;
+font-weight:900;
+color:#e8dff5;
+}
+.pet-stat span{
+font-size:8px;
+color:#8a8098;
+font-weight:700;
+text-transform:uppercase;
+}
+.pet-card-footer{
+margin-top:9px;
+}
+.pet-card-footer .small-btn{
+background:linear-gradient(105deg,rgba(255,213,80,.15),rgba(170,80,255,.2));
+border-color:rgba(190,100,255,.35);
+font-weight:900;
+letter-spacing:.5px;
+}
+
+/* Element themes */
+.pet-earth{--pet-glow:rgba(180,140,60,.55);--pet-border:rgba(200,160,70,.5);border-color:rgba(200,160,70,.28)}
+.pet-water{--pet-glow:rgba(50,140,255,.5);--pet-border:rgba(70,160,255,.5);border-color:rgba(70,160,255,.28)}
+.pet-nature{--pet-glow:rgba(60,200,100,.5);--pet-border:rgba(80,220,120,.5);border-color:rgba(80,220,120,.28)}
+.pet-ice{--pet-glow:rgba(140,210,255,.5);--pet-border:rgba(160,220,255,.5);border-color:rgba(160,220,255,.28)}
+.pet-fire{--pet-glow:rgba(255,100,40,.55);--pet-border:rgba(255,120,50,.5);border-color:rgba(255,120,50,.28)}
+.pet-wind{--pet-glow:rgba(160,255,220,.45);--pet-border:rgba(140,240,200,.5);border-color:rgba(140,240,200,.28)}
+.pet-thunder{--pet-glow:rgba(255,220,50,.55);--pet-border:rgba(255,230,80,.55);border-color:rgba(255,230,80,.3)}
+
+/* Modal pet card big */
+.pet-modal-card{
+border-radius:22px;
+overflow:hidden;
+border:1.5px solid rgba(190,100,255,.3);
+background:linear-gradient(165deg,#1c1230,#0b0815);
+margin-bottom:12px;
+}
+.pet-modal-art{
+height:160px;
+display:flex;
+align-items:center;
+justify-content:center;
+position:relative;
+background:radial-gradient(circle at 50% 40%,var(--pet-glow,rgba(170,80,255,.4)),transparent 70%),#0e0a18;
+}
+.pet-modal-art .pet-card-emoji{font-size:72px}
+.pet-modal-stats{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:8px;
+padding:12px;
+}
+.pet-modal-stats .pet-stat{padding:10px 4px;border-radius:12px}
+.pet-modal-stats .pet-stat b{font-size:16px}
+.pet-modal-stats .pet-stat span{font-size:9px}
 
 /* ============================================================
    CINEMATIC AMT LOGIN SCREEN
@@ -3392,6 +3544,12 @@ function filterPets(element) {
   loadPets(element);
 }
 
+function petElementClass(element) {
+  const e = String(element || "").toLowerCase();
+  if (["earth","water","nature","ice","fire","wind","thunder"].includes(e)) return "pet-" + e;
+  return "pet-earth";
+}
+
 function renderPetGrid(pets) {
   const grid = $("petGrid");
   if (!grid) return;
@@ -3400,13 +3558,20 @@ function renderPetGrid(pets) {
   pets.forEach(p => { window._petMap[p.id] = p; });
   grid.innerHTML = pets.map(pet => {
     const emoji = PET_EMOJI[pet.element] || "🐾";
-    const img = petImg(pet);
-    return `<div class="market-item" onclick="openPetById('${esc(pet.id)}')">
-      <div class="market-art">${img ? `<img src="${img}" style="width:72px;height:72px;object-fit:contain;border-radius:12px" onerror="this.parentNode.textContent='${emoji}'">` : emoji}</div>
-      <div class="market-name">${esc(pet.name)}</div>
-      <div class="market-price">${pet.priceAmt} AMT • ${esc(pet.rarity)}</div>
-      <div class="muted" style="font-size:10px;margin-top:4px">${esc(pet.element)}</div>
-      <button class="small-btn" style="margin-top:8px">VIEW</button>
+    const elClass = petElementClass(pet.element);
+    return `<div class="pet-card ${elClass}" onclick="openPetById('${esc(pet.id)}')">
+      <div class="pet-card-top">
+        <span class="pet-card-element">${esc(pet.element)}</span>
+        <span class="pet-card-badge">${esc(pet.rarity || "Common")}</span>
+        <div class="pet-card-emoji">${emoji}</div>
+      </div>
+      <div class="pet-card-body">
+        <div class="pet-card-name">${esc(pet.name)}</div>
+        <div class="pet-card-price">${pet.priceAmt} AMT</div>
+        <div class="pet-card-footer">
+          <button class="small-btn" onclick="event.stopPropagation();openPetById('${esc(pet.id)}')">VIEW DETAILS</button>
+        </div>
+      </div>
     </div>`;
   }).join("");
 }
@@ -3419,11 +3584,22 @@ function openPetById(petId) {
 function openPetModal(pet) {
   selectedPet = pet;
   const emoji = PET_EMOJI[pet.element] || "🐾";
-  const img = petImg(pet);
+  const elClass = petElementClass(pet.element);
   $("modalPetName").textContent = pet.name;
-  $("modalPetArt").innerHTML = img
-    ? `<img src="${img}" style="width:120px;height:120px;object-fit:contain;border-radius:16px" onerror="this.outerHTML='${emoji}'">`
-    : `<div style="font-size:64px">${emoji}</div>`;
+  $("modalPetArt").innerHTML = `
+    <div class="pet-modal-card ${elClass}" style="--pet-glow:inherit">
+      <div class="pet-modal-art">
+        <span class="pet-card-element" style="position:absolute;top:10px;left:10px">${esc(pet.element)}</span>
+        <span class="pet-card-badge" style="position:absolute;top:10px;right:10px">${esc(pet.rarity || "Common")}</span>
+        <div class="pet-card-emoji">${emoji}</div>
+      </div>
+      <div class="pet-modal-stats">
+        <div class="pet-stat"><b>${pet.hp}</b><span>HP</span></div>
+        <div class="pet-stat"><b>${pet.atk}</b><span>ATK</span></div>
+        <div class="pet-stat"><b>${pet.def}</b><span>DEF</span></div>
+        <div class="pet-stat"><b>${pet.spd}</b><span>SPD</span></div>
+      </div>
+    </div>`;
   $("modalElement").textContent = pet.element;
   $("modalRarity").textContent = pet.rarity;
   $("modalHp").textContent = pet.hp;
@@ -3474,12 +3650,20 @@ async function loadOwnedPets() {
     pets.forEach(p => { window._ownedMap[p.id] = p; });
     grid.innerHTML = pets.map(pet => {
       const emoji = PET_EMOJI[pet.element] || "🐾";
-      const img = petImg(pet);
-      return `<div class="market-item" onclick="openOwnedModal(${pet.id})">
-        <div class="market-art">${img ? `<img src="${img}" style="width:72px;height:72px;object-fit:contain;border-radius:12px" onerror="this.parentNode.textContent='${emoji}'">` : emoji}</div>
-        <div class="market-name">${esc(pet.name)}</div>
-        <div class="market-price">Lv ${pet.level||1} • ${esc(pet.element)}</div>
-        <div class="muted" style="font-size:10px">⚡${pet.energy||0} 😊${pet.happiness||0} ID:${pet.id}</div>
+      const elClass = petElementClass(pet.element);
+      return `<div class="pet-card ${elClass}" onclick="openOwnedModal(${pet.id})">
+        <div class="pet-card-top">
+          <span class="pet-card-element">${esc(pet.element)}</span>
+          <span class="pet-card-badge">Lv ${pet.level||1}</span>
+          <div class="pet-card-emoji">${emoji}</div>
+        </div>
+        <div class="pet-card-body">
+          <div class="pet-card-name">${esc(pet.name)}</div>
+          <div class="pet-card-price">Lv ${pet.level||1} · ⚡${pet.energy??100} · 😊${pet.happiness??100}</div>
+          <div class="pet-card-footer">
+            <button class="small-btn" onclick="event.stopPropagation();openOwnedModal(${pet.id})">VIEW DETAILS</button>
+          </div>
+        </div>
       </div>`;
     }).join("");
   } catch (e) {
@@ -3651,13 +3835,21 @@ async function loadListings() {
     }
     grid.innerHTML = list.map(L => {
       const emoji = PET_EMOJI[L.element] || "🐾";
-      const img = L.image || "";
-      return `<div class="market-item">
-        <div class="market-art">${img ? `<img src="${img}" style="width:72px;height:72px;object-fit:contain;border-radius:12px" onerror="this.parentNode.textContent='${emoji}'">` : emoji}</div>
-        <div class="market-name">${esc(L.name)}</div>
-        <div class="market-price">${L.price_amt} AMT</div>
-        <div class="muted" style="font-size:10px">${esc(L.element)} • Seller: ${esc(L.seller_username||"?")}</div>
-        <button class="small-btn" style="margin-top:8px" onclick="buyListing(${L.id})">BUY</button>
+      const elClass = petElementClass(L.element);
+      return `<div class="pet-card ${elClass}">
+        <div class="pet-card-top">
+          <span class="pet-card-element">${esc(L.element)}</span>
+          <span class="pet-card-badge">SELL</span>
+          <div class="pet-card-emoji">${emoji}</div>
+        </div>
+        <div class="pet-card-body">
+          <div class="pet-card-name">${esc(L.name)}</div>
+          <div class="pet-card-price">${L.price_amt} AMT</div>
+          <div class="muted" style="font-size:10px;margin-top:4px">Seller: ${esc(L.seller_username||"?")}</div>
+          <div class="pet-card-footer">
+            <button class="small-btn" onclick="buyListing(${L.id})">BUY NOW</button>
+          </div>
+        </div>
       </div>`;
     }).join("");
   } catch (e) {
