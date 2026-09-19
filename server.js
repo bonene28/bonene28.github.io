@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.10
+FULL SERVER VERSION 2.4.11
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1033,7 +1033,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.10",
+      "2.4.11",
 
     features: [
       "Pi Login",
@@ -6488,55 +6488,140 @@ app.post("/api/pets/buy-listing", requireAuth, async (req, res) => {
 /* ---------- Battle (simple PvE) ---------- */
 app.post("/api/pets/battle", requireAuth, async (req, res) => {
   const ownedId = Number(req.body?.ownedPetId);
-  if (!Number.isInteger(ownedId)) return res.status(400).json({ ok: false, error: "ownedPetId required." });
+  if (!Number.isInteger(ownedId)) {
+    return res.status(400).json({ ok: false, error: "ownedPetId required." });
+  }
 
   const client = await pool.connect();
   try {
+    await ensurePetTables();
     const petRes = await client.query(
       `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2`,
       [ownedId, req.member.id]
     );
-    if (!petRes.rows.length) return res.status(404).json({ ok: false, error: "Pet not found." });
+    if (!petRes.rows.length) {
+      return res.status(404).json({ ok: false, error: "Pet not found in My Pets." });
+    }
     const pet = petRes.rows[0];
     if (Number(pet.energy) < 15) {
-      return res.status(400).json({ ok: false, error: "Pet needs energy. Care first." });
+      return res.status(400).json({
+        ok: false,
+        error: "Pet needs energy. Care first."
+      });
     }
 
-    // Simple battle formula
-    const enemyPower = 40 + Math.floor(Math.random() * 40);
-    const myPower = Number(pet.atk) + Number(pet.spd) * 0.5 + Number(pet.level) * 3;
-    const win = myPower >= enemyPower;
+    const opponents = [
+      { name: "Wild Slime", emoji: "🟢", base: 35 },
+      { name: "Shadow Pup", emoji: "🌑", base: 42 },
+      { name: "Stone Mite", emoji: "🪨", base: 48 },
+      { name: "Frost Bat", emoji: "🦇", base: 40 },
+      { name: "Ember Rat", emoji: "🔥", base: 45 },
+      { name: "Crystal Golem", emoji: "💎", base: 55 }
+    ];
+    const opp = opponents[Math.floor(Math.random() * opponents.length)];
+
+    let myHp = Number(pet.hp) + Number(pet.level) * 8;
+    let enHp = opp.base + Math.floor(Math.random() * 25) + Number(pet.level) * 5;
+    const myMax = myHp;
+    const enMax = enHp;
+    const myAtk = Number(pet.atk) + Number(pet.level) * 2;
+    const myDef = Number(pet.def);
+    const mySpd = Number(pet.spd);
+    const enAtk = 10 + Math.floor(Math.random() * 12) + Number(pet.level);
+    const enDef = 8 + Math.floor(Math.random() * 10);
+
+    const rounds = [];
+    let round = 0;
+    const maxRounds = 6;
+    while (myHp > 0 && enHp > 0 && round < maxRounds) {
+      round += 1;
+      const myFirst = mySpd + Math.random() * 10 >= enAtk * 0.3 + Math.random() * 10;
+      if (myFirst) {
+        const dmg = Math.max(3, Math.round(myAtk - enDef * 0.4 + Math.random() * 6));
+        enHp = Math.max(0, enHp - dmg);
+        rounds.push({
+          round,
+          actor: "you",
+          dmg,
+          myHp,
+          enHp,
+          text: pet.name + " hits " + opp.name + " for " + dmg
+        });
+        if (enHp <= 0) break;
+        const edmg = Math.max(2, Math.round(enAtk - myDef * 0.35 + Math.random() * 5));
+        myHp = Math.max(0, myHp - edmg);
+        rounds.push({
+          round,
+          actor: "enemy",
+          dmg: edmg,
+          myHp,
+          enHp,
+          text: opp.name + " hits for " + edmg
+        });
+      } else {
+        const edmg = Math.max(2, Math.round(enAtk - myDef * 0.35 + Math.random() * 5));
+        myHp = Math.max(0, myHp - edmg);
+        rounds.push({
+          round,
+          actor: "enemy",
+          dmg: edmg,
+          myHp,
+          enHp,
+          text: opp.name + " hits for " + edmg
+        });
+        if (myHp <= 0) break;
+        const dmg = Math.max(3, Math.round(myAtk - enDef * 0.4 + Math.random() * 6));
+        enHp = Math.max(0, enHp - dmg);
+        rounds.push({
+          round,
+          actor: "you",
+          dmg,
+          myHp,
+          enHp,
+          text: pet.name + " hits " + opp.name + " for " + dmg
+        });
+      }
+    }
+
+    const win = enHp <= 0 || (myHp > 0 && myHp >= enHp);
     const reward = win ? 0.3 : 0.05;
-    const opponents = ["Wild Slime","Shadow Pup","Stone Mite","Frost Bat","Ember Rat"];
-    const opponent = opponents[Math.floor(Math.random() * opponents.length)];
 
     await client.query(
       `UPDATE owned_pets SET energy = GREATEST(0, energy - 15),
         exp = exp + $1 WHERE id = $2`,
-      [win ? 20 : 5, ownedId]
+      [win ? 25 : 8, ownedId]
     );
     await client.query(
-      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_BATTLE',$3)`,
+      `INSERT INTO amt_ledger (member_id, amount, type, reference)
+       VALUES ($1,$2,'PET_BATTLE',$3)`,
       [req.member.id, reward, makeReference("AMT-BATTLE")]
     );
     await client.query(
-      `INSERT INTO pet_battles (member_id, owned_pet_id, opponent_name, result, reward_amt)
+      `INSERT INTO pet_battles
+        (member_id, owned_pet_id, opponent_name, result, reward_amt)
        VALUES ($1,$2,$3,$4,$5)`,
-      [req.member.id, ownedId, opponent, win ? "WIN" : "LOSS", reward]
+      [req.member.id, ownedId, opp.name, win ? "WIN" : "LOSS", reward]
     );
 
     res.json({
       ok: true,
       result: win ? "WIN" : "LOSS",
-      opponent,
-      myPower: Math.round(myPower),
-      enemyPower,
+      opponent: opp.name,
+      opponentEmoji: opp.emoji,
+      petName: pet.name,
+      petElement: pet.element,
+      petImage: pet.image,
+      myMaxHp: myMax,
+      enMaxHp: enMax,
+      myFinalHp: myHp,
+      enFinalHp: enHp,
+      rounds,
       reward,
-      petName: pet.name
+      energyLeft: Math.max(0, Number(pet.energy) - 15)
     });
   } catch (e) {
     console.error("BATTLE ERROR:", e);
-    res.status(500).json({ ok: false, error: "Battle failed." });
+    res.status(500).json({ ok: false, error: "Battle failed. " + (e.message || "") });
   } finally {
     client.release();
   }
@@ -7950,7 +8035,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.10"
+          "Version: 2.4.11"
         );
 
         console.log(
