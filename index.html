@@ -94,6 +94,49 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .egg-progress{height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.07);margin:8px 0}
 .egg-progress span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffd84c,#ff6bcb);transition:width .4s}
 .egg-emoji{font-size:42px;text-align:center;line-height:1}
+/* Virtual AMT Visa card */
+/* ===== PREMIUM AMT VIRTUAL CARD ===== */
+.amt-card-scene{perspective:1200px;max-width:380px;margin:0 auto 12px;cursor:pointer;filter:drop-shadow(0 18px 40px rgba(80,30,160,.35))}
+.amt-card{width:100%;aspect-ratio:1.586;position:relative;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.22,1,.36,1)}
+.amt-card.flipped{transform:rotateY(180deg)}
+.amt-card-face{position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:20px 22px;overflow:hidden;border:1px solid rgba(255,215,120,.25)}
+.amt-card-front{background:linear-gradient(145deg,#0f0618 0%,#2a1060 28%,#4a1a8a 52%,#1a0c38 78%,#0a0614 100%);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.4)}
+.amt-card-front:before{content:"";position:absolute;inset:0;background:
+  radial-gradient(ellipse 80% 60% at 90% 10%,rgba(255,210,80,.28),transparent 50%),
+  radial-gradient(ellipse 70% 50% at 5% 95%,rgba(140,80,255,.35),transparent 55%),
+  linear-gradient(115deg,transparent 40%,rgba(255,255,255,.06) 45%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.06) 55%,transparent 60%);
+  background-size:100% 100%,100% 100%,200% 100%;animation:amtShine 5s ease-in-out infinite;pointer-events:none}
+.amt-card-front:after{content:"";position:absolute;inset:0;border-radius:18px;box-shadow:inset 0 0 40px rgba(0,0,0,.25);pointer-events:none}
+@keyframes amtShine{0%,100%{background-position:0 0,0 0,0 0}50%{background-position:0 0,0 0,100% 0}}
+.amt-card-back{background:linear-gradient(145deg,#0c0614,#251040 45%,#100818);transform:rotateY(180deg);color:#fff;display:flex;flex-direction:column;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.amt-card-top{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:2}
+.amt-card-brand{display:flex;align-items:center;gap:8px}
+.amt-card-logo-badge{width:36px;height:36px;border-radius:10px;background:linear-gradient(145deg,#ffd452,#c9a227);display:grid;place-items:center;font-size:11px;font-weight:900;color:#1a0a00;box-shadow:0 4px 12px rgba(255,200,60,.35),inset 0 1px 0 rgba(255,255,255,.5)}
+.amt-card-logo{font-size:16px;font-weight:900;letter-spacing:1.5px;color:#ffd452;text-shadow:0 0 20px rgba(255,210,80,.4)}
+.amt-card-sub{display:block;font-size:8px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:1.5px;margin-top:2px}
+.amt-card-network{font-size:8px;font-weight:900;padding:5px 10px;border-radius:999px;background:rgba(0,220,140,.15);border:1px solid rgba(100,255,180,.4);color:#9affc8;letter-spacing:.8px}
+.amt-card-chip-row{display:flex;align-items:center;gap:14px;margin:16px 0 14px;position:relative;z-index:2}
+.amt-card-chip{width:48px;height:36px;border-radius:7px;background:linear-gradient(145deg,#f5e6a8,#c4a03a 35%,#e8d078 60%,#a88420);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 6px rgba(0,0,0,.3);position:relative;overflow:hidden}
+.amt-card-chip:before{content:"";position:absolute;left:0;right:0;top:33%;height:1px;background:rgba(0,0,0,.18)}
+.amt-card-chip:after{content:"";position:absolute;left:0;right:0;top:66%;height:1px;background:rgba(0,0,0,.18);box-shadow:22px -12px 0 0 rgba(0,0,0,.12),22px 12px 0 0 rgba(0,0,0,.12)}
+.amt-card-contactless{width:28px;height:28px;opacity:.7}
+.amt-card-contactless svg{width:100%;height:100%}
+.amt-card-number{font-family:"SF Mono",ui-monospace,monospace;font-size:18px;font-weight:600;letter-spacing:2.5px;position:relative;z-index:2;margin-bottom:12px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.amt-card-balance-label{font-size:8px;font-weight:800;letter-spacing:1.5px;color:rgba(255,212,82,.65);position:relative;z-index:2}
+.amt-card-balance{font-size:28px;font-weight:900;color:#ffd452;letter-spacing:-.5px;position:relative;z-index:2;margin-bottom:14px;text-shadow:0 0 24px rgba(255,210,80,.35)}
+.amt-card-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;position:relative;z-index:2}
+.amt-card-label{font-size:7px;font-weight:800;letter-spacing:1.2px;color:rgba(255,255,255,.4);margin-bottom:3px}
+.amt-card-holder{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amt-visa-mark{font-size:20px;font-weight:900;font-style:italic;letter-spacing:1px;background:linear-gradient(180deg,#fff 30%,#c8c0d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.amt-card-hint{position:absolute;bottom:8px;right:16px;font-size:8px;color:rgba(255,255,255,.3);z-index:2;letter-spacing:.3px}
+.amt-card-stripe{height:44px;background:linear-gradient(180deg,#111,#0a0a0a 40%,#1a1a1a);margin:14px -22px 12px;box-shadow:inset 0 3px 6px rgba(0,0,0,.6)}
+.amt-card-cvv-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 2px}
+.amt-card-cvv-box{flex:1;height:28px;background:repeating-linear-gradient(-45deg,#eee,#eee 4px,#f8f8f8 4px,#f8f8f8 8px);border-radius:4px}
+.amt-card-cvv{font-family:monospace;font-size:12px;font-weight:800;background:#fff;color:#111;padding:4px 10px;border-radius:4px;letter-spacing:2px}
+.amt-card-back-info{flex:1;padding:0 2px;position:relative;z-index:1;display:flex;flex-direction:column}
+.amt-sign-pad-wrap{background:linear-gradient(180deg,#faf6ee,#f0e8d8);border-radius:8px;margin-top:4px;overflow:hidden;border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 3px rgba(0,0,0,.1);flex:1;min-height:70px}
+#amtSignCanvas{display:block;width:100%;height:80px;touch-action:none;cursor:crosshair}
+.amt-sign-actions{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
 
 /* ===== REAL PET CARDS (marketplace size) ===== */
 .pet-card{
@@ -1297,6 +1340,75 @@ CLAIM DAILY REWARD
 </div>
 </div>
 
+<!-- PREMIUM VIRTUAL AMT CARD (on-chain only) -->
+<div class="card" style="background:transparent;border:none;padding:0;box-shadow:none">
+<div class="card-title" style="margin-bottom:6px">AMT VIRTUAL CARD</div>
+<div class="muted" style="margin-bottom:14px;font-size:11px">On-chain AMT only · Tap to flip · Sign on back · Virtual (not a real bank card)</div>
+
+<div class="amt-card-scene" id="amtCardScene" onclick="flipAmtCard(event)">
+  <div class="amt-card" id="amtCard">
+    <!-- FRONT -->
+    <div class="amt-card-face amt-card-front">
+      <div class="amt-card-top">
+        <div class="amt-card-brand">
+          <div class="amt-card-logo-badge">AMT</div>
+          <div>
+            <div class="amt-card-logo">AMT GOLD</div>
+            <span class="amt-card-sub">ON-CHAIN · VIRTUAL</span>
+          </div>
+        </div>
+        <div class="amt-card-network">PI TESTNET</div>
+      </div>
+      <div class="amt-card-chip-row">
+        <div class="amt-card-chip" aria-hidden="true"></div>
+        <div class="amt-card-contactless" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1.6">
+            <path d="M8.5 8.5c2.2-2.2 5.8-2.2 8 0" stroke-linecap="round"/>
+            <path d="M6 6c3.5-3.5 9.5-3.5 13 0" stroke-linecap="round"/>
+            <path d="M11 11c1.1-1.1 2.9-1.1 4 0" stroke-linecap="round"/>
+            <circle cx="13.5" cy="13.5" r="1.2" fill="rgba(255,255,255,.75)" stroke="none"/>
+          </svg>
+        </div>
+      </div>
+      <div class="amt-card-number" id="amtCardNumber">•••• •••• •••• 0000</div>
+      <div class="amt-card-balance-label">ON-CHAIN BALANCE</div>
+      <div class="amt-card-balance" id="amtCardBalance">— AMT</div>
+      <div class="amt-card-bottom">
+        <div>
+          <div class="amt-card-label">CARDHOLDER</div>
+          <div class="amt-card-holder" id="amtCardHolder">PIONEER</div>
+        </div>
+        <div>
+          <div class="amt-card-label">VALID</div>
+          <div class="amt-card-holder" id="amtCardValid">∞ / ∞</div>
+        </div>
+        <div class="amt-visa-mark">VISA</div>
+      </div>
+      <div class="amt-card-hint">Tap to flip →</div>
+    </div>
+    <!-- BACK -->
+    <div class="amt-card-face amt-card-back">
+      <div class="amt-card-stripe"></div>
+      <div class="amt-card-cvv-row">
+        <div class="amt-card-cvv-box"></div>
+        <div class="amt-card-cvv" id="amtCardCvv">•••</div>
+      </div>
+      <div class="amt-card-back-info">
+        <div class="amt-card-label">AUTHORIZED SIGNATURE</div>
+        <div class="amt-sign-pad-wrap" onclick="event.stopPropagation()">
+          <canvas id="amtSignCanvas" width="300" height="80"></canvas>
+        </div>
+        <div class="amt-sign-actions" onclick="event.stopPropagation()">
+          <button type="button" class="small-btn" style="width:auto;padding:8px 12px" onclick="clearAmtSignature()">Clear</button>
+          <button type="button" class="small-btn" style="width:auto;padding:8px 12px;background:rgba(255,212,82,.25);border-color:rgba(255,212,82,.45);color:#ffd452" onclick="saveAmtSignature()">Save sign</button>
+        </div>
+      </div>
+      <div class="amt-card-hint">← Tap to flip · Virtual only</div>
+    </div>
+  </div>
+</div>
+</div>
+
 <div class="card">
 <div class="card-title">ALL BALANCES</div>
 <div class="notice" style="margin-bottom:12px">
@@ -2270,6 +2382,23 @@ localStorage.removeItem(
 "amt_pi_uid"
 );
 
+// Virtual card signature + session UI (privacy on logout)
+try{ localStorage.removeItem("amt_card_signature"); }catch(e){}
+_amtSignPadReady = false;
+_amtSignDrawing = false;
+try{
+  const canvas = $("amtSignCanvas");
+  if(canvas){
+    const ctx = canvas.getContext("2d");
+    if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  const card = $("amtCard");
+  if(card) card.classList.remove("flipped");
+  if($("amtCardBalance")) $("amtCardBalance").textContent = "— AMT";
+  if($("amtCardNumber")) $("amtCardNumber").textContent = "•••• •••• •••• 0000";
+  if($("amtCardHolder")) $("amtCardHolder").textContent = "PIONEER";
+}catch(e){}
+
 if(miningInterval){
 clearInterval(miningInterval);
 miningInterval=null;
@@ -2445,6 +2574,142 @@ async function unlinkPiWallet(){
   }
 }
 
+function updateAmtVisaCard(onchainAmt, linked, walletAddr){
+  const balEl = $("amtCardBalance");
+  const numEl = $("amtCardNumber");
+  const holderEl = $("amtCardHolder");
+  const cvvEl = $("amtCardCvv");
+  if(balEl){
+    if(linked && onchainAmt != null && !isNaN(Number(onchainAmt))){
+      balEl.textContent = Number(onchainAmt).toFixed(4) + " AMT";
+    }else{
+      balEl.textContent = "— AMT";
+    }
+  }
+  if(numEl){
+    let last4 = "0000";
+    if(walletAddr && String(walletAddr).length >= 4){
+      last4 = String(walletAddr).replace(/[^A-Za-z0-9]/g,"").slice(-4).toUpperCase();
+    }
+    numEl.textContent = "•••• •••• •••• " + last4;
+  }
+  if(holderEl){
+    const name = (currentUser && currentUser.username) ||
+      localStorage.getItem("amt_pi_username") ||
+      "PIONEER";
+    holderEl.textContent = String(name).toUpperCase().slice(0, 18);
+  }
+  if(cvvEl){
+    // Cosmetic only — not a real CVV
+    if(walletAddr && String(walletAddr).length >= 3){
+      let n = 0;
+      const s = String(walletAddr);
+      for(let i = 0; i < s.length; i++) n = (n + s.charCodeAt(i) * (i + 1)) % 1000;
+      cvvEl.textContent = String(n).padStart(3, "0");
+    }else{
+      cvvEl.textContent = "•••";
+    }
+  }
+}
+
+function flipAmtCard(e){
+  // Don't flip when interacting with canvas/buttons (handled by stopPropagation)
+  const card = $("amtCard");
+  if(!card) return;
+  card.classList.toggle("flipped");
+  if(card.classList.contains("flipped")){
+    setTimeout(initAmtSignPad, 50);
+  }
+}
+
+let _amtSignDrawing = false;
+let _amtSignPadReady = false;
+
+function initAmtSignPad(){
+  const canvas = $("amtSignCanvas");
+  if(!canvas || _amtSignPadReady) return;
+  const ctx = canvas.getContext("2d");
+  if(!ctx) return;
+
+  // Fit canvas internal size to display size
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(280, Math.floor(rect.width * dpr));
+  canvas.height = Math.max(90, Math.floor(rect.height * dpr));
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = "#1a0a2e";
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  // Restore saved signature
+  try{
+    const saved = localStorage.getItem("amt_card_signature");
+    if(saved){
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      };
+      img.src = saved;
+    }
+  }catch(e){}
+
+  function pos(ev){
+    const r = canvas.getBoundingClientRect();
+    const t = ev.touches ? ev.touches[0] : ev;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+  function start(ev){
+    ev.preventDefault();
+    _amtSignDrawing = true;
+    const p = pos(ev);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+  function move(ev){
+    if(!_amtSignDrawing) return;
+    ev.preventDefault();
+    const p = pos(ev);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+  }
+  function end(ev){
+    if(ev) ev.preventDefault();
+    _amtSignDrawing = false;
+  }
+
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  canvas.addEventListener("mouseup", end);
+  canvas.addEventListener("mouseleave", end);
+  canvas.addEventListener("touchstart", start, { passive: false });
+  canvas.addEventListener("touchmove", move, { passive: false });
+  canvas.addEventListener("touchend", end);
+  _amtSignPadReady = true;
+}
+
+function clearAmtSignature(){
+  const canvas = $("amtSignCanvas");
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if(!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  try{ localStorage.removeItem("amt_card_signature"); }catch(e){}
+  showToast("Signature cleared");
+}
+
+function saveAmtSignature(){
+  const canvas = $("amtSignCanvas");
+  if(!canvas) return;
+  try{
+    const data = canvas.toDataURL("image/png");
+    localStorage.setItem("amt_card_signature", data);
+    showToast("Signature saved on this device");
+  }catch(e){
+    showToast("Could not save signature", true);
+  }
+}
+
 async function refreshOnchainBalances(){
   try{
     const data = await api("/api/wallet/onchain");
@@ -2465,6 +2730,19 @@ async function refreshOnchainBalances(){
       }
     }
 
+    // Virtual Visa card — on-chain AMT only
+    updateAmtVisaCard(
+      data.onchainAmtBalance,
+      data.linked,
+      data.walletAddress || data.piWallet || (typeof piWalletAddress !== "undefined" ? null : null)
+    );
+    // Prefer linked address from DOM if API doesn't return it
+    const addrEl = $("piWalletAddress");
+    const addrText = addrEl ? addrEl.textContent.trim() : "";
+    if(addrText && addrText !== "Not linked" && !addrText.startsWith("Not")){
+      updateAmtVisaCard(data.onchainAmtBalance, data.linked, addrText);
+    }
+
     if($("onchainStatus")){
       if(!data.linked){
         $("onchainStatus").textContent = "Link your Pi wallet to load on-chain balances.";
@@ -2479,6 +2757,7 @@ async function refreshOnchainBalances(){
     if($("onchainStatus")){
       $("onchainStatus").textContent = "Could not load on-chain balances.";
     }
+    updateAmtVisaCard(null, false, null);
   }
 
   await loadDepositInfo();
