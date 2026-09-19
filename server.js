@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.7
+FULL SERVER VERSION 2.4.10
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1033,7 +1033,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.7",
+      "2.4.10",
 
     features: [
       "Pi Login",
@@ -1866,6 +1866,245 @@ app.get(
         error:
           "Unable to fetch on-chain balances from Pi Testnet."
       });
+    }
+  }
+);
+
+/* =========================================================
+ON-CHAIN AMT DEPOSIT → IN-APP LEDGER (utility bridge)
+Pioneer sends on-chain AMT to app treasury, pastes tx hash,
+we verify on Horizon, credit in-app AMT 1:1 (testnet).
+========================================================= */
+
+const AMT_ONCHAIN_TREASURY =
+  process.env.AMT_ONCHAIN_TREASURY || "";
+
+const AMT_ASSET_CODE =
+  process.env.AMT_ASSET_CODE || "AMT";
+
+async function ensureOnchainDepositTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onchain_deposits (
+      id BIGSERIAL PRIMARY KEY,
+      member_id BIGINT NOT NULL REFERENCES members(id),
+      tx_hash TEXT NOT NULL UNIQUE,
+      amount NUMERIC(24,8) NOT NULL,
+      from_address TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+}
+
+async function fetchHorizonTxOperations(txHash) {
+  const bases = [PI_HORIZON_BASE, PI_HORIZON_BASE_2];
+  for (const base of bases) {
+    try {
+      const url =
+        `${base}/transactions/${encodeURIComponent(txHash)}/operations?limit=50`;
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" }
+      });
+      if (!response.ok) continue;
+      const data = await response.json();
+      const records =
+        data._embedded && data._embedded.records
+          ? data._embedded.records
+          : [];
+      return records;
+    } catch (e) {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+app.get(
+  "/api/onchain/deposit-info",
+  requireAuth,
+  async (req, res) => {
+    try {
+      await ensureOnchainDepositTable();
+
+      res.json({
+        ok: true,
+        enabled: Boolean(AMT_ONCHAIN_TREASURY),
+        treasuryAddress: AMT_ONCHAIN_TREASURY || null,
+        assetCode: AMT_ASSET_CODE,
+        rate: "1 on-chain AMT = 1 in-app AMT",
+        network: "Pi Testnet",
+        instructions: AMT_ONCHAIN_TREASURY
+          ? [
+              "1. Open Pi Wallet (Testnet)",
+              "2. Send AMT token to the treasury address below",
+              "3. Copy the transaction hash",
+              "4. Paste hash here and claim — in-app AMT credited 1:1"
+            ]
+          : [
+              "Set AMT_ONCHAIN_TREASURY env on server to enable deposits."
+            ],
+        yourPiWallet:
+          req.member.pi_wallet_address ||
+          req.piUser.walletAddress ||
+          null
+      });
+    } catch (error) {
+      res.status(500).json({
+        ok: false,
+        error: "Unable to load deposit info."
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/onchain/deposit-claim",
+  requireAuth,
+  async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+      await ensureOnchainDepositTable();
+
+      if (!AMT_ONCHAIN_TREASURY) {
+        return res.status(503).json({
+          ok: false,
+          error:
+            "On-chain deposit not configured. Set AMT_ONCHAIN_TREASURY."
+        });
+      }
+
+      const txHash = String(
+        req.body?.txHash ||
+          req.body?.transactionHash ||
+          req.body?.hash ||
+          ""
+      )
+        .trim()
+        .toLowerCase();
+
+      if (!/^[a-f0-9]{64}$/.test(txHash)) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Invalid transaction hash. Paste the 64-character tx hash."
+        });
+      }
+
+      // Already claimed?
+      const existing = await client.query(
+        `SELECT id FROM onchain_deposits WHERE tx_hash = $1`,
+        [txHash]
+      );
+      if (existing.rows.length > 0) {
+        return res.status(400).json({
+          ok: false,
+          error: "This transaction was already claimed."
+        });
+      }
+
+      const operations = await fetchHorizonTxOperations(txHash);
+      if (!operations) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Transaction not found on Pi Testnet. Check hash and network."
+        });
+      }
+
+      const treasury = AMT_ONCHAIN_TREASURY.toUpperCase();
+      let creditedAmount = 0;
+      let fromAddress = null;
+
+      for (const op of operations) {
+        if (op.type !== "payment" && op.type_i !== 1) continue;
+
+        const to = String(
+          op.to || op.destination || ""
+        ).toUpperCase();
+        const code = String(
+          op.asset_code || ""
+        ).toUpperCase();
+        const assetType = String(op.asset_type || "");
+
+        // Must be AMT (non-native) payment to treasury
+        if (to !== treasury) continue;
+        if (assetType === "native") continue;
+        if (code !== AMT_ASSET_CODE.toUpperCase()) continue;
+
+        const amt = Number(op.amount || 0);
+        if (amt > 0) {
+          creditedAmount += amt;
+          fromAddress = op.from || op.source_account || null;
+        }
+      }
+
+      if (creditedAmount <= 0) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            `No ${AMT_ASSET_CODE} payment to app treasury found in this transaction.`
+        });
+      }
+
+      await client.query("BEGIN");
+
+      await client.query(
+        `
+        INSERT INTO onchain_deposits
+          (member_id, tx_hash, amount, from_address)
+        VALUES ($1, $2, $3, $4)
+        `,
+        [
+          req.member.id,
+          txHash,
+          creditedAmount,
+          fromAddress
+        ]
+      );
+
+      const reference = `ONCHAIN_DEPOSIT:${txHash.slice(0, 16)}`;
+
+      await client.query(
+        `
+        INSERT INTO amt_ledger
+          (member_id, amount, type, reference)
+        VALUES ($1, $2, 'ONCHAIN_DEPOSIT', $3)
+        `,
+        [req.member.id, creditedAmount, reference]
+      );
+
+      await client.query("COMMIT");
+
+      res.json({
+        ok: true,
+        credited: creditedAmount,
+        asset: AMT_ASSET_CODE,
+        txHash,
+        message:
+          `${creditedAmount} on-chain ${AMT_ASSET_CODE} deposited → in-app AMT credited.`
+      });
+    } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (e) {}
+      console.error("DEPOSIT CLAIM ERROR:", error);
+
+      if (
+        error &&
+        error.code === "23505"
+      ) {
+        return res.status(400).json({
+          ok: false,
+          error: "This transaction was already claimed."
+        });
+      }
+
+      res.status(500).json({
+        ok: false,
+        error: "Unable to claim deposit."
+      });
+    } finally {
+      client.release();
     }
   }
 );
@@ -5826,36 +6065,81 @@ app.get("/api/pets/:petId", async (req, res) => {
 app.post("/api/pets/buy", requireAuth, async (req, res) => {
   const petId = String(req.body?.petId || "").trim();
   const pet = getPetById(petId);
-  if (!pet) return res.status(404).json({ ok: false, error: "Pet not found." });
+  if (!pet) {
+    return res.status(404).json({ ok: false, error: "Pet not found." });
+  }
 
   const client = await pool.connect();
   try {
+    await ensurePetTables();
     await client.query("BEGIN");
-    await client.query(`SELECT id FROM members WHERE id = $1 FOR UPDATE`, [req.member.id]);
+    await client.query(
+      `SELECT id FROM members WHERE id = $1 FOR UPDATE`,
+      [req.member.id]
+    );
 
     const balance = await getBalance(req.member.id, client);
     if (balance < pet.priceAmt) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ ok: false, error: "Insufficient AMT balance.", balance, required: pet.priceAmt });
+      return res.status(400).json({
+        ok: false,
+        error:
+          "Insufficient in-app AMT. Mine or claim airdrop first. Need " +
+          pet.priceAmt +
+          " AMT (you have " +
+          balance +
+          ").",
+        balance,
+        required: pet.priceAmt
+      });
     }
 
     const reference = makeReference("AMT-PET");
     await client.query(
-      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_PURCHASE',$3)`,
+      `INSERT INTO amt_ledger (member_id, amount, type, reference)
+       VALUES ($1,$2,'PET_PURCHASE',$3)`,
       [req.member.id, -pet.priceAmt, reference]
     );
     const ins = await client.query(
       `INSERT INTO owned_pets
         (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability, image)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [req.member.id, pet.id, pet.name, pet.element, pet.rarity, pet.hp, pet.atk, pet.def, pet.spd, pet.ability, pet.image]
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       RETURNING *`,
+      [
+        req.member.id,
+        pet.id,
+        pet.name,
+        pet.element,
+        pet.rarity,
+        pet.hp,
+        pet.atk,
+        pet.def,
+        pet.spd,
+        pet.ability,
+        pet.image
+      ]
     );
     await client.query("COMMIT");
-    res.json({ ok: true, purchased: true, pet: ins.rows[0], paid: pet.priceAmt, balance: await getBalance(req.member.id), reference });
+
+    const newBalance = await getBalance(req.member.id);
+    res.json({
+      ok: true,
+      purchased: true,
+      pet: ins.rows[0],
+      paid: pet.priceAmt,
+      balance: newBalance,
+      reference,
+      message: pet.name + " saved to My Pets."
+    });
   } catch (e) {
-    try { await client.query("ROLLBACK"); } catch {}
+    try {
+      await client.query("ROLLBACK");
+    } catch (err) {}
     console.error("PET BUY ERROR:", e);
-    res.status(500).json({ ok: false, error: "Unable to buy pet." });
+    res.status(500).json({
+      ok: false,
+      error: "Unable to buy pet. " + (e.message || "Server error")
+    });
   } finally {
     client.release();
   }
@@ -6004,14 +6288,14 @@ app.post("/api/pets/breed", requireAuth, async (req, res) => {
     const element = pets.rows[0].element === pets.rows[1].element
       ? pets.rows[0].element
       : pets.rows[Math.floor(Math.random()*2)].element;
-    const hatchAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+    const hatchAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     const egg = await client.query(
       `INSERT INTO pet_eggs (member_id, parent1_id, parent2_id, element, rarity, status, hatch_at)
        VALUES ($1,$2,$3,$4,'Common','INCUBATING',$5) RETURNING *`,
       [req.member.id, p1, p2, element, hatchAt]
     );
     await client.query("COMMIT");
-    res.json({ ok: true, egg: egg.rows[0], cost, message: "Egg is incubating. Hatch in 2 hours." });
+    res.json({ ok: true, egg: egg.rows[0], cost, message: "Egg is incubating. Hatch in 24 hours." });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
     console.error("BREED ERROR:", e);
@@ -7666,7 +7950,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.7"
+          "Version: 2.4.10"
         );
 
         console.log(
