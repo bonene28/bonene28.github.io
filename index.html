@@ -58,6 +58,17 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .market-art{height:130px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px;font-size:48px;background:radial-gradient(circle at 50% 30%,rgba(179,80,255,.4),transparent 50%),#10091a}
 .market-name{font-weight:900;font-size:14px}.market-price{color:#ffd34f;margin:5px 0 9px;font-size:13px}.small-btn{border:1px solid rgba(170,80,255,.3);border-radius:10px;padding:10px;width:100%;color:#fff;background:rgba(170,80,255,.1);font-size:12px;font-weight:800}
 .empty{padding:25px 12px;text-align:center;color:#807688;font-size:12px}hr{border:0;border-top:1px solid rgba(255,255,255,.06);margin:15px 0}
+/* Daily reward + pro wallet */
+.daily-card{border:1px solid rgba(255,212,82,.22);background:linear-gradient(165deg,rgba(40,28,12,.55),rgba(12,8,20,.95))}
+.streak-badge{background:rgba(255,140,40,.18);border:1px solid rgba(255,180,60,.35);color:#ffd452;font-weight:900;font-size:14px;padding:8px 12px;border-radius:999px;white-space:nowrap}
+.daily-amount-row{display:flex;justify-content:space-between;align-items:flex-end;margin:14px 0 12px}
+.daily-amount{font-size:28px;font-weight:900;color:#ffd452;letter-spacing:-.5px}
+.daily-schedule{margin-top:10px;font-size:11px;text-align:center}
+.wallet-hero-card{border:1px solid rgba(170,80,255,.25);background:linear-gradient(165deg,rgba(40,20,70,.4),rgba(10,7,18,.98))}
+.balance-stack{display:flex;flex-direction:column;gap:10px}
+.balance-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.balance-row-label{font-size:12px;color:#958ba3;font-weight:700}
+.balance-row-value{font-size:15px;font-weight:900;color:#fff}
 
 /* ===== REAL PET CARDS (marketplace size) ===== */
 .pet-card{
@@ -1158,15 +1169,42 @@ AMT shown here has no Mainnet value.
 <section id="miningSection" class="section">
 <div class="hero">
 <h1><span>AMT</span> MINING</h1>
-<p>Alberto Marketplace Token</p>
+<p>Mine · Daily reward · Build your balance</p>
 <div class="notice">
 Pi KYC is <b>not required</b> for AMT Testnet mining.
 KYC may be required for applicable Mainnet functions.
 </div>
 </div>
 
+<!-- DAILY REWARD -->
+<div class="card daily-card">
+<div class="row" style="align-items:flex-start">
+<div>
+<div class="card-title" style="margin:0">🎁 DAILY REWARD</div>
+<div class="muted" style="margin-top:4px">1 claim per day · Streak bonus up to Day 7</div>
+</div>
+<div class="streak-badge" id="dailyStreakBadge">🔥 0</div>
+</div>
+<div class="daily-amount-row">
+<div>
+<div class="muted" style="font-size:11px">Today's reward</div>
+<div class="daily-amount" id="dailyNextAmount">— AMT</div>
+</div>
+<div style="text-align:right">
+<div class="muted" style="font-size:11px" id="dailyStatusLabel">Checking…</div>
+<div class="muted" style="font-size:11px;margin-top:4px" id="dailyResetTimer"></div>
+</div>
+</div>
+<button id="dailyClaimBtn" class="primary" onclick="claimDailyReward()" disabled>
+CLAIM DAILY REWARD
+</button>
+<div class="daily-schedule muted" id="dailyScheduleHint">Day 1: 1 · Day 7: 5 AMT</div>
+</div>
+
+<!-- MINING SESSION -->
 <div class="card">
 <div class="card-title">MINING SESSION</div>
+<div class="muted" style="margin-bottom:8px">24h session · 0.01 AMT/hr · Claim when timer ends</div>
 
 <div class="mining-ring">
 <div class="mining-inner">
@@ -1182,7 +1220,7 @@ KYC may be required for applicable Mainnet functions.
 </button>
 
 <button id="claimMiningBtn" class="secondary hidden" style="margin-top:10px" onclick="claimMining()">
-💰 CLAIM AMT REWARD
+💰 CLAIM MINING REWARD
 </button>
 
 <div class="progress"><span id="miningProgress"></span></div>
@@ -1198,12 +1236,10 @@ KYC may be required for applicable Mainnet functions.
 <div class="stat-label">Mining Rate</div>
 <div class="stat-value">0.01 AMT/hr</div>
 </div>
-
 <div class="stat">
 <div class="stat-label">Status</div>
 <div id="miniMiningStatus" class="stat-value">Ready</div>
 </div>
-
 <div class="stat">
 <div class="stat-label">Network</div>
 <div class="stat-value">Pi Testnet</div>
@@ -1214,23 +1250,21 @@ KYC may be required for applicable Mainnet functions.
 <section id="walletSection" class="section">
 <div class="hero">
 <h1>AMT <span>WALLET</span></h1>
-<p>Your Testnet AMT ledger</p>
+<p>Your balances · transparent & private</p>
 </div>
 
-<div class="card">
-<div class="card-title">AVAILABLE BALANCE</div>
-
+<div class="card wallet-hero-card">
+<div class="card-title">IN-APP AMT</div>
 <div class="big-balance">
 <span id="walletBalance">0.00000000</span>
 <span class="balance-symbol">AMT</span>
 </div>
-
+<div class="muted" style="margin-top:6px">Mining · Daily · Pets · Staking ledger</div>
 <div class="grid" style="margin-top:15px">
 <div class="stat">
 <div class="stat-label">Available</div>
 <div id="availableBalance" class="stat-value">0 AMT</div>
 </div>
-
 <div class="stat">
 <div class="stat-label">Staked</div>
 <div id="stakedBalance" class="stat-value">0 AMT</div>
@@ -1239,25 +1273,25 @@ KYC may be required for applicable Mainnet functions.
 </div>
 
 <div class="card">
-<div class="card-title">YOUR BALANCES (3 TYPES)</div>
+<div class="card-title">ALL BALANCES</div>
 <div class="notice" style="margin-bottom:12px">
-In-app AMT = mining app ledger. On-chain AMT = token on Pi Testnet. Test-Pi = native Pi on your linked wallet. Only your balances are shown.
+<b>In-app</b> = app ledger · <b>On-chain AMT</b> = Pi Testnet token · <b>Test-Pi</b> = native Pi. Only your wallet is shown.
 </div>
-<div class="grid3">
-<div class="stat">
-<div class="stat-label">In-app AMT</div>
-<div id="balInApp" class="stat-value">0</div>
+<div class="balance-stack">
+<div class="balance-row">
+<span class="balance-row-label">In-app AMT</span>
+<span class="balance-row-value" id="balInApp">0</span>
 </div>
-<div class="stat">
-<div class="stat-label">On-chain AMT</div>
-<div id="balOnchainAmt" class="stat-value">—</div>
+<div class="balance-row">
+<span class="balance-row-label">On-chain AMT</span>
+<span class="balance-row-value" id="balOnchainAmt">—</span>
 </div>
-<div class="stat">
-<div class="stat-label">Test-Pi</div>
-<div id="balTestPi" class="stat-value">—</div>
+<div class="balance-row">
+<span class="balance-row-label">Test-Pi</span>
+<span class="balance-row-value" id="balTestPi">—</span>
 </div>
 </div>
-<div class="muted" id="onchainStatus" style="margin-top:10px;font-size:11px"></div>
+<div class="muted" id="onchainStatus" style="margin-top:12px;font-size:11px"></div>
 </div>
 
 <!-- Deposit-to-treasury disabled: single Pioneer wallet only (no shared treasury) -->
@@ -1987,7 +2021,7 @@ if(id==="referralSection")loadReferral();
 if(id==="circleSection")loadSecurityCircle();
 if(id==="profileSection")loadProfile();
 if(id==="stakingSection")loadStaking();
-if(id==="miningSection")loadMiningStatus();
+if(id==="miningSection"){loadMiningStatus();loadDailyStatus();}
 if(id==="marketSection")petTab(currentPetTab || "shop");
 }
 
@@ -2203,6 +2237,7 @@ async function loadAll(){
 await Promise.allSettled([
 refreshWallet(),
 loadMiningStatus(),
+loadDailyStatus(),
 loadAirdrop(),
 loadReferral(),
 loadSecurityCircle(),
@@ -2481,6 +2516,80 @@ true
 /* ============================================================
    MINING
 ============================================================ */
+
+let dailyResetInterval=null;
+
+async function loadDailyStatus(){
+  try{
+    if(!accessToken){
+      if($("dailyStatusLabel")) $("dailyStatusLabel").textContent="Login to claim";
+      if($("dailyClaimBtn")) $("dailyClaimBtn").disabled=true;
+      return;
+    }
+    const data=await api("/api/daily/status");
+    const streak=Number(data.streak||0);
+    const nextStreak=Number(data.nextStreak||1);
+    const nextAmt=Number(data.nextAmount||1);
+    const canClaim=Boolean(data.canClaim);
+    if($("dailyStreakBadge")) $("dailyStreakBadge").textContent="🔥 "+(data.claimedToday?streak:Math.max(0,streak));
+    if($("dailyNextAmount")) $("dailyNextAmount").textContent=fmt(nextAmt)+" AMT";
+    if($("dailyScheduleHint")&&Array.isArray(data.schedule)){
+      $("dailyScheduleHint").textContent=
+        "Streak: "+data.schedule.map((a,i)=>"D"+(i+1)+":"+a).join(" · ");
+    }
+    const btn=$("dailyClaimBtn");
+    if(btn){
+      btn.disabled=!canClaim;
+      btn.textContent=canClaim
+        ?("🎁 CLAIM "+fmt(nextAmt)+" AMT")
+        :"✅ CLAIMED TODAY";
+    }
+    if($("dailyStatusLabel")){
+      $("dailyStatusLabel").textContent=canClaim
+        ?("Ready · Streak → "+nextStreak+"/"+ (data.maxStreak||7))
+        :("Claimed · Streak "+streak+"/"+(data.maxStreak||7));
+    }
+    if(dailyResetInterval){clearInterval(dailyResetInterval);dailyResetInterval=null;}
+    if(!canClaim && data.secondsUntilReset>0){
+      let left=Number(data.secondsUntilReset);
+      const tick=()=>{
+        if(left<=0){
+          if($("dailyResetTimer")) $("dailyResetTimer").textContent="Refresh for next claim";
+          loadDailyStatus();
+          return;
+        }
+        const h=Math.floor(left/3600);
+        const m=Math.floor((left%3600)/60);
+        const s=Math.floor(left%60);
+        if($("dailyResetTimer"))
+          $("dailyResetTimer").textContent=
+            "Next in "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+" UTC";
+        left--;
+      };
+      tick();
+      dailyResetInterval=setInterval(tick,1000);
+    }else if($("dailyResetTimer")){
+      $("dailyResetTimer").textContent=canClaim?"":"";
+    }
+  }catch(e){
+    console.log("Daily status:",e);
+    if($("dailyStatusLabel")) $("dailyStatusLabel").textContent=e.message||"Unavailable";
+  }
+}
+
+async function claimDailyReward(){
+  const btn=$("dailyClaimBtn");
+  try{
+    if(btn){btn.disabled=true;btn.textContent="CLAIMING…";}
+    const data=await api("/api/daily/claim",{method:"POST",body:JSON.stringify({})});
+    showToast(data.message||("Daily +"+fmt(data.amount||0)+" AMT"));
+    await loadDailyStatus();
+    await refreshWallet();
+  }catch(e){
+    showToast(e.message||"Daily claim failed",true);
+    await loadDailyStatus();
+  }
+}
 
 async function loadMiningStatus(){
 
