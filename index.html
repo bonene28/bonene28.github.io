@@ -49,7 +49,10 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .nav-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.nav-btn{min-width:0;border:0;padding:9px 3px;border-radius:13px;color:#82798c;background:transparent;font-size:10px;font-weight:800}.nav-btn .icon{display:block;font-size:19px;margin-bottom:3px}.nav-btn.active{color:#ffd64e;background:rgba(170,79,255,.13)}
 .toast{position:fixed;left:50%;bottom:95px;transform:translate(-50%,20px);width:calc(100% - 32px);max-width:650px;padding:13px 15px;border-radius:15px;background:#17101f;border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 35px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:.25s;z-index:200;font-size:12px}.toast.show{opacity:1;transform:translate(-50%,0)}.toast.success{border-color:rgba(65,255,135,.35)}.toast.error{border-color:rgba(255,70,95,.35)}
 .wallet-address{word-break:break-all;font-family:monospace;color:#caa2ff;font-size:11px}
-.market-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.market-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media (max-width:420px){
+.market-grid{grid-template-columns:1fr 1fr;gap:12px}
+}
 .market-item{padding:0;border-radius:18px;background:linear-gradient(160deg,rgba(30,18,48,.98),rgba(10,7,18,.98));border:1px solid rgba(255,255,255,.08);overflow:hidden;transition:transform .15s,box-shadow .15s}
 .market-item:active{transform:scale(.98)}
 .market-art{height:130px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px;font-size:48px;background:radial-gradient(circle at 50% 30%,rgba(179,80,255,.4),transparent 50%),#10091a}
@@ -59,19 +62,19 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 /* ===== REAL PET CARDS (marketplace size) ===== */
 .pet-card{
 position:relative;
-border-radius:20px;
+border-radius:22px;
 overflow:hidden;
 background:linear-gradient(165deg,#1a1028 0%,#0c0814 100%);
-border:1.5px solid rgba(255,255,255,.1);
-box-shadow:0 10px 32px rgba(0,0,0,.38);
+border:1.5px solid rgba(255,255,255,.12);
+box-shadow:0 12px 36px rgba(0,0,0,.42);
 cursor:pointer;
 transition:transform .18s ease,box-shadow .18s ease;
-min-height:230px;
+min-height:280px;
 }
 .pet-card:active{transform:scale(.97)}
 .pet-card-top{
 position:relative;
-height:148px;
+height:180px;
 display:flex;
 align-items:center;
 justify-content:center;
@@ -87,27 +90,27 @@ background:radial-gradient(circle at 50% 40%,var(--pet-glow,rgba(170,80,255,.5))
 .pet-card-emoji{
 position:relative;
 z-index:2;
-font-size:64px;
+font-size:78px;
 filter:drop-shadow(0 4px 12px rgba(0,0,0,.45));
 line-height:1;
 }
 .pet-card-img{
-width:96px!important;
-height:96px!important;
+width:128px!important;
+height:128px!important;
 object-fit:contain;
-border-radius:14px;
+border-radius:16px;
 position:relative;
 z-index:2;
-filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));
+filter:drop-shadow(0 8px 18px rgba(0,0,0,.5));
 }
 .pet-card-badge{
 position:absolute;
 top:10px;
 right:10px;
 z-index:3;
-padding:4px 9px;
+padding:5px 10px;
 border-radius:999px;
-font-size:9px;
+font-size:10px;
 font-weight:900;
 letter-spacing:.5px;
 text-transform:uppercase;
@@ -120,18 +123,18 @@ position:absolute;
 top:10px;
 left:10px;
 z-index:3;
-padding:4px 8px;
+padding:5px 10px;
 border-radius:999px;
-font-size:9px;
+font-size:10px;
 font-weight:800;
 letter-spacing:.3px;
 background:rgba(0,0,0,.5);
 border:1px solid var(--pet-border,rgba(170,80,255,.4));
 color:#fff;
 }
-.pet-card-body{padding:12px 13px 14px}
+.pet-card-body{padding:14px 14px 16px}
 .pet-card-name{
-font-size:15px;
+font-size:16px;
 font-weight:900;
 letter-spacing:.3px;
 color:#fff;
@@ -140,8 +143,8 @@ overflow:hidden;
 text-overflow:ellipsis;
 }
 .pet-card-price{
-margin-top:4px;
-font-size:13px;
+margin-top:5px;
+font-size:14px;
 font-weight:800;
 color:#ffd452;
 }
@@ -3891,7 +3894,7 @@ function renderPetGrid(pets) {
       <div class="pet-card-top">
         <span class="pet-card-element">${esc(pet.element)}</span>
         <span class="pet-card-badge">${esc(pet.rarity || "Common")}</span>
-        ${petArtHtml(pet, 96)}
+        ${petArtHtml(pet, 128)}
       </div>
       <div class="pet-card-body">
         <div class="pet-card-name">${esc(pet.name)}</div>
@@ -3949,6 +3952,10 @@ function closePetModal() {
 
 async function buySelectedPet() {
   if (!selectedPet) return;
+  if (!accessToken) {
+    showToast("Login with Pi first before buying.", true);
+    return;
+  }
   const btn = $("buyPetBtn");
   try {
     btn.disabled = true;
@@ -3966,28 +3973,35 @@ async function buySelectedPet() {
     closePetModal();
     await refreshWallet();
     petTab("owned");
-    // Small delay so DB commit is visible
-    await new Promise(ok => setTimeout(ok, 400));
+    await new Promise(ok => setTimeout(ok, 500));
     await loadOwnedPets();
-    // If still empty, show server pet from response
-    const grid = $("ownedPetGrid");
-    if (grid && data.pet && (!window._ownedMap || !window._ownedMap[data.pet.id])) {
+    // Always show purchased pet on grid
+    if (data.pet) {
       if (!window._ownedMap) window._ownedMap = {};
       window._ownedMap[data.pet.id] = data.pet;
-      const elClass = petElementClass(data.pet.element);
-      const card = `<div class="pet-card ${elClass}" onclick="openOwnedModal(${data.pet.id})">
-        <div class="pet-card-top">
-          <span class="pet-card-element">${esc(data.pet.element)}</span>
-          <span class="pet-card-badge">Lv ${data.pet.level || 1}</span>
-          ${petArtHtml(data.pet, 96)}
-        </div>
-        <div class="pet-card-body">
-          <div class="pet-card-name">${esc(data.pet.name)}</div>
-          <div class="pet-card-price">Just purchased · ${data.paid} AMT</div>
-        </div>
-      </div>`;
-      if (grid.querySelector(".empty")) grid.innerHTML = card;
-      else grid.insertAdjacentHTML("afterbegin", card);
+      const grid = $("ownedPetGrid");
+      if (grid) {
+        const elClass = petElementClass(data.pet.element);
+        const card =
+          `<div class="pet-card ${elClass}" onclick="openOwnedModal(${data.pet.id})">
+          <div class="pet-card-top">
+            <span class="pet-card-element">${esc(data.pet.element)}</span>
+            <span class="pet-card-badge">Lv ${data.pet.level || 1}</span>
+            ${petArtHtml(data.pet, 128)}
+          </div>
+          <div class="pet-card-body">
+            <div class="pet-card-name">${esc(data.pet.name)}</div>
+            <div class="pet-card-price">Just purchased · ${data.paid} AMT</div>
+            <div class="pet-card-footer">
+              <button class="small-btn" onclick="event.stopPropagation();openOwnedModal(${data.pet.id})">VIEW / BATTLE</button>
+            </div>
+          </div>
+        </div>`;
+        if (grid.querySelector(".empty")) grid.innerHTML = card;
+        else if (!grid.innerHTML.includes("openOwnedModal(" + data.pet.id + ")")) {
+          grid.insertAdjacentHTML("afterbegin", card);
+        }
+      }
     }
   } catch (error) {
     showToast(error.message || "Purchase failed.", true);
@@ -4019,7 +4033,7 @@ async function loadOwnedPets() {
         <div class="pet-card-top">
           <span class="pet-card-element">${esc(pet.element)}</span>
           <span class="pet-card-badge">Lv ${pet.level||1}</span>
-          ${petArtHtml(pet, 96)}
+          ${petArtHtml(pet, 128)}
         </div>
         <div class="pet-card-body">
           <div class="pet-card-name">${esc(pet.name)}</div>
@@ -4097,18 +4111,28 @@ async function trainPet(stat) {
 }
 
 async function battlePet() {
-  if (!selectedOwned) return;
+  if (!selectedOwned) {
+    showToast("Select a pet from My Pets first", true);
+    return;
+  }
+  const petRef = selectedOwned;
+  const ownedId = Number(petRef.id);
   try {
     closeOwnedModal();
+    // keep ref for arena art (closeOwnedModal clears selectedOwned)
+    selectedOwned = petRef;
+    showToast("Battle starting...");
     const data = await api("/api/pets/battle", {
       method: "POST",
-      body: JSON.stringify({ ownedPetId: selectedOwned.id })
+      body: JSON.stringify({ ownedPetId: ownedId })
     });
     await playBattleArena(data);
     await refreshWallet();
-    loadOwnedPets();
+    await loadOwnedPets();
   } catch (e) {
     showToast(e.message || "Battle failed", true);
+  } finally {
+    selectedOwned = null;
   }
 }
 
