@@ -4018,18 +4018,27 @@ async function loadOwnedPets() {
   const grid = $("ownedPetGrid");
   if (!grid) return;
   try {
+    if (!accessToken) {
+      grid.innerHTML = '<div class="empty">Login with Pi to see your pets.</div>';
+      return;
+    }
     grid.innerHTML = '<div class="empty">Loading your pets...</div>';
     const data = await api("/api/pets/owned");
     const pets = data.pets || [];
+    window._ownedMap = {};
+    pets.forEach(p => {
+      window._ownedMap[p.id] = p;
+      window._ownedMap[String(p.id)] = p;
+    });
     if (!pets.length) {
-      grid.innerHTML = '<div class="empty">No pets yet. Buy from Shop — purchases save to My Pets.</div>';
+      grid.innerHTML =
+        '<div class="empty">No pets yet. Buy from Shop (need in-app AMT from mining/airdrop).</div>';
       return;
     }
-    window._ownedMap = {};
-    pets.forEach(p => { window._ownedMap[p.id] = p; });
     grid.innerHTML = pets.map(pet => {
       const elClass = petElementClass(pet.element);
-      return `<div class="pet-card ${elClass}" onclick="openOwnedModal(${pet.id})">
+      const pid = pet.id;
+      return `<div class="pet-card ${elClass}" onclick="openOwnedModal(${pid})">
         <div class="pet-card-top">
           <span class="pet-card-element">${esc(pet.element)}</span>
           <span class="pet-card-badge">Lv ${pet.level||1}</span>
@@ -4039,72 +4048,106 @@ async function loadOwnedPets() {
           <div class="pet-card-name">${esc(pet.name)}</div>
           <div class="pet-card-price">Lv ${pet.level||1} · ⚡${pet.energy??100} · 😊${pet.happiness??100}</div>
           <div class="pet-card-footer">
-            <button class="small-btn" onclick="event.stopPropagation();openOwnedModal(${pet.id})">VIEW DETAILS</button>
+            <button class="small-btn" onclick="event.stopPropagation();openOwnedModal(${pid})">VIEW / CARE / BATTLE</button>
           </div>
         </div>
       </div>`;
     }).join("");
   } catch (e) {
     console.log("Owned pets error:", e);
-    grid.innerHTML = '<div class="empty">Unable to load My Pets. ' + esc(e.message || "Check login / server.") + '</div>';
+    grid.innerHTML =
+      '<div class="empty">Unable to load My Pets. ' +
+      esc(e.message || "Check login / server.") +
+      '<br><button class="small-btn" style="margin-top:10px" onclick="loadOwnedPets()">Retry</button></div>';
   }
 }
 
 function openOwnedModal(id) {
-  const pet = window._ownedMap && window._ownedMap[id];
-  if (!pet) return;
+  if (!window._ownedMap) window._ownedMap = {};
+  // support both number and string ids from Postgres BIGINT
+  let pet = window._ownedMap[id] || window._ownedMap[String(id)] || window._ownedMap[Number(id)];
+  if (!pet && selectedOwned && (selectedOwned.id == id)) pet = selectedOwned;
+  if (!pet) {
+    showToast("Pet data missing. Open My Pets again.", true);
+    return;
+  }
   selectedOwned = pet;
-  $("ownedModalName").textContent = pet.name;
-  $("ownedModalArt").innerHTML = petArtHtml(pet, 100);
-  $("ownedLv").textContent = pet.level || 1;
-  $("ownedEnergy").textContent = pet.energy ?? 100;
-  $("ownedHappy").textContent = pet.happiness ?? 100;
-  $("ownedId").textContent = pet.id;
-  $("ownedHp").textContent = pet.hp;
-  $("ownedAtk").textContent = pet.atk;
-  $("ownedDef").textContent = pet.def;
-  $("ownedSpd").textContent = pet.spd;
+  if ($("ownedModalName")) $("ownedModalName").textContent = pet.name || "Pet";
+  if ($("ownedModalArt")) $("ownedModalArt").innerHTML = petArtHtml(pet, 100);
+  if ($("ownedLv")) $("ownedLv").textContent = pet.level || 1;
+  if ($("ownedEnergy")) $("ownedEnergy").textContent = pet.energy ?? 100;
+  if ($("ownedHappy")) $("ownedHappy").textContent = pet.happiness ?? 100;
+  if ($("ownedId")) $("ownedId").textContent = pet.id;
+  if ($("ownedHp")) $("ownedHp").textContent = pet.hp;
+  if ($("ownedAtk")) $("ownedAtk").textContent = pet.atk;
+  if ($("ownedDef")) $("ownedDef").textContent = pet.def;
+  if ($("ownedSpd")) $("ownedSpd").textContent = pet.spd;
   const modal = $("ownedModal");
-  modal.classList.remove("hidden");
-  modal.style.display = "flex";
+  if (modal) {
+    modal.classList.remove("hidden");
+    modal.style.display = "flex";
+  }
 }
 
 function closeOwnedModal() {
   selectedOwned = null;
   const modal = $("ownedModal");
-  modal.classList.add("hidden");
-  modal.style.display = "none";
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.style.display = "none";
+  }
+}
+
+function fillOwnedModalFromPet(pet) {
+  if (!pet) return;
+  if (!window._ownedMap) window._ownedMap = {};
+  window._ownedMap[pet.id] = pet;
+  window._ownedMap[String(pet.id)] = pet;
+  selectedOwned = pet;
+  openOwnedModal(pet.id);
 }
 
 async function carePet(action) {
-  if (!selectedOwned) return;
+  if (!selectedOwned || !selectedOwned.id) {
+    showToast("Open a pet first (My Pets → VIEW).", true);
+    return;
+  }
+  const ownedId = Number(selectedOwned.id);
+  const petName = selectedOwned.name || "pet";
   try {
+    showToast((action === "play" ? "Playing..." : "Feeding..."));
     const data = await api("/api/pets/care", {
       method: "POST",
-      body: JSON.stringify({ ownedPetId: selectedOwned.id, action })
+      body: JSON.stringify({ ownedPetId: ownedId, action: action || "feed" })
     });
-    showToast((action === "feed" ? "Fed" : "Played with") + " " + selectedOwned.name);
-    selectedOwned = data.pet;
-    openOwnedModal(data.pet.id);
-    window._ownedMap[data.pet.id] = data.pet;
+    if (!data || !data.pet) throw new Error(data?.error || "Care failed — no pet returned");
+    showToast((action === "feed" ? "Fed " : "Played with ") + petName);
+    fillOwnedModalFromPet(data.pet);
     await refreshWallet();
+    // soft refresh list in background
+    loadOwnedPets().catch(() => {});
   } catch (e) {
     showToast(e.message || "Care failed", true);
   }
 }
 
 async function trainPet(stat) {
-  if (!selectedOwned) return;
+  if (!selectedOwned || !selectedOwned.id) {
+    showToast("Open a pet first (My Pets → VIEW).", true);
+    return;
+  }
+  const ownedId = Number(selectedOwned.id);
   try {
+    showToast("Training " + String(stat || "atk").toUpperCase() + "...");
     const data = await api("/api/pets/train", {
       method: "POST",
-      body: JSON.stringify({ ownedPetId: selectedOwned.id, stat })
+      body: JSON.stringify({ ownedPetId: ownedId, stat: stat || "atk" })
     });
-    showToast("Trained " + stat.toUpperCase() + " +");
-    selectedOwned = data.pet;
-    openOwnedModal(data.pet.id);
-    window._ownedMap[data.pet.id] = data.pet;
+    if (!data || !data.pet) throw new Error(data?.error || "Train failed — no pet returned");
+    showToast("Trained " + String(stat).toUpperCase() + " +" + (data.gain || ""));
+    fillOwnedModalFromPet(data.pet);
     await refreshWallet();
+    loadOwnedPets().catch(() => {});
   } catch (e) {
     showToast(e.message || "Train failed", true);
   }
