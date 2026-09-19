@@ -69,6 +69,14 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .balance-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
 .balance-row-label{font-size:12px;color:#958ba3;font-weight:700}
 .balance-row-value{font-size:15px;font-weight:900;color:#fff}
+/* Referral pro */
+.referral-hero-card{border:1px solid rgba(255,212,82,.2);background:linear-gradient(165deg,rgba(40,28,12,.4),rgba(12,8,20,.98))}
+.qr-wrap{display:flex;justify-content:center;margin:14px 0 4px}
+.qr-img{width:200px;height:200px;border-radius:16px;background:#fff;padding:10px;box-shadow:0 8px 28px rgba(0,0,0,.35);object-fit:contain}
+.referral-code-box{text-align:center;margin:14px 0 8px;padding:12px;border-radius:14px;background:rgba(255,212,82,.08);border:1px solid rgba(255,212,82,.2)}
+.referral-code-big{font-size:22px;font-weight:900;color:#ffd54f;letter-spacing:1px;word-break:break-all}
+.referral-link-text{font-size:11px;font-weight:700;color:#caa2ff;word-break:break-all;line-height:1.4;text-align:center;padding:0 4px;opacity:.85}
+.referral-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 
 /* ===== REAL PET CARDS (marketplace size) ===== */
 .pet-card{
@@ -1392,71 +1400,75 @@ One eligible claim per account. Testnet only.
 <section id="referralSection" class="section">
 <div class="hero">
 <h1>AMT <span>REFERRAL</span></h1>
-<p>Grow the AMT Testnet community</p>
+<p>Invite Pioneers · Earn AMT · Climb tiers</p>
 </div>
 
-<div class="card">
-<div class="card-title">YOUR REFERRAL LINK</div>
+<!-- QR + LINK -->
+<div class="card referral-hero-card">
+<div class="card-title">YOUR INVITE QR</div>
+<div class="qr-wrap">
+  <img id="referralQr" class="qr-img" alt="Referral QR" width="200" height="200"
+    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%231a1028' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' fill='%23958ba3' text-anchor='middle' dy='.3em' font-size='12'%3ELogin for QR%3C/text%3E%3C/svg%3E">
+</div>
+<div class="muted" style="text-align:center;margin-top:10px;font-size:11px">Scan to open app with your code</div>
 
-<div id="referralCode" style="font-size:13px;font-weight:800;color:#ffd54f;word-break:break-all;line-height:1.4">
-------
+<div class="referral-code-box">
+  <div class="muted" style="font-size:10px;margin-bottom:4px">YOUR CODE</div>
+  <div id="referralCodeOnly" class="referral-code-big">------</div>
 </div>
 
-<div class="muted" style="margin-top:8px;font-size:11px">
-Code: <span id="referralCodeOnly">------</span>
-</div>
+<div id="referralCode" class="referral-link-text">------</div>
 
-<button class="secondary" style="margin-top:12px" onclick="copyReferral()">
-📋 COPY REFERRAL LINK
+<div class="referral-actions">
+  <button class="secondary" onclick="copyReferral()">📋 COPY LINK</button>
+  <button class="secondary" onclick="copyReferralCode()">📋 COPY CODE</button>
+</div>
+<button class="primary" style="margin-top:10px" id="shareReferralBtn" onclick="shareReferral()">
+📤 SHARE INVITE
 </button>
 </div>
 
 <div class="grid">
 <div class="stat">
-<div class="stat-label">Referral Count</div>
+<div class="stat-label">Referrals</div>
 <div id="referralCount" class="stat-value">0</div>
 </div>
-
 <div class="stat">
 <div class="stat-label">Active Miners</div>
 <div id="activeMiners" class="stat-value">0</div>
 </div>
 </div>
 
-<!-- TIER CARD -->
+<!-- TIER -->
 <div class="card" style="margin-top:15px">
 <div class="card-title">YOUR TIER</div>
-
 <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
   <div>
     <div id="tierName" style="font-size:22px;font-weight:900;color:#ffd54f">Bronze</div>
     <div class="muted" style="margin-top:4px;font-size:11px">
-      Reward: <span id="tierReward">0.5</span> AMT per referral
+      <span id="tierReward">0.5</span> AMT per successful referral
     </div>
   </div>
   <div style="text-align:right">
-    <div class="muted" style="font-size:10px">Next Milestone</div>
+    <div class="muted" style="font-size:10px">Next milestone</div>
     <div id="nextMilestone" style="font-size:13px;font-weight:800;color:#caa2ff">5 refs</div>
   </div>
 </div>
-
 <div class="progress" style="margin:10px 0 6px">
   <span id="tierProgress" style="width:0%"></span>
 </div>
 <div class="muted" style="font-size:10px" id="tierProgressText">0 / 5 to next tier</div>
 </div>
 
+<!-- JOIN -->
 <div class="card" style="margin-top:15px">
-<div class="card-title">INVITE A PIONEER</div>
-
-<input id="referralInput" class="input" placeholder="Enter referral code">
-
+<div class="card-title">HAVE A CODE?</div>
+<input id="referralInput" class="input" placeholder="Enter pioneer referral code">
 <button class="primary" style="margin-top:10px" onclick="applyReferral()">
-JOIN REFERRAL
+JOIN WITH CODE
 </button>
-
 <div class="notice">
-Bronze 1-5 (+0.5) · Silver 6-15 (+1.0) · Gold 16-50 (+1.5) · Legend 51+ (+2.0)<br>
+Bronze 1–5 (+0.5) · Silver 6–15 (+1.0) · Gold 16–50 (+1.5) · Legend 51+ (+2.0)<br>
 Milestones: 5→+2 · 15→+5 · 50→+15 AMT
 </div>
 </div>
@@ -2976,125 +2988,131 @@ function clearPendingReferralCode(){
   }catch(e){}
 }
 
+function buildReferralLink(code){
+  return APP_BASE_URL + "/?ref=" + encodeURIComponent(code);
+}
+
+function updateReferralQr(link){
+  const img = $("referralQr");
+  if(!img) return;
+  if(!link || link === "------"){
+    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%231a1028' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' fill='%23958ba3' text-anchor='middle' dy='.3em' font-size='12'%3ELogin for QR%3C/text%3E%3C/svg%3E";
+    return;
+  }
+  // Client-side QR via public API (no extra JS dependency)
+  img.src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&ecc=M&data=" +
+    encodeURIComponent(link);
+  img.onerror = function(){
+    img.alt = "QR unavailable — use copy link";
+  };
+}
+
 async function loadReferral(){
-
 try{
-
-const data=
-await api("/api/referrals");
-
-const code =
-  (data.referralCode || data.code || data.username || "").trim();
+const data = await api("/api/referrals");
+const code = (data.referralCode || data.code || data.username || "").trim();
 
 if(code && code !== "------"){
-  const fullLink = APP_BASE_URL + "/?ref=" + encodeURIComponent(code);
-  $("referralCode").textContent = fullLink;
-  if($("referralCodeOnly")){
-    $("referralCodeOnly").textContent = code;
-  }
+  const fullLink = buildReferralLink(code);
+  if($("referralCode")) $("referralCode").textContent = fullLink;
+  if($("referralCodeOnly")) $("referralCodeOnly").textContent = code;
+  updateReferralQr(fullLink);
+  window._referralLink = fullLink;
+  window._referralCode = code;
 }else{
-  $("referralCode").textContent = "------";
-  if($("referralCodeOnly")){
-    $("referralCodeOnly").textContent = "------";
-  }
+  if($("referralCode")) $("referralCode").textContent = "------";
+  if($("referralCodeOnly")) $("referralCodeOnly").textContent = "------";
+  updateReferralQr(null);
+  window._referralLink = "";
+  window._referralCode = "";
 }
 
 const count = Number(data.referralCount ?? data.count ?? 0);
+if($("referralCount")) $("referralCount").textContent = count;
+if($("activeMiners")) $("activeMiners").textContent = data.activeMiners ?? 0;
 
-$("referralCount").textContent = count;
-
-$("activeMiners").textContent=
-data.activeMiners??
-0;
-
-// ===== TIER DISPLAY =====
 const tier = data.tier || {};
-const tierName = tier.name || "Bronze";
-const reward = tier.rewardPerReferral ?? 0.5;
+if($("tierName")) $("tierName").textContent = tier.name || "Bronze";
+if($("tierReward")) $("tierReward").textContent = tier.rewardPerReferral ?? 0.5;
 
-if($("tierName")) $("tierName").textContent = tierName;
-if($("tierReward")) $("tierReward").textContent = reward;
-
-// Progress & next milestone
 const milestones = [5, 15, 50];
 let nextMile = null;
 for(const m of milestones){
-  if(count < m){
-    nextMile = m;
-    break;
-  }
+  if(count < m){ nextMile = m; break; }
 }
+if($("nextMilestone")) $("nextMilestone").textContent = nextMile ? (nextMile + " refs") : "Max reached";
 
-if($("nextMilestone")){
-  $("nextMilestone").textContent = nextMile ? (nextMile + " refs") : "Max reached";
-}
-
-// Progress bar toward next tier boundary
 const tiers = [
-  {name:"Bronze", min:1, max:5},
+  {name:"Bronze", min:0, max:5},
   {name:"Silver", min:6, max:15},
   {name:"Gold", min:16, max:50},
   {name:"Legend", min:51, max:999999}
 ];
-
 let current = tiers.find(t => count >= t.min && count <= t.max) || tiers[0];
 let nextTier = tiers.find(t => t.min > count);
-
 let progressPct = 0;
 let progressText = "";
-
 if(nextTier){
-  const range = nextTier.min - current.min;
-  const done = Math.max(0, count - current.min + 1);
+  const range = Math.max(1, nextTier.min - (current.min || 0));
+  const done = Math.max(0, count - (current.min || 0));
   progressPct = Math.min(100, Math.round((done / range) * 100));
   progressText = count + " / " + nextTier.min + " to " + nextTier.name;
 }else{
   progressPct = 100;
   progressText = count + " referrals · Legend tier";
 }
-
 if($("tierProgress")) $("tierProgress").style.width = progressPct + "%";
 if($("tierProgressText")) $("tierProgressText").textContent = progressText;
-
 }catch(error){
-
-console.log(
-"Referral:",
-error
-);
-
+  console.log("Referral:", error);
 }
 }
 
 function copyReferral(){
-
-const link =
-$("referralCode")
-.textContent
-.trim();
-
-if(
-!link||
-link==="------"
-){
-
-return showToast(
-"Referral link is not ready. Please login again.",
-true
-);
-
+  const link = (window._referralLink || ($("referralCode") && $("referralCode").textContent) || "").trim();
+  if(!link || link === "------"){
+    return showToast("Referral link is not ready. Please login again.", true);
+  }
+  navigator.clipboard.writeText(link)
+    .then(() => showToast("Referral link copied!"))
+    .catch(() => showToast("Could not copy referral link.", true));
 }
 
-navigator.clipboard
-.writeText(link)
-.then(()=>showToast(
-"Referral link copied!"
-))
-.catch(()=>showToast(
-"Could not copy referral link.",
-true
-));
+function copyReferralCode(){
+  const code = (window._referralCode || ($("referralCodeOnly") && $("referralCodeOnly").textContent) || "").trim();
+  if(!code || code === "------"){
+    return showToast("Referral code not ready. Login first.", true);
+  }
+  navigator.clipboard.writeText(code)
+    .then(() => showToast("Code copied: " + code))
+    .catch(() => showToast("Could not copy code.", true));
+}
 
+async function shareReferral(){
+  const link = (window._referralLink || "").trim();
+  const code = (window._referralCode || "").trim();
+  if(!link || link === "------"){
+    return showToast("Login first to share your invite.", true);
+  }
+  const text = "Join me on AMT (Alberto Marketplace Token) on Pi Testnet!\nCode: " + code + "\n" + link;
+  try{
+    if(navigator.share){
+      await navigator.share({ title: "AMT Referral", text: text, url: link });
+      showToast("Shared!");
+    }else{
+      await navigator.clipboard.writeText(text);
+      showToast("Invite text copied (share not supported on this browser)");
+    }
+  }catch(e){
+    if(e && e.name === "AbortError") return;
+    try{
+      await navigator.clipboard.writeText(text);
+      showToast("Invite text copied");
+    }catch(err){
+      showToast("Could not share", true);
+    }
+  }
 }
 
 async function applyReferral(){
