@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.13
+FULL SERVER VERSION 2.4.14
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1033,7 +1033,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.13",
+      "2.4.14",
 
     features: [
       "Pi Login",
@@ -6072,10 +6072,27 @@ app.get("/api/pets", async (req, res) => {
   }
 });
 
-app.get("/api/pets/:petId", async (req, res) => {
-  const pet = getPetById(req.params.petId);
-  if (!pet) return res.status(404).json({ ok: false, error: "Pet not found." });
-  res.json({ ok: true, pet });
+/* ---------- My pets (MUST be before /api/pets/:petId) ---------- */
+app.get("/api/pets/owned", requireAuth, async (req, res) => {
+  try {
+    await ensurePetTables();
+    const result = await pool.query(
+      `SELECT * FROM owned_pets WHERE member_id = $1 ORDER BY id DESC`,
+      [req.member.id]
+    );
+    res.json({
+      ok: true,
+      count: result.rows.length,
+      memberId: req.member.id,
+      pets: result.rows
+    });
+  } catch (e) {
+    console.error("OWNED PETS ERROR:", e);
+    res.status(500).json({
+      ok: false,
+      error: "Unable to load owned pets. " + (e.message || "")
+    });
+  }
 });
 
 /* ---------- Buy from market ---------- */
@@ -6173,29 +6190,6 @@ app.post("/api/pets/buy", requireAuth, async (req, res) => {
     });
   } finally {
     client.release();
-  }
-});
-
-/* ---------- My pets ---------- */
-app.get("/api/pets/owned", requireAuth, async (req, res) => {
-  try {
-    await ensurePetTables();
-    const result = await pool.query(
-      `SELECT * FROM owned_pets WHERE member_id = $1 ORDER BY id DESC`,
-      [req.member.id]
-    );
-    res.json({
-      ok: true,
-      count: result.rows.length,
-      memberId: req.member.id,
-      pets: result.rows
-    });
-  } catch (e) {
-    console.error("OWNED PETS ERROR:", e);
-    res.status(500).json({
-      ok: false,
-      error: "Unable to load owned pets. " + (e.message || "")
-    });
   }
 });
 
@@ -6707,6 +6701,17 @@ app.post("/api/pets/battle", requireAuth, async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+/* Catalog detail — MUST stay after /owned /eggs /listings */
+app.get("/api/pets/:petId", async (req, res) => {
+  const reserved = ["owned", "eggs", "listings", "buy", "care", "train", "breed", "hatch", "list", "battle"];
+  if (reserved.includes(String(req.params.petId || "").toLowerCase())) {
+    return res.status(404).json({ ok: false, error: "Not found." });
+  }
+  const pet = getPetById(req.params.petId);
+  if (!pet) return res.status(404).json({ ok: false, error: "Pet not found." });
+  res.json({ ok: true, pet });
 });
 
 /* =========================================================
@@ -8117,7 +8122,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.13"
+          "Version: 2.4.14"
         );
 
         console.log(
