@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.12
+FULL SERVER VERSION 2.4.13
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1033,7 +1033,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.12",
+      "2.4.13",
 
     features: [
       "Pi Login",
@@ -6138,14 +6138,28 @@ app.post("/api/pets/buy", requireAuth, async (req, res) => {
     );
     await client.query("COMMIT");
 
+    // Verify row is actually readable after commit
+    const verify = await pool.query(
+      `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2`,
+      [ins.rows[0].id, req.member.id]
+    );
+    if (!verify.rows.length) {
+      console.error("PET BUY VERIFY FAIL member=", req.member.id, "pet=", ins.rows[0]?.id);
+      return res.status(500).json({
+        ok: false,
+        error: "Pet buy committed but not readable. Contact admin."
+      });
+    }
+
     const newBalance = await getBalance(req.member.id);
     res.json({
       ok: true,
       purchased: true,
-      pet: ins.rows[0],
+      pet: verify.rows[0],
       paid: pet.priceAmt,
       balance: newBalance,
       reference,
+      memberId: req.member.id,
       message: pet.name + " saved to My Pets."
     });
   } catch (e) {
@@ -6189,11 +6203,14 @@ app.get("/api/pets/owned", requireAuth, async (req, res) => {
 app.post("/api/pets/care", requireAuth, async (req, res) => {
   const ownedId = Number(req.body?.ownedPetId);
   const action = String(req.body?.action || "feed").toLowerCase(); // feed | play
-  if (!Number.isInteger(ownedId)) return res.status(400).json({ ok: false, error: "ownedPetId required." });
+  if (!Number.isFinite(ownedId) || ownedId < 1) {
+    return res.status(400).json({ ok: false, error: "ownedPetId required." });
+  }
 
   const cost = action === "play" ? 0.1 : 0.2;
   const client = await pool.connect();
   try {
+    await ensurePetTables();
     await client.query("BEGIN");
     const pet = await client.query(
       `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2 FOR UPDATE`,
@@ -6201,12 +6218,18 @@ app.post("/api/pets/care", requireAuth, async (req, res) => {
     );
     if (!pet.rows.length) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ ok: false, error: "Pet not found." });
+      return res.status(404).json({
+        ok: false,
+        error: "Pet not found in your My Pets. Buy again or re-open My Pets."
+      });
     }
     const balance = await getBalance(req.member.id, client);
     if (balance < cost) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ ok: false, error: "Insufficient AMT." });
+      return res.status(400).json({
+        ok: false,
+        error: "Insufficient in-app AMT. Need " + cost + " (you have " + balance + ")."
+      });
     }
     await client.query(
       `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_CARE',$3)`,
@@ -6216,8 +6239,8 @@ app.post("/api/pets/care", requireAuth, async (req, res) => {
     const happyGain = action === "play" ? 30 : 15;
     const updated = await client.query(
       `UPDATE owned_pets SET
-        energy = LEAST(100, energy + $1),
-        happiness = LEAST(100, happiness + $2)
+        energy = LEAST(100, COALESCE(energy, 0) + $1),
+        happiness = LEAST(100, COALESCE(happiness, 0) + $2)
        WHERE id = $3 RETURNING *`,
       [energyGain, happyGain, ownedId]
     );
@@ -6225,7 +6248,11 @@ app.post("/api/pets/care", requireAuth, async (req, res) => {
     res.json({ ok: true, action, cost, pet: updated.rows[0] });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
-    res.status(500).json({ ok: false, error: "Care failed." });
+    console.error("CARE ERROR:", e);
+    res.status(500).json({
+      ok: false,
+      error: "Care failed. " + (e.message || "")
+    });
   } finally {
     client.release();
   }
@@ -6235,12 +6262,17 @@ app.post("/api/pets/care", requireAuth, async (req, res) => {
 app.post("/api/pets/train", requireAuth, async (req, res) => {
   const ownedId = Number(req.body?.ownedPetId);
   const stat = String(req.body?.stat || "atk").toLowerCase(); // hp|atk|def|spd
-  if (!Number.isInteger(ownedId)) return res.status(400).json({ ok: false, error: "ownedPetId required." });
-  if (!["hp","atk","def","spd"].includes(stat)) return res.status(400).json({ ok: false, error: "Invalid stat." });
+  if (!Number.isFinite(ownedId) || ownedId < 1) {
+    return res.status(400).json({ ok: false, error: "ownedPetId required." });
+  }
+  if (!["hp", "atk", "def", "spd"].includes(stat)) {
+    return res.status(400).json({ ok: false, error: "Invalid stat." });
+  }
 
   const cost = 0.5;
   const client = await pool.connect();
   try {
+    await ensurePetTables();
     await client.query("BEGIN");
     const pet = await client.query(
       `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2 FOR UPDATE`,
@@ -6248,37 +6280,60 @@ app.post("/api/pets/train", requireAuth, async (req, res) => {
     );
     if (!pet.rows.length) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ ok: false, error: "Pet not found." });
+      return res.status(404).json({
+        ok: false,
+        error: "Pet not found in your My Pets."
+      });
     }
-    if (Number(pet.rows[0].energy) < 20) {
+    if (Number(pet.rows[0].energy || 0) < 20) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ ok: false, error: "Pet needs more energy. Care first." });
+      return res.status(400).json({
+        ok: false,
+        error: "Pet needs more energy. Feed first (CARE)."
+      });
     }
     const balance = await getBalance(req.member.id, client);
     if (balance < cost) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ ok: false, error: "Insufficient AMT." });
+      return res.status(400).json({
+        ok: false,
+        error: "Insufficient in-app AMT. Need 0.5 (you have " + balance + ")."
+      });
     }
     await client.query(
       `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_TRAIN',$3)`,
       [req.member.id, -cost, makeReference("AMT-TRAIN")]
     );
     const gain = stat === "hp" ? 5 : 2;
+    // Safe column update (stat is already validated whitelist)
     const updated = await client.query(
       `UPDATE owned_pets SET
-        ${stat} = ${stat} + $1,
-        energy = GREATEST(0, energy - 20),
-        exp = exp + 10,
-        level = CASE WHEN exp + 10 >= level * 50 THEN level + 1 ELSE level END
+        ${stat} = COALESCE(${stat}, 0) + $1,
+        energy = GREATEST(0, COALESCE(energy, 0) - 20),
+        exp = COALESCE(exp, 0) + 10,
+        level = CASE
+          WHEN COALESCE(exp, 0) + 10 >= COALESCE(level, 1) * 50
+          THEN COALESCE(level, 1) + 1
+          ELSE COALESCE(level, 1)
+        END
        WHERE id = $2 RETURNING *`,
       [gain, ownedId]
     );
     await client.query("COMMIT");
-    res.json({ ok: true, trained: stat, gain, cost, pet: updated.rows[0] });
+    res.json({
+      ok: true,
+      trained: stat,
+      gain,
+      cost,
+      pet: updated.rows[0]
+    });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
     console.error("TRAIN ERROR:", e);
-    res.status(500).json({ ok: false, error: "Training failed." });
+    res.status(500).json({
+      ok: false,
+      error: "Training failed. " + (e.message || "")
+    });
   } finally {
     client.release();
   }
@@ -8062,7 +8117,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.12"
+          "Version: 2.4.13"
         );
 
         console.log(
