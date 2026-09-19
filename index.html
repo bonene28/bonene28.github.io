@@ -49,28 +49,29 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .nav-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.nav-btn{min-width:0;border:0;padding:9px 3px;border-radius:13px;color:#82798c;background:transparent;font-size:10px;font-weight:800}.nav-btn .icon{display:block;font-size:19px;margin-bottom:3px}.nav-btn.active{color:#ffd64e;background:rgba(170,79,255,.13)}
 .toast{position:fixed;left:50%;bottom:95px;transform:translate(-50%,20px);width:calc(100% - 32px);max-width:650px;padding:13px 15px;border-radius:15px;background:#17101f;border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 35px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:.25s;z-index:200;font-size:12px}.toast.show{opacity:1;transform:translate(-50%,0)}.toast.success{border-color:rgba(65,255,135,.35)}.toast.error{border-color:rgba(255,70,95,.35)}
 .wallet-address{word-break:break-all;font-family:monospace;color:#caa2ff;font-size:11px}
-.market-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.market-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .market-item{padding:0;border-radius:18px;background:linear-gradient(160deg,rgba(30,18,48,.98),rgba(10,7,18,.98));border:1px solid rgba(255,255,255,.08);overflow:hidden;transition:transform .15s,box-shadow .15s}
 .market-item:active{transform:scale(.98)}
-.market-art{height:115px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px;font-size:42px;background:radial-gradient(circle at 50% 30%,rgba(179,80,255,.4),transparent 50%),#10091a}
-.market-name{font-weight:900;font-size:13px}.market-price{color:#ffd34f;margin:5px 0 9px;font-size:12px}.small-btn{border:1px solid rgba(170,80,255,.3);border-radius:10px;padding:9px;width:100%;color:#fff;background:rgba(170,80,255,.1);font-size:11px;font-weight:800}
+.market-art{height:130px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px;font-size:48px;background:radial-gradient(circle at 50% 30%,rgba(179,80,255,.4),transparent 50%),#10091a}
+.market-name{font-weight:900;font-size:14px}.market-price{color:#ffd34f;margin:5px 0 9px;font-size:13px}.small-btn{border:1px solid rgba(170,80,255,.3);border-radius:10px;padding:10px;width:100%;color:#fff;background:rgba(170,80,255,.1);font-size:12px;font-weight:800}
 .empty{padding:25px 12px;text-align:center;color:#807688;font-size:12px}hr{border:0;border-top:1px solid rgba(255,255,255,.06);margin:15px 0}
 
-/* ===== REAL PET CARDS ===== */
+/* ===== REAL PET CARDS (marketplace size) ===== */
 .pet-card{
 position:relative;
-border-radius:18px;
+border-radius:20px;
 overflow:hidden;
 background:linear-gradient(165deg,#1a1028 0%,#0c0814 100%);
 border:1.5px solid rgba(255,255,255,.1);
-box-shadow:0 8px 28px rgba(0,0,0,.35);
+box-shadow:0 10px 32px rgba(0,0,0,.38);
 cursor:pointer;
 transition:transform .18s ease,box-shadow .18s ease;
+min-height:230px;
 }
 .pet-card:active{transform:scale(.97)}
 .pet-card-top{
 position:relative;
-height:118px;
+height:148px;
 display:flex;
 align-items:center;
 justify-content:center;
@@ -86,18 +87,27 @@ background:radial-gradient(circle at 50% 40%,var(--pet-glow,rgba(170,80,255,.5))
 .pet-card-emoji{
 position:relative;
 z-index:2;
-font-size:52px;
+font-size:64px;
 filter:drop-shadow(0 4px 12px rgba(0,0,0,.45));
 line-height:1;
 }
+.pet-card-img{
+width:96px!important;
+height:96px!important;
+object-fit:contain;
+border-radius:14px;
+position:relative;
+z-index:2;
+filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));
+}
 .pet-card-badge{
 position:absolute;
-top:8px;
-right:8px;
+top:10px;
+right:10px;
 z-index:3;
-padding:3px 8px;
+padding:4px 9px;
 border-radius:999px;
-font-size:8px;
+font-size:9px;
 font-weight:900;
 letter-spacing:.5px;
 text-transform:uppercase;
@@ -107,21 +117,21 @@ color:#ffd95a;
 }
 .pet-card-element{
 position:absolute;
-top:8px;
-left:8px;
+top:10px;
+left:10px;
 z-index:3;
-padding:3px 7px;
+padding:4px 8px;
 border-radius:999px;
-font-size:8px;
+font-size:9px;
 font-weight:800;
 letter-spacing:.3px;
 background:rgba(0,0,0,.5);
 border:1px solid var(--pet-border,rgba(170,80,255,.4));
 color:#fff;
 }
-.pet-card-body{padding:10px 11px 12px}
+.pet-card-body{padding:12px 13px 14px}
 .pet-card-name{
-font-size:13px;
+font-size:15px;
 font-weight:900;
 letter-spacing:.3px;
 color:#fff;
@@ -130,8 +140,8 @@ overflow:hidden;
 text-overflow:ellipsis;
 }
 .pet-card-price{
-margin-top:3px;
-font-size:12px;
+margin-top:4px;
+font-size:13px;
 font-weight:800;
 color:#ffd452;
 }
@@ -3841,7 +3851,7 @@ function renderPetGrid(pets) {
       <div class="pet-card-top">
         <span class="pet-card-element">${esc(pet.element)}</span>
         <span class="pet-card-badge">${esc(pet.rarity || "Common")}</span>
-        ${petArtHtml(pet, 78)}
+        ${petArtHtml(pet, 96)}
       </div>
       <div class="pet-card-body">
         <div class="pet-card-name">${esc(pet.name)}</div>
@@ -3942,7 +3952,7 @@ async function loadOwnedPets() {
         <div class="pet-card-top">
           <span class="pet-card-element">${esc(pet.element)}</span>
           <span class="pet-card-badge">Lv ${pet.level||1}</span>
-          ${petArtHtml(pet, 78)}
+          ${petArtHtml(pet, 96)}
         </div>
         <div class="pet-card-body">
           <div class="pet-card-name">${esc(pet.name)}</div>
