@@ -77,6 +77,23 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .referral-code-big{font-size:22px;font-weight:900;color:#ffd54f;letter-spacing:1px;word-break:break-all}
 .referral-link-text{font-size:11px;font-weight:700;color:#caa2ff;word-break:break-all;line-height:1.4;text-align:center;padding:0 4px;opacity:.85}
 .referral-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+/* Breed + incubator */
+.breed-card{border:1px solid rgba(255,120,180,.22);background:linear-gradient(165deg,rgba(50,18,40,.4),rgba(12,8,20,.98))}
+.breed-pick-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.breed-slot{flex:1;text-align:center;padding:12px 8px;border-radius:16px;background:rgba(255,255,255,.04);border:1.5px dashed rgba(255,255,255,.15);cursor:pointer;min-height:110px}
+.breed-slot.filled{border-style:solid;border-color:rgba(255,180,220,.35);background:rgba(255,100,160,.08)}
+.breed-slot-label{font-size:10px;font-weight:800;color:#958ba3;letter-spacing:.5px;text-transform:uppercase}
+.breed-slot-art{font-size:36px;margin:8px 0;line-height:1;min-height:40px;display:flex;align-items:center;justify-content:center}
+.breed-slot-art img{width:48px;height:48px;object-fit:contain;border-radius:10px}
+.breed-slot-name{font-size:12px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.breed-plus{font-size:20px;flex-shrink:0}
+.egg-card{margin-bottom:12px;border:1px solid rgba(255,212,82,.15);background:linear-gradient(160deg,rgba(30,22,10,.5),rgba(12,8,18,.98))}
+.egg-card.ready{border-color:rgba(80,255,140,.35)}
+.egg-card.hatched{opacity:.65}
+.egg-timer{font-size:20px;font-weight:900;color:#ffd452;letter-spacing:1px;text-align:center;margin:8px 0}
+.egg-progress{height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.07);margin:8px 0}
+.egg-progress span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffd84c,#ff6bcb);transition:width .4s}
+.egg-emoji{font-size:42px;text-align:center;line-height:1}
 
 /* ===== REAL PET CARDS (marketplace size) ===== */
 .pet-card{
@@ -1706,16 +1723,46 @@ SELECT 180D
 <div id="ownedPetGrid" class="market-grid"><div class="empty">No pets yet. Buy from Shop.</div></div>
 </div>
 
-<!-- EGGS -->
+<!-- EGGS / BREED / INCUBATOR -->
 <div id="petEggsPanel" class="hidden">
-<div class="card" style="margin-bottom:12px">
-<div class="card-title">BREED TWO PETS</div>
-<div class="form-group"><label>Pet 1 ID</label><input id="breedPet1" class="input" placeholder="Owned pet ID"></div>
-<div class="form-group"><label>Pet 2 ID</label><input id="breedPet2" class="input" placeholder="Owned pet ID"></div>
-<button class="primary" onclick="breedPets()">🥚 BREED (1 AMT)</button>
-<div class="notice">Same or mixed element → Egg incubates 24 hours → Hatch</div>
+<div class="card breed-card" style="margin-bottom:14px">
+<div class="card-title">🧬 BREED PETS</div>
+<div class="muted" style="margin-bottom:12px;font-size:11px">Select 2 of your pets · Cost 1 AMT · Egg incubates <b>24 hours</b></div>
+<div class="breed-pick-row">
+  <div class="breed-slot" id="breedSlot1" onclick="openBreedPicker(1)">
+    <div class="breed-slot-label">Parent 1</div>
+    <div class="breed-slot-art" id="breedArt1">➕</div>
+    <div class="breed-slot-name" id="breedName1">Tap to select</div>
+  </div>
+  <div class="breed-plus">❤️</div>
+  <div class="breed-slot" id="breedSlot2" onclick="openBreedPicker(2)">
+    <div class="breed-slot-label">Parent 2</div>
+    <div class="breed-slot-art" id="breedArt2">➕</div>
+    <div class="breed-slot-name" id="breedName2">Tap to select</div>
+  </div>
+</div>
+<input type="hidden" id="breedPet1" value="">
+<input type="hidden" id="breedPet2" value="">
+<button class="primary" style="margin-top:14px" id="breedBtn" onclick="breedPets()">🥚 BREED (1 AMT)</button>
+<div class="notice">Same element = same-type egg · Mixed = random parent element</div>
+</div>
+
+<div class="card" style="margin-bottom:10px;padding:12px 14px">
+<div class="card-title" style="margin:0">incubator · 24H</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Eggs hatch after 24 hours. Countdown updates live.</div>
 </div>
 <div id="eggsList"></div>
+</div>
+
+<!-- Breed pet picker modal -->
+<div id="breedPickerModal" class="hidden" style="position:fixed;inset:0;z-index:320;background:rgba(0,0,0,.8);display:flex;align-items:flex-end;justify-content:center;padding:0">
+<div class="card" style="max-width:480px;width:100%;max-height:70vh;overflow:auto;margin:0;border-radius:20px 20px 0 0">
+<div class="row">
+<div class="card-title" style="margin:0" id="breedPickerTitle">Select parent</div>
+<button class="small-btn" style="width:auto;padding:6px 12px" onclick="closeBreedPicker()">✕</button>
+</div>
+<div id="breedPickerList" class="market-grid" style="margin-top:12px"></div>
+</div>
 </div>
 
 <!-- PUBLIC SELL -->
@@ -4382,45 +4429,229 @@ async function listPetForSale() {
 }
 
 /* ---- Breeding / Eggs ---- */
-async function breedPets() {
-  const p1 = Number($("breedPet1").value);
-  const p2 = Number($("breedPet2").value);
-  if (!p1 || !p2) return showToast("Enter two pet IDs", true);
+let _breedSlot = 1;
+let _breedP1 = null;
+let _breedP2 = null;
+let _eggTimers = {};
+
+function clearBreedSelection() {
+  _breedP1 = null;
+  _breedP2 = null;
+  if ($("breedPet1")) $("breedPet1").value = "";
+  if ($("breedPet2")) $("breedPet2").value = "";
+  if ($("breedArt1")) $("breedArt1").innerHTML = "➕";
+  if ($("breedArt2")) $("breedArt2").innerHTML = "➕";
+  if ($("breedName1")) $("breedName1").textContent = "Tap to select";
+  if ($("breedName2")) $("breedName2").textContent = "Tap to select";
+  if ($("breedSlot1")) $("breedSlot1").classList.remove("filled");
+  if ($("breedSlot2")) $("breedSlot2").classList.remove("filled");
+}
+
+function setBreedSlot(slot, pet) {
+  if (!pet) return;
+  if (slot === 1) {
+    _breedP1 = pet;
+    if ($("breedPet1")) $("breedPet1").value = pet.id;
+    if ($("breedArt1")) $("breedArt1").innerHTML = petArtHtml(pet, 48);
+    if ($("breedName1")) $("breedName1").textContent = pet.name + " · Lv" + (pet.level || 1);
+    if ($("breedSlot1")) $("breedSlot1").classList.add("filled");
+  } else {
+    _breedP2 = pet;
+    if ($("breedPet2")) $("breedPet2").value = pet.id;
+    if ($("breedArt2")) $("breedArt2").innerHTML = petArtHtml(pet, 48);
+    if ($("breedName2")) $("breedName2").textContent = pet.name + " · Lv" + (pet.level || 1);
+    if ($("breedSlot2")) $("breedSlot2").classList.add("filled");
+  }
+}
+
+async function openBreedPicker(slot) {
+  _breedSlot = slot;
+  const modal = $("breedPickerModal");
+  const list = $("breedPickerList");
+  if ($("breedPickerTitle")) $("breedPickerTitle").textContent = "Select Parent " + slot;
+  if (!modal || !list) return;
+  list.innerHTML = '<div class="empty">Loading your pets...</div>';
+  modal.classList.remove("hidden");
+  modal.style.display = "flex";
   try {
+    // Prefer cached map; else fetch
+    let pets = [];
+    if (window._ownedMap) {
+      const seen = {};
+      pets = Object.keys(window._ownedMap).map(k => window._ownedMap[k]).filter(p => {
+        if (!p || !p.id || seen[p.id]) return false;
+        seen[p.id] = true;
+        return true;
+      });
+    }
+    if (!pets.length) {
+      const data = await api("/api/pets/owned");
+      pets = data.pets || [];
+      window._ownedMap = {};
+      pets.forEach(p => {
+        window._ownedMap[p.id] = p;
+        window._ownedMap[String(p.id)] = p;
+      });
+    }
+    const otherId = slot === 1 ? (_breedP2 && _breedP2.id) : (_breedP1 && _breedP1.id);
+    const available = pets.filter(p => String(p.id) !== String(otherId));
+    if (!available.length) {
+      list.innerHTML = '<div class="empty">Need pets in My Pets first. Buy from Shop.</div>';
+      return;
+    }
+    list.innerHTML = available.map(pet => {
+      const elClass = petElementClass(pet.element);
+      return `<div class="pet-card ${elClass}" style="min-height:auto;cursor:pointer" onclick="pickBreedPet(${pet.id})">
+        <div class="pet-card-top" style="height:100px">
+          <span class="pet-card-element">${esc(pet.element)}</span>
+          <span class="pet-card-badge">Lv ${pet.level || 1}</span>
+          ${petArtHtml(pet, 64)}
+        </div>
+        <div class="pet-card-body" style="padding:10px">
+          <div class="pet-card-name">${esc(pet.name)}</div>
+          <div class="pet-card-price">ID ${pet.id}</div>
+        </div>
+      </div>`;
+    }).join("");
+  } catch (e) {
+    list.innerHTML = '<div class="empty">' + esc(e.message || "Could not load pets") + '</div>';
+  }
+}
+
+function closeBreedPicker() {
+  const modal = $("breedPickerModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.style.display = "none";
+  }
+}
+
+function pickBreedPet(id) {
+  const pet = (window._ownedMap && (window._ownedMap[id] || window._ownedMap[String(id)])) || null;
+  if (!pet) {
+    showToast("Pet not found in list", true);
+    return;
+  }
+  setBreedSlot(_breedSlot, pet);
+  closeBreedPicker();
+}
+
+async function breedPets() {
+  const p1 = Number($("breedPet1") && $("breedPet1").value);
+  const p2 = Number($("breedPet2") && $("breedPet2").value);
+  if (!p1 || !p2) return showToast("Select two different pets first", true);
+  if (p1 === p2) return showToast("Pick two different pets", true);
+  const btn = $("breedBtn");
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = "BREEDING…"; }
     const data = await api("/api/pets/breed", {
       method: "POST",
       body: JSON.stringify({ pet1Id: p1, pet2Id: p2 })
     });
-    showToast("Egg created! Hatch in 24 hours");
-    loadEggs();
+    showToast(data.message || "Egg incubating — hatch in 24 hours");
+    clearBreedSelection();
+    await loadEggs();
     await refreshWallet();
   } catch (e) {
     showToast(e.message || "Breed failed", true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "🥚 BREED (1 AMT)"; }
   }
 }
 
+function formatCountdown(ms) {
+  if (ms <= 0) return "00:00:00";
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+function stopEggTimers() {
+  Object.keys(_eggTimers).forEach(k => {
+    clearInterval(_eggTimers[k]);
+    delete _eggTimers[k];
+  });
+}
+
+function startEggCountdown(eggId, hatchAtMs, createdMs) {
+  const timerEl = $("eggTimer_" + eggId);
+  const barEl = $("eggBar_" + eggId);
+  const btn = $("hatchBtn_" + eggId);
+  if (!timerEl) return;
+  if (_eggTimers[eggId]) clearInterval(_eggTimers[eggId]);
+  const total = Math.max(1, hatchAtMs - (createdMs || (hatchAtMs - 24 * 3600 * 1000)));
+  const tick = () => {
+    const left = hatchAtMs - Date.now();
+    if (left <= 0) {
+      timerEl.textContent = "READY";
+      timerEl.style.color = "#5dff9a";
+      if (barEl) barEl.style.width = "100%";
+      if (btn) { btn.disabled = false; btn.textContent = "🐣 HATCH NOW"; }
+      clearInterval(_eggTimers[eggId]);
+      delete _eggTimers[eggId];
+      return;
+    }
+    timerEl.textContent = formatCountdown(left);
+    const pct = Math.min(100, Math.max(0, ((total - left) / total) * 100));
+    if (barEl) barEl.style.width = pct + "%";
+  };
+  tick();
+  _eggTimers[eggId] = setInterval(tick, 1000);
+}
+
 async function loadEggs() {
+  stopEggTimers();
+  const box = $("eggsList");
+  if (!box) return;
   try {
     const data = await api("/api/pets/eggs");
     const eggs = data.eggs || [];
-    const box = $("eggsList");
     if (!eggs.length) {
-      box.innerHTML = '<div class="empty">No eggs yet. Breed two pets.</div>';
+      box.innerHTML = '<div class="empty">No eggs yet. Breed two pets above.</div>';
       return;
     }
     box.innerHTML = eggs.map(egg => {
-      const ready = egg.status !== "HATCHED" && (!egg.hatch_at || new Date(egg.hatch_at) <= new Date());
-      return `<div class="card" style="margin-bottom:10px">
-        <div class="row">
-          <div><b>🥚 ${esc(egg.element)}</b> Egg #${egg.id}</div>
-          <div class="muted">${esc(egg.status)}</div>
+      const isHatched = egg.status === "HATCHED";
+      const hatchMs = egg.hatch_at ? new Date(egg.hatch_at).getTime() : 0;
+      const createdMs = egg.created_at ? new Date(egg.created_at).getTime() : (hatchMs - 24 * 3600 * 1000);
+      const ready = !isHatched && hatchMs && hatchMs <= Date.now();
+      const incubating = !isHatched && !ready;
+      let cls = "card egg-card";
+      if (ready) cls += " ready";
+      if (isHatched) cls += " hatched";
+      return `<div class="${cls}">
+        <div class="egg-emoji">🥚</div>
+        <div class="row" style="justify-content:center;gap:8px;margin-bottom:4px">
+          <b>${esc(egg.element)} Egg</b>
+          <span class="muted">#${egg.id}</span>
         </div>
-        <div class="muted" style="margin:6px 0;font-size:11px">Hatch at: ${egg.hatch_at ? new Date(egg.hatch_at).toLocaleString() : "—"}</div>
-        ${egg.status !== "HATCHED" ? `<button class="primary" onclick="hatchEgg(${egg.id})" ${ready ? "" : "disabled"}>🐣 HATCH</button>` : "<div class='notice'>Already hatched</div>"}
+        <div class="muted" style="text-align:center;font-size:11px">${isHatched ? "Hatched" : (ready ? "Incubation complete" : "Incubating 24h")}</div>
+        ${!isHatched ? `<div class="egg-timer" id="eggTimer_${egg.id}">${ready ? "READY" : "—:—:—"}</div>
+        <div class="egg-progress"><span id="eggBar_${egg.id}" style="width:0%"></span></div>
+        <div class="muted" style="text-align:center;font-size:10px;margin-bottom:8px">Ready: ${hatchMs ? new Date(hatchMs).toLocaleString() : "—"}</div>
+        <button class="primary" id="hatchBtn_${egg.id}" onclick="hatchEgg(${egg.id})" ${ready ? "" : "disabled"}>
+          ${ready ? "🐣 HATCH NOW" : "⏳ INCUBATING"}
+        </button>` : `<div class="notice" style="text-align:center">Already hatched — check My Pets</div>`}
       </div>`;
     }).join("");
+    // start timers for incubating eggs
+    eggs.forEach(egg => {
+      if (egg.status === "HATCHED" || !egg.hatch_at) return;
+      const hatchMs = new Date(egg.hatch_at).getTime();
+      if (hatchMs > Date.now()) {
+        const createdMs = egg.created_at ? new Date(egg.created_at).getTime() : (hatchMs - 24 * 3600 * 1000);
+        startEggCountdown(egg.id, hatchMs, createdMs);
+      } else {
+        const timerEl = $("eggTimer_" + egg.id);
+        if (timerEl) { timerEl.textContent = "READY"; timerEl.style.color = "#5dff9a"; }
+        const barEl = $("eggBar_" + egg.id);
+        if (barEl) barEl.style.width = "100%";
+      }
+    });
   } catch (e) {
-    $("eggsList").innerHTML = '<div class="empty">Unable to load eggs.</div>';
+    box.innerHTML = '<div class="empty">Unable to load eggs. ' + esc(e.message || "") + '</div>';
   }
 }
 
@@ -4430,8 +4661,9 @@ async function hatchEgg(eggId) {
       method: "POST",
       body: JSON.stringify({ eggId })
     });
-    showToast("Hatched " + data.pet.name + "!");
-    loadEggs();
+    showToast("Hatched " + (data.pet && data.pet.name ? data.pet.name : "pet") + "! Check My Pets");
+    await loadEggs();
+    await loadOwnedPets();
   } catch (e) {
     showToast(e.message || "Hatch failed", true);
   }
