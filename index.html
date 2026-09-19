@@ -1654,7 +1654,7 @@ SELECT 180D
 <div class="form-group"><label>Pet 1 ID</label><input id="breedPet1" class="input" placeholder="Owned pet ID"></div>
 <div class="form-group"><label>Pet 2 ID</label><input id="breedPet2" class="input" placeholder="Owned pet ID"></div>
 <button class="primary" onclick="breedPets()">🥚 BREED (1 AMT)</button>
-<div class="notice">Same or mixed element → Egg incubates 2 hours → Hatch</div>
+<div class="notice">Same or mixed element → Egg incubates 24 hours → Hatch</div>
 </div>
 <div id="eggsList"></div>
 </div>
@@ -3809,7 +3809,12 @@ async function loadPets(element = "") {
     renderPetGrid(allPets);
   } catch (error) {
     console.log("Pets:", error);
-    if ($("petGrid")) $("petGrid").innerHTML = '<div class="empty">Deploy server.js v2.4.0 first.</div>';
+    if ($("petGrid")) {
+      $("petGrid").innerHTML =
+        '<div class="empty">Unable to load pets. ' +
+        esc(error.message || "Check server / login.") +
+        "</div>";
+    }
   }
 }
 
@@ -3897,25 +3902,36 @@ async function buySelectedPet() {
   const btn = $("buyPetBtn");
   try {
     btn.disabled = true; btn.textContent = "BUYING...";
-    const data = await api("/api/pets/buy", { method: "POST", body: JSON.stringify({ petId: selectedPet.id }) });
-    showToast("Got " + selectedPet.name + "! -" + data.paid + " AMT");
+    const data = await api("/api/pets/buy", {
+      method: "POST",
+      body: JSON.stringify({ petId: selectedPet.id })
+    });
+    showToast("Got " + selectedPet.name + "! -" + (data.paid || "") + " AMT");
     closePetModal();
     await refreshWallet();
+    // Always open My Pets so pioneer sees the saved pet
+    petTab("owned");
+    await loadOwnedPets();
   } catch (error) {
     showToast(error.message || "Purchase failed.", true);
   } finally {
-    btn.disabled = false; btn.textContent = "BUY WITH AMT";
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "BUY WITH AMT";
+    }
   }
 }
 
 /* ---- Owned pets ---- */
 async function loadOwnedPets() {
+  const grid = $("ownedPetGrid");
+  if (!grid) return;
   try {
+    grid.innerHTML = '<div class="empty">Loading your pets...</div>';
     const data = await api("/api/pets/owned");
     const pets = data.pets || [];
-    const grid = $("ownedPetGrid");
     if (!pets.length) {
-      grid.innerHTML = '<div class="empty">No pets yet. Buy from Shop.</div>';
+      grid.innerHTML = '<div class="empty">No pets yet. Buy from Shop — purchases save to My Pets.</div>';
       return;
     }
     window._ownedMap = {};
@@ -3938,7 +3954,8 @@ async function loadOwnedPets() {
       </div>`;
     }).join("");
   } catch (e) {
-    $("ownedPetGrid").innerHTML = '<div class="empty">Unable to load pets.</div>';
+    console.log("Owned pets error:", e);
+    grid.innerHTML = '<div class="empty">Unable to load My Pets. ' + esc(e.message || "Check login / server.") + '</div>';
   }
 }
 
@@ -4044,7 +4061,7 @@ async function breedPets() {
       method: "POST",
       body: JSON.stringify({ pet1Id: p1, pet2Id: p2 })
     });
-    showToast("Egg created! Hatch in 2 hours");
+    showToast("Egg created! Hatch in 24 hours");
     loadEggs();
     await refreshWallet();
   } catch (e) {
