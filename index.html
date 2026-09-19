@@ -1696,6 +1696,46 @@ SELECT 180D
 </div>
 </div>
 
+<!-- BATTLE ARENA (visual rounds) -->
+<div id="battleArena" class="hidden" style="position:fixed;inset:0;z-index:400;background:linear-gradient(180deg,#0a1628 0%,#122038 40%,#1a2840 100%);display:flex;flex-direction:column;align-items:stretch">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px">
+    <button class="small-btn" style="width:auto;padding:8px 14px;background:rgba(255,60,60,.25);border-color:rgba(255,80,80,.4)" onclick="closeBattleArena()">Exit</button>
+    <div id="battleRoundLabel" style="font-weight:900;font-size:13px;color:#c8d8f0">Round 1</div>
+    <div style="width:60px"></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:space-around;padding:8px 16px 20px;position:relative">
+    <!-- Enemy -->
+    <div style="text-align:center">
+      <div id="battleEnemyName" style="font-size:12px;font-weight:800;color:#ffb0b0;margin-bottom:6px">Enemy</div>
+      <div style="height:10px;background:rgba(0,0,0,.45);border-radius:999px;overflow:hidden;max-width:220px;margin:0 auto 8px;border:1px solid rgba(255,100,100,.3)">
+        <div id="battleEnemyHpBar" style="height:100%;width:100%;background:linear-gradient(90deg,#ff4455,#ff7788);transition:width .4s"></div>
+      </div>
+      <div id="battleEnemyArt" style="font-size:64px;line-height:1;filter:drop-shadow(0 8px 16px rgba(0,0,0,.5))">🌑</div>
+      <div id="battleEnemyHpText" style="font-size:11px;color:#ffc0c0;margin-top:4px">HP</div>
+    </div>
+    <!-- Log -->
+    <div id="battleLog" style="text-align:center;min-height:40px;font-size:13px;font-weight:800;color:#e8f0ff;text-shadow:0 2px 8px rgba(0,0,0,.6)">Get ready...</div>
+    <!-- You -->
+    <div style="text-align:center">
+      <div id="battleMyArt" style="font-size:56px;line-height:1;margin-bottom:6px">🐾</div>
+      <div id="battleMyName" style="font-size:12px;font-weight:800;color:#b0ffd0;margin-bottom:6px">Your Pet</div>
+      <div style="height:10px;background:rgba(0,0,0,.45);border-radius:999px;overflow:hidden;max-width:220px;margin:0 auto 4px;border:1px solid rgba(80,255,140,.3)">
+        <div id="battleMyHpBar" style="height:100%;width:100%;background:linear-gradient(90deg,#22c55e,#4ade80);transition:width .4s"></div>
+      </div>
+      <div id="battleMyHpText" style="font-size:11px;color:#b8ffd0">HP</div>
+    </div>
+  </div>
+  <!-- Result overlay -->
+  <div id="battleResultPanel" class="hidden" style="position:absolute;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="text-align:center;max-width:300px">
+      <div id="battleResultBadge" style="font-size:72px;margin-bottom:8px">🏆</div>
+      <div id="battleResultTitle" style="font-size:28px;font-weight:900;color:#ffd54f;margin-bottom:8px">Victory</div>
+      <div id="battleResultReward" style="font-size:16px;font-weight:800;color:#a0f0c0;margin-bottom:18px">+0.3 AMT</div>
+      <button class="primary" onclick="closeBattleArena()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Owned Pet Actions Modal -->
 <div id="ownedModal" class="hidden" style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px">
 <div class="card" style="max-width:400px;width:100%;max-height:90vh;overflow:auto;margin:0">
@@ -3911,17 +3951,44 @@ async function buySelectedPet() {
   if (!selectedPet) return;
   const btn = $("buyPetBtn");
   try {
-    btn.disabled = true; btn.textContent = "BUYING...";
+    btn.disabled = true;
+    btn.textContent = "BUYING...";
     const data = await api("/api/pets/buy", {
       method: "POST",
       body: JSON.stringify({ petId: selectedPet.id })
     });
-    showToast("Got " + selectedPet.name + "! -" + (data.paid || "") + " AMT");
+    if (!data || !data.purchased) {
+      throw new Error(data?.error || "Buy did not complete.");
+    }
+    showToast(
+      "Got " + selectedPet.name + "! -" + (data.paid || "") + " AMT · Saved to My Pets"
+    );
     closePetModal();
     await refreshWallet();
-    // Always open My Pets so pioneer sees the saved pet
     petTab("owned");
+    // Small delay so DB commit is visible
+    await new Promise(ok => setTimeout(ok, 400));
     await loadOwnedPets();
+    // If still empty, show server pet from response
+    const grid = $("ownedPetGrid");
+    if (grid && data.pet && (!window._ownedMap || !window._ownedMap[data.pet.id])) {
+      if (!window._ownedMap) window._ownedMap = {};
+      window._ownedMap[data.pet.id] = data.pet;
+      const elClass = petElementClass(data.pet.element);
+      const card = `<div class="pet-card ${elClass}" onclick="openOwnedModal(${data.pet.id})">
+        <div class="pet-card-top">
+          <span class="pet-card-element">${esc(data.pet.element)}</span>
+          <span class="pet-card-badge">Lv ${data.pet.level || 1}</span>
+          ${petArtHtml(data.pet, 96)}
+        </div>
+        <div class="pet-card-body">
+          <div class="pet-card-name">${esc(data.pet.name)}</div>
+          <div class="pet-card-price">Just purchased · ${data.paid} AMT</div>
+        </div>
+      </div>`;
+      if (grid.querySelector(".empty")) grid.innerHTML = card;
+      else grid.insertAdjacentHTML("afterbegin", card);
+    }
   } catch (error) {
     showToast(error.message || "Purchase failed.", true);
   } finally {
@@ -4032,16 +4099,75 @@ async function trainPet(stat) {
 async function battlePet() {
   if (!selectedOwned) return;
   try {
+    closeOwnedModal();
     const data = await api("/api/pets/battle", {
       method: "POST",
       body: JSON.stringify({ ownedPetId: selectedOwned.id })
     });
-    showToast(data.result + " vs " + data.opponent + " • +" + data.reward + " AMT");
+    await playBattleArena(data);
     await refreshWallet();
     loadOwnedPets();
   } catch (e) {
     showToast(e.message || "Battle failed", true);
   }
+}
+
+function closeBattleArena() {
+  const arena = $("battleArena");
+  const result = $("battleResultPanel");
+  if (result) result.classList.add("hidden");
+  if (arena) {
+    arena.classList.add("hidden");
+    arena.style.display = "none";
+  }
+}
+
+async function playBattleArena(data) {
+  const arena = $("battleArena");
+  if (!arena) {
+    showToast(data.result + " vs " + data.opponent + " • +" + data.reward + " AMT");
+    return;
+  }
+  arena.classList.remove("hidden");
+  arena.style.display = "flex";
+  $("battleResultPanel").classList.add("hidden");
+
+  const myMax = data.myMaxHp || 100;
+  const enMax = data.enMaxHp || 100;
+  $("battleMyName").textContent = data.petName || "Your Pet";
+  $("battleEnemyName").textContent = data.opponent || "Enemy";
+  $("battleEnemyArt").textContent = data.opponentEmoji || "🌑";
+  $("battleMyArt").innerHTML = selectedOwned
+    ? petArtHtml(selectedOwned, 72)
+    : "🐾";
+  $("battleMyHpBar").style.width = "100%";
+  $("battleEnemyHpBar").style.width = "100%";
+  $("battleMyHpText").textContent = myMax + " / " + myMax;
+  $("battleEnemyHpText").textContent = enMax + " / " + enMax;
+  $("battleLog").textContent = "Expedition start!";
+  $("battleRoundLabel").textContent = "Round 1";
+
+  const rounds = data.rounds || [];
+  for (let i = 0; i < rounds.length; i++) {
+    const r = rounds[i];
+    $("battleRoundLabel").textContent = "Round " + (r.round || i + 1);
+    $("battleLog").textContent = r.text || (r.actor === "you" ? "You hit!" : "Enemy hits!");
+    const myPct = Math.max(0, Math.min(100, (r.myHp / myMax) * 100));
+    const enPct = Math.max(0, Math.min(100, (r.enHp / enMax) * 100));
+    $("battleMyHpBar").style.width = myPct + "%";
+    $("battleEnemyHpBar").style.width = enPct + "%";
+    $("battleMyHpText").textContent = Math.round(r.myHp) + " / " + myMax;
+    $("battleEnemyHpText").textContent = Math.round(r.enHp) + " / " + enMax;
+    await new Promise(ok => setTimeout(ok, 700));
+  }
+
+  const win = data.result === "WIN";
+  $("battleResultBadge").textContent = win ? "🏆" : "💀";
+  $("battleResultTitle").textContent = win ? "Victory" : "Defeat";
+  $("battleResultTitle").style.color = win ? "#ffd54f" : "#ff8899";
+  $("battleResultReward").textContent =
+    (win ? "+" : "+") + (data.reward || 0) + " AMT";
+  $("battleResultPanel").classList.remove("hidden");
 }
 
 async function listPetForSale() {
