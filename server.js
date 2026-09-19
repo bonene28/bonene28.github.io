@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.14
+FULL SERVER VERSION 2.4.15
 
 IMPORTANT:
 - TESTNET ONLY
@@ -94,6 +94,10 @@ const MINING_DURATION_SECONDS =
 const MAXIMUM_BASE_REWARD = Number(
   (AMT_MINING_RATE * 24).toFixed(8)
 );
+
+/* Daily login reward — 1 claim per UTC day, streak bonus up to 7 days */
+const DAILY_REWARD_AMOUNTS = [1, 1.5, 2, 2.5, 3, 3.5, 5]; // index 0 = day 1 streak
+const DAILY_MAX_STREAK = DAILY_REWARD_AMOUNTS.length;
 
 const AIRDROP_AMOUNT_AMT = Number(
   process.env.AIRDROP_AMOUNT_AMT || "100"
@@ -1033,7 +1037,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.14",
+      "2.4.15",
 
     features: [
       "Pi Login",
@@ -3215,6 +3219,159 @@ app.post(
     }
   }
 );
+
+/* =========================================================
+DAILY REWARD (1x per UTC day + streak)
+========================================================= */
+
+app.get("/api/daily/status", requireAuth, async (req, res) => {
+  try {
+    await ensureDailyRewardTable();
+    const today = utcDateString();
+    const yesterday = yesterdayUtcString();
+
+    const last = await pool.query(
+      `SELECT claim_date, amount, streak, created_at
+       FROM daily_rewards
+       WHERE member_id = $1
+       ORDER BY claim_date DESC
+       LIMIT 1`,
+      [req.member.id]
+    );
+
+    let streak = 0;
+    let claimedToday = false;
+    let lastClaimDate = null;
+    let lastAmount = null;
+
+    if (last.rows.length) {
+      const row = last.rows[0];
+      lastClaimDate = String(row.claim_date).slice(0, 10);
+      lastAmount = Number(row.amount);
+      if (lastClaimDate === today) {
+        claimedToday = true;
+        streak = Number(row.streak) || 1;
+      } else if (lastClaimDate === yesterday) {
+        streak = Number(row.streak) || 1;
+      } else {
+        streak = 0;
+      }
+    }
+
+    const nextStreak = claimedToday
+      ? streak
+      : Math.min(DAILY_MAX_STREAK, (streak || 0) + 1);
+    const nextAmount = dailyAmountForStreak(nextStreak);
+
+    // Next claim available at next UTC midnight if already claimed
+    let nextClaimAt = null;
+    let secondsUntilReset = 0;
+    if (claimedToday) {
+      const now = new Date();
+      const next = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 1,
+        0, 0, 0, 0
+      ));
+      nextClaimAt = next.toISOString();
+      secondsUntilReset = Math.max(0, Math.ceil((next.getTime() - now.getTime()) / 1000));
+    }
+
+    res.json({
+      ok: true,
+      claimedToday,
+      streak: claimedToday ? streak : streak,
+      nextStreak,
+      nextAmount,
+      lastClaimDate,
+      lastAmount,
+      nextClaimAt,
+      secondsUntilReset,
+      maxStreak: DAILY_MAX_STREAK,
+      schedule: DAILY_REWARD_AMOUNTS,
+      canClaim: !claimedToday
+    });
+  } catch (e) {
+    console.error("DAILY STATUS ERROR:", e);
+    res.status(500).json({ ok: false, error: "Unable to load daily reward." });
+  }
+});
+
+app.post("/api/daily/claim", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await ensureDailyRewardTable();
+    await client.query("BEGIN");
+    await client.query(`SELECT id FROM members WHERE id = $1 FOR UPDATE`, [req.member.id]);
+
+    const today = utcDateString();
+    const yesterday = yesterdayUtcString();
+
+    const existing = await client.query(
+      `SELECT id FROM daily_rewards WHERE member_id = $1 AND claim_date = $2`,
+      [req.member.id, today]
+    );
+    if (existing.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        ok: false,
+        error: "Daily reward already claimed today. Come back after UTC midnight."
+      });
+    }
+
+    const last = await client.query(
+      `SELECT claim_date, streak FROM daily_rewards
+       WHERE member_id = $1 ORDER BY claim_date DESC LIMIT 1`,
+      [req.member.id]
+    );
+
+    let streak = 1;
+    if (last.rows.length) {
+      const lastDate = String(last.rows[0].claim_date).slice(0, 10);
+      if (lastDate === yesterday) {
+        streak = Math.min(DAILY_MAX_STREAK, (Number(last.rows[0].streak) || 1) + 1);
+      }
+    }
+
+    const amount = dailyAmountForStreak(streak);
+    const reference = makeReference("AMT-DAILY");
+
+    await client.query(
+      `INSERT INTO daily_rewards (member_id, claim_date, amount, streak)
+       VALUES ($1, $2, $3, $4)`,
+      [req.member.id, today, amount, streak]
+    );
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference)
+       VALUES ($1, $2, 'DAILY_REWARD', $3)`,
+      [req.member.id, amount, reference]
+    );
+
+    await client.query("COMMIT");
+    const balance = await getBalance(req.member.id);
+
+    res.json({
+      ok: true,
+      claimed: true,
+      amount,
+      streak,
+      claimDate: today,
+      reference,
+      balance,
+      message: "Daily reward +" + amount + " AMT · Streak " + streak + "/" + DAILY_MAX_STREAK
+    });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("DAILY CLAIM ERROR:", e);
+    res.status(500).json({
+      ok: false,
+      error: "Unable to claim daily reward. " + (e.message || "")
+    });
+  } finally {
+    client.release();
+  }
+});
 
 /* =========================================================
 REFERRAL
@@ -6058,6 +6215,37 @@ async function ensurePetTables() {
 
 ensurePetTables().catch(err => console.error("Pet tables init:", err.message));
 
+async function ensureDailyRewardTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS daily_rewards (
+      id BIGSERIAL PRIMARY KEY,
+      member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      claim_date DATE NOT NULL,
+      amount NUMERIC(20,8) NOT NULL,
+      streak INT NOT NULL DEFAULT 1,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (member_id, claim_date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_daily_rewards_member ON daily_rewards(member_id);
+  `);
+}
+ensureDailyRewardTable().catch(err => console.error("Daily rewards table init:", err.message));
+
+function utcDateString(d = new Date()) {
+  return d.toISOString().slice(0, 10);
+}
+
+function yesterdayUtcString() {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function dailyAmountForStreak(streak) {
+  const s = Math.max(1, Math.min(DAILY_MAX_STREAK, Number(streak) || 1));
+  return DAILY_REWARD_AMOUNTS[s - 1];
+}
+
 /* ---------- Catalog ---------- */
 app.get("/api/pets", async (req, res) => {
   try {
@@ -8122,7 +8310,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.14"
+          "Version: 2.4.15"
         );
 
         console.log(
