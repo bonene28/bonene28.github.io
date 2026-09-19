@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.15
+FULL SERVER VERSION 2.4.16
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1037,7 +1037,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.15",
+      "2.4.16",
 
     features: [
       "Pi Login",
@@ -6525,7 +6525,7 @@ app.post("/api/pets/train", requireAuth, async (req, res) => {
 app.post("/api/pets/breed", requireAuth, async (req, res) => {
   const p1 = Number(req.body?.pet1Id);
   const p2 = Number(req.body?.pet2Id);
-  if (!Number.isInteger(p1) || !Number.isInteger(p2) || p1 === p2) {
+  if (!Number.isFinite(p1) || !Number.isFinite(p2) || p1 < 1 || p2 < 1 || p1 === p2) {
     return res.status(400).json({ ok: false, error: "Two different owned pet IDs required." });
   }
   const cost = 1.0;
@@ -8310,7 +8310,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.15"
+          "Version: 2.4.16"
         );
 
         console.log(
