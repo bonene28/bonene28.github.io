@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.11
+FULL SERVER VERSION 2.4.12
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1033,7 +1033,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.11",
+      "2.4.12",
 
     features: [
       "Pi Login",
@@ -6037,6 +6037,23 @@ async function ensurePetTables() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  // Ensure columns exist if table was created by older schema
+  const alts = [
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS energy INT NOT NULL DEFAULT 100`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS happiness INT NOT NULL DEFAULT 100`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS is_listed BOOLEAN NOT NULL DEFAULT FALSE`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS image TEXT`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS level INT NOT NULL DEFAULT 1`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS exp INT NOT NULL DEFAULT 0`
+  ];
+  for (const q of alts) {
+    try {
+      await pool.query(q);
+    } catch (e) {
+      /* ignore */
+    }
+  }
 }
 
 ensurePetTables().catch(err => console.error("Pet tables init:", err.message));
@@ -6148,13 +6165,23 @@ app.post("/api/pets/buy", requireAuth, async (req, res) => {
 /* ---------- My pets ---------- */
 app.get("/api/pets/owned", requireAuth, async (req, res) => {
   try {
+    await ensurePetTables();
     const result = await pool.query(
-      `SELECT * FROM owned_pets WHERE member_id = $1 ORDER BY purchased_at DESC`,
+      `SELECT * FROM owned_pets WHERE member_id = $1 ORDER BY id DESC`,
       [req.member.id]
     );
-    res.json({ ok: true, count: result.rows.length, pets: result.rows });
+    res.json({
+      ok: true,
+      count: result.rows.length,
+      memberId: req.member.id,
+      pets: result.rows
+    });
   } catch (e) {
-    res.status(500).json({ ok: false, error: "Unable to load owned pets." });
+    console.error("OWNED PETS ERROR:", e);
+    res.status(500).json({
+      ok: false,
+      error: "Unable to load owned pets. " + (e.message || "")
+    });
   }
 });
 
@@ -8035,7 +8062,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.11"
+          "Version: 2.4.12"
         );
 
         console.log(
