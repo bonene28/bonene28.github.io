@@ -1819,6 +1819,12 @@ SELECT 180D
 
 <!-- SHOP -->
 <div id="petShopPanel">
+<div class="card" id="starterPetCard" style="margin-bottom:12px;border:1px solid rgba(255,212,82,.25)">
+<div class="card-title">🎁 STARTER PET</div>
+<div class="muted" style="font-size:12px;margin-bottom:10px">Free Common pet · once per pioneer · onboarding for the ecosystem</div>
+<button class="primary" id="claimStarterBtn" onclick="claimStarterPet()">CLAIM FREE TERRA</button>
+<div class="muted" id="starterPetHint" style="margin-top:8px;font-size:11px;text-align:center"></div>
+</div>
 <div class="card" style="margin-bottom:12px;padding:12px">
 <div style="display:flex;flex-wrap:wrap;gap:6px" id="elementFilters">
 <button class="small-btn" style="width:auto;padding:8px 12px" onclick="filterPets('')">All</button>
@@ -1836,7 +1842,10 @@ SELECT 180D
 
 <!-- MY PETS -->
 <div id="petOwnedPanel" class="hidden">
-<div id="ownedPetGrid" class="market-grid"><div class="empty">No pets yet. Buy from Shop.</div></div>
+<div class="notice" style="margin-bottom:10px;font-size:11px">
+  Level milestones: <b>Lv10 → +2 AMT</b> · <b>Lv20 → +5</b> · <b>Lv50 Mythic → +15</b> (once per pet)
+</div>
+<div id="ownedPetGrid" class="market-grid"><div class="empty">No pets yet. Claim starter or buy from Shop.</div></div>
 </div>
 
 <!-- EGGS / BREED / INCUBATOR -->
@@ -1973,9 +1982,12 @@ SELECT 180D
 </div>
 <button class="secondary" style="margin-bottom:8px" onclick="carePet('feed')">🍖 FEED (0.2 AMT)</button>
 <button class="secondary" style="margin-bottom:8px" onclick="carePet('play')">🎾 PLAY (0.1 AMT)</button>
+<button class="secondary" style="margin-bottom:8px" onclick="buyEnergyPack('energy')">⚡ ENERGY PACK (1 AMT)</button>
+<button class="secondary" style="margin-bottom:8px" onclick="buyEnergyPack('full')">💖 FULL PACK (3 AMT)</button>
 <button class="secondary" style="margin-bottom:8px" onclick="trainPet('atk')">⚔️ TRAIN ATK (0.5)</button>
 <button class="secondary" style="margin-bottom:8px" onclick="trainPet('hp')">❤️ TRAIN HP (0.5)</button>
 <button class="primary" style="margin-bottom:8px" onclick="battlePet()">⚔️ BATTLE</button>
+<div class="muted" style="font-size:10px;margin:6px 0 10px;text-align:center">Milestones: Lv10 +2 · Lv20 +5 · Lv50 +15 AMT</div>
 <div class="form-group" style="margin-top:10px">
 <label>Sell Price (AMT)</label>
 <input id="sellPrice" class="input" type="number" min="0.1" step="0.1" placeholder="1.0">
@@ -4322,7 +4334,7 @@ function petTab(tab) {
     const el = $(id);
     if (el) el.classList.add("hidden");
   });
-  if (tab === "shop") { $("petShopPanel").classList.remove("hidden"); loadPets(currentElementFilter); }
+  if (tab === "shop") { $("petShopPanel").classList.remove("hidden"); loadPets(currentElementFilter); loadStarterStatus(); }
   if (tab === "owned") { $("petOwnedPanel").classList.remove("hidden"); loadOwnedPets(); }
   if (tab === "eggs") { $("petEggsPanel").classList.remove("hidden"); loadEggs(); }
   if (tab === "listings") { $("petListingsPanel").classList.remove("hidden"); loadListings(); }
@@ -4618,12 +4630,74 @@ async function trainPet(stat) {
       body: JSON.stringify({ ownedPetId: ownedId, stat: stat || "atk" })
     });
     if (!data || !data.pet) throw new Error(data?.error || "Train failed — no pet returned");
-    showToast("Trained " + String(stat).toUpperCase() + " +" + (data.gain || ""));
+    let msg = "Trained " + String(stat).toUpperCase() + " +" + (data.gain || "");
+    if (data.milestones && data.milestones.length) {
+      const b = data.milestones.map(m => "Lv" + m.level + " +" + m.amount).join(", ");
+      msg += " · Milestone " + b + " AMT!";
+    }
+    showToast(msg);
     fillOwnedModalFromPet(data.pet);
     await refreshWallet();
     loadOwnedPets().catch(() => {});
   } catch (e) {
     showToast(e.message || "Train failed", true);
+  }
+}
+
+async function claimStarterPet() {
+  const btn = $("claimStarterBtn");
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = "CLAIMING…"; }
+    const data = await api("/api/pets/claim-starter", { method: "POST", body: "{}" });
+    showToast(data.message || ("Starter " + (data.pet && data.pet.name) + " claimed!"));
+    if ($("starterPetCard")) $("starterPetCard").classList.add("hidden");
+    await loadOwnedPets();
+    petTab("owned");
+  } catch (e) {
+    showToast(e.message || "Claim failed", true);
+    if (btn) { btn.disabled = false; btn.textContent = "CLAIM FREE TERRA"; }
+    loadStarterStatus();
+  }
+}
+
+async function loadStarterStatus() {
+  try {
+    const data = await api("/api/pets/starter-status");
+    const card = $("starterPetCard");
+    const btn = $("claimStarterBtn");
+    const hint = $("starterPetHint");
+    if (!card) return;
+    if (data.claimed) {
+      card.classList.add("hidden");
+    } else {
+      card.classList.remove("hidden");
+      if (btn) { btn.disabled = false; btn.textContent = "CLAIM FREE TERRA"; }
+      if (hint) hint.textContent = "One-time free Common pet for every pioneer";
+    }
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+async function buyEnergyPack(pack) {
+  if (!selectedOwned || !selectedOwned.id) {
+    showToast("Open a pet first (My Pets → VIEW).", true);
+    return;
+  }
+  try {
+    const data = await api("/api/pets/energy-pack", {
+      method: "POST",
+      body: JSON.stringify({
+        ownedPetId: Number(selectedOwned.id),
+        pack: pack || "energy"
+      })
+    });
+    showToast(data.message || "Pack applied");
+    if (data.pet) fillOwnedModalFromPet(data.pet);
+    await refreshWallet();
+    loadOwnedPets().catch(() => {});
+  } catch (e) {
+    showToast(e.message || "Pack failed", true);
   }
 }
 
@@ -4644,6 +4718,10 @@ async function battlePet() {
       body: JSON.stringify({ ownedPetId: ownedId })
     });
     await playBattleArena(data);
+    if (data.milestones && data.milestones.length) {
+      const b = data.milestones.map(m => "Lv" + m.level + " +" + m.amount).join(", ");
+      showToast("Level milestone: " + b + " AMT!");
+    }
     await refreshWallet();
     await loadOwnedPets();
   } catch (e) {
