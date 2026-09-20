@@ -4304,27 +4304,63 @@ function petImgCandidates(pet) {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
   const rarity = String(pet.rarity || "Common").toLowerCase();
-  const id = String(pet.pet_id || pet.id || "").replace(/-hatch$/i, "");
+  // Normalize id: strip hatch/egg suffixes from owned instances
+  let id = String(pet.pet_id || pet.id || "")
+    .replace(/-hatch$/i, "")
+    .replace(/-egg\d+$/i, "");
+  // Catalog id is always element-slug (e.g. earth-rock-puppy)
   const path = pet.image || pet.imageUrl || pet.image_url || "";
 
   if (path && (/^https?:\/\//i.test(path) || path.startsWith("data:"))) {
     list.push(path);
   }
-  // Mainnet-ready folder structure
+
+  // 1) GitHub root (you uploaded files here) — PRIORITY
+  if (id) {
+    list.push(id + ".png");
+    list.push(id + ".jpg");
+  }
+  // From display name: earth + rockpuppy → earth-rock-puppy
+  const element = String(pet.element || "").toLowerCase();
+  if (element && nameKey) {
+    // "Rock Puppy" → rockpuppy; prefer hyphenated slug from id when possible
+    const slugName = String(pet.name || "")
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+    if (slugName) {
+      list.push(element + "-" + slugName + ".png");
+    }
+  }
+
+  // 2) assets/pets structure (Mainnet folder)
   if (id) {
     list.push(PET_ASSETS_BASE + "/" + rarity + "/" + id + ".png");
     list.push(PET_ASSETS_BASE + "/common/" + id + ".png");
   }
+
+  // 3) Backend relative paths
   if (path && !/^https?:\/\//i.test(path) && !path.startsWith("data:")) {
-    // backend path e.g. pets/common/earth-terra.png
     list.push(path);
+    // basename only (root)
+    const base = path.split("/").pop();
+    if (base) list.push(base);
     list.push(PET_ASSETS_BASE + "/" + path.replace(/^pets\//, ""));
   }
-  // Legacy GitHub root uploads
+
+  // 4) Legacy map
   if (nameKey && PET_FILE_BY_NAME[nameKey]) {
     list.push(PET_FILE_BY_NAME[nameKey]);
   }
-  return list.filter(Boolean);
+
+  // unique preserve order
+  const seen = {};
+  return list.filter((u) => {
+    if (!u || seen[u]) return false;
+    seen[u] = true;
+    return true;
+  });
 }
 
 function petImg(pet) {
