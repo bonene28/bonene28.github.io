@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.20
+FULL SERVER VERSION 2.4.23
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1130,7 +1130,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.20",
+      "2.4.23",
 
     features: [
       "Pi Login",
@@ -5242,7 +5242,56 @@ const PET_ELEMENTS = [
   "Earth", "Water", "Nature", "Ice", "Fire", "Wind", "Thunder"
 ];
 
-const PET_RARITIES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
+const PET_RARITIES = [
+  "Common",
+  "Uncommon",
+  "Rare",
+  "Epic",
+  "Legendary",
+  "Mythic"
+];
+
+/* Level → max rarity pioneers can reach by training/battling */
+function rarityRank(r) {
+  const i = PET_RARITIES.indexOf(String(r || "Common"));
+  return i < 0 ? 0 : i;
+}
+function rarityFromLevel(level) {
+  const lv = Math.max(1, Number(level) || 1);
+  if (lv >= 50) return "Mythic";
+  if (lv >= 40) return "Legendary";
+  if (lv >= 30) return "Epic";
+  if (lv >= 20) return "Rare";
+  if (lv >= 10) return "Uncommon";
+  return "Common";
+}
+/** Option A: rarity is 100% from pet level (shop rarity = price tier only). */
+function evolvedRarity(_baseRarity, level) {
+  return rarityFromLevel(level);
+}
+async function applyLevelAndRarity(client, ownedId) {
+  const db = client || pool;
+  const row = await db.query(
+    `SELECT id, level, exp FROM owned_pets WHERE id = $1`,
+    [ownedId]
+  );
+  if (!row.rows.length) return null;
+  let { level, exp } = row.rows[0];
+  level = Number(level) || 1;
+  exp = Number(exp) || 0;
+  // Multi level-up if lots of exp
+  while (exp >= level * 50 && level < 99) {
+    exp -= level * 50;
+    level += 1;
+  }
+  const newRarity = rarityFromLevel(level);
+  const updated = await db.query(
+    `UPDATE owned_pets SET level = $1, exp = $2, rarity = $3
+     WHERE id = $4 RETURNING *`,
+    [level, exp, newRarity, ownedId]
+  );
+  return updated.rows[0];
+}
 
 const AMT_PETS = [
   {
@@ -5319,70 +5368,70 @@ const AMT_PETS = [
     "id": "earth-muddo",
     "name": "Muddo",
     "element": "Earth",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 90,
-    "atk": 13,
-    "def": 19,
-    "spd": 8,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 103,
+    "atk": 15,
+    "def": 22,
+    "spd": 9,
     "ability": "Stone Guard",
-    "image": "pets/common/earth-muddo.png",
+    "image": "pets/uncommon/earth-muddo.png",
     "number": 6
   },
   {
     "id": "earth-stonix",
     "name": "Stonix",
     "element": "Earth",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 88,
-    "atk": 16,
-    "def": 18,
-    "spd": 12,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 101,
+    "atk": 18,
+    "def": 21,
+    "spd": 14,
     "ability": "Stone Guard",
-    "image": "pets/common/earth-stonix.png",
+    "image": "pets/uncommon/earth-stonix.png",
     "number": 7
   },
   {
     "id": "earth-earthen",
     "name": "Earthen",
     "element": "Earth",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 82,
-    "atk": 14,
-    "def": 17,
-    "spd": 13,
+    "rarity": "Rare",
+    "priceAmt": 8,
+    "hp": 108,
+    "atk": 18,
+    "def": 22,
+    "spd": 17,
     "ability": "Stone Guard",
-    "image": "pets/common/earth-earthen.png",
+    "image": "pets/rare/earth-earthen.png",
     "number": 8
   },
   {
     "id": "earth-golem",
     "name": "Golem",
     "element": "Earth",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 110,
-    "atk": 9,
-    "def": 28,
-    "spd": 4,
+    "rarity": "Epic",
+    "priceAmt": 25,
+    "hp": 171,
+    "atk": 14,
+    "def": 43,
+    "spd": 6,
     "ability": "Stone Guard",
-    "image": "pets/common/earth-golem.png",
+    "image": "pets/epic/earth-golem.png",
     "number": 9
   },
   {
     "id": "earth-pebble",
     "name": "Pebble",
     "element": "Earth",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 70,
-    "atk": 15,
-    "def": 14,
-    "spd": 14,
+    "rarity": "Legendary",
+    "priceAmt": 80,
+    "hp": 130,
+    "atk": 28,
+    "def": 26,
+    "spd": 26,
     "ability": "Stone Guard",
-    "image": "pets/common/earth-pebble.png",
+    "image": "pets/legendary/earth-pebble.png",
     "number": 10
   },
   {
@@ -5459,70 +5508,70 @@ const AMT_PETS = [
     "id": "water-coral",
     "name": "Coral",
     "element": "Water",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 78,
-    "atk": 14,
-    "def": 15,
-    "spd": 11,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 90,
+    "atk": 16,
+    "def": 17,
+    "spd": 13,
     "ability": "Tidal Flow",
-    "image": "pets/common/water-coral.png",
+    "image": "pets/uncommon/water-coral.png",
     "number": 16
   },
   {
     "id": "water-nereid",
     "name": "Nereid",
     "element": "Water",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 74,
-    "atk": 16,
-    "def": 12,
-    "spd": 15,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 85,
+    "atk": 18,
+    "def": 14,
+    "spd": 17,
     "ability": "Tidal Flow",
-    "image": "pets/common/water-nereid.png",
+    "image": "pets/uncommon/water-nereid.png",
     "number": 17
   },
   {
     "id": "water-oceanix",
     "name": "Oceanix",
     "element": "Water",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 85,
-    "atk": 13,
-    "def": 16,
-    "spd": 10,
+    "rarity": "Rare",
+    "priceAmt": 8,
+    "hp": 112,
+    "atk": 17,
+    "def": 21,
+    "spd": 13,
     "ability": "Tidal Flow",
-    "image": "pets/common/water-oceanix.png",
+    "image": "pets/rare/water-oceanix.png",
     "number": 18
   },
   {
     "id": "water-wave",
     "name": "Wave",
     "element": "Water",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 76,
-    "atk": 17,
-    "def": 11,
-    "spd": 16,
+    "rarity": "Epic",
+    "priceAmt": 25,
+    "hp": 118,
+    "atk": 26,
+    "def": 17,
+    "spd": 25,
     "ability": "Tidal Flow",
-    "image": "pets/common/water-wave.png",
+    "image": "pets/epic/water-wave.png",
     "number": 19
   },
   {
     "id": "water-ripple",
     "name": "Ripple",
     "element": "Water",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 68,
-    "atk": 12,
-    "def": 12,
-    "spd": 18,
+    "rarity": "Legendary",
+    "priceAmt": 80,
+    "hp": 126,
+    "atk": 22,
+    "def": 22,
+    "spd": 33,
     "ability": "Tidal Flow",
-    "image": "pets/common/water-ripple.png",
+    "image": "pets/legendary/water-ripple.png",
     "number": 20
   },
   {
@@ -5599,70 +5648,70 @@ const AMT_PETS = [
     "id": "nature-moss",
     "name": "Moss",
     "element": "Nature",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 88,
-    "atk": 10,
-    "def": 20,
-    "spd": 7,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 101,
+    "atk": 12,
+    "def": 23,
+    "spd": 8,
     "ability": "Nature's Blessing",
-    "image": "pets/common/nature-moss.png",
+    "image": "pets/uncommon/nature-moss.png",
     "number": 26
   },
   {
     "id": "nature-willow",
     "name": "Willow",
     "element": "Nature",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 78,
-    "atk": 13,
-    "def": 16,
-    "spd": 13,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 90,
+    "atk": 15,
+    "def": 18,
+    "spd": 15,
     "ability": "Nature's Blessing",
-    "image": "pets/common/nature-willow.png",
+    "image": "pets/uncommon/nature-willow.png",
     "number": 27
   },
   {
     "id": "nature-vine",
     "name": "Vine",
     "element": "Nature",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 76,
-    "atk": 16,
-    "def": 14,
-    "spd": 12,
+    "rarity": "Rare",
+    "priceAmt": 8,
+    "hp": 100,
+    "atk": 21,
+    "def": 18,
+    "spd": 16,
     "ability": "Nature's Blessing",
-    "image": "pets/common/nature-vine.png",
+    "image": "pets/rare/nature-vine.png",
     "number": 28
   },
   {
     "id": "nature-thorn",
     "name": "Thorn",
     "element": "Nature",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 80,
-    "atk": 17,
-    "def": 15,
-    "spd": 11,
+    "rarity": "Epic",
+    "priceAmt": 25,
+    "hp": 124,
+    "atk": 26,
+    "def": 23,
+    "spd": 17,
     "ability": "Nature's Blessing",
-    "image": "pets/common/nature-thorn.png",
+    "image": "pets/epic/nature-thorn.png",
     "number": 29
   },
   {
     "id": "nature-flora",
     "name": "Flora",
     "element": "Nature",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 74,
-    "atk": 14,
-    "def": 15,
-    "spd": 13,
+    "rarity": "Legendary",
+    "priceAmt": 80,
+    "hp": 137,
+    "atk": 26,
+    "def": 28,
+    "spd": 24,
     "ability": "Nature's Blessing",
-    "image": "pets/common/nature-flora.png",
+    "image": "pets/legendary/nature-flora.png",
     "number": 30
   },
   {
@@ -5739,70 +5788,70 @@ const AMT_PETS = [
     "id": "ice-chill",
     "name": "Chill",
     "element": "Ice",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 72,
-    "atk": 14,
-    "def": 13,
-    "spd": 13,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 83,
+    "atk": 16,
+    "def": 15,
+    "spd": 15,
     "ability": "Frost Armor",
-    "image": "pets/common/ice-chill.png",
+    "image": "pets/uncommon/ice-chill.png",
     "number": 36
   },
   {
     "id": "ice-crystal",
     "name": "Crystal",
     "element": "Ice",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 80,
-    "atk": 15,
-    "def": 16,
-    "spd": 12,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 92,
+    "atk": 17,
+    "def": 18,
+    "spd": 14,
     "ability": "Frost Armor",
-    "image": "pets/common/ice-crystal.png",
+    "image": "pets/uncommon/ice-crystal.png",
     "number": 37
   },
   {
     "id": "ice-polar",
     "name": "Polar",
     "element": "Ice",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 88,
-    "atk": 12,
-    "def": 18,
-    "spd": 9,
+    "rarity": "Rare",
+    "priceAmt": 8,
+    "hp": 116,
+    "atk": 16,
+    "def": 24,
+    "spd": 12,
     "ability": "Frost Armor",
-    "image": "pets/common/ice-polar.png",
+    "image": "pets/rare/ice-polar.png",
     "number": 38
   },
   {
     "id": "ice-frostbite",
     "name": "Frostbite",
     "element": "Ice",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 76,
-    "atk": 17,
-    "def": 14,
-    "spd": 13,
+    "rarity": "Epic",
+    "priceAmt": 25,
+    "hp": 118,
+    "atk": 26,
+    "def": 22,
+    "spd": 20,
     "ability": "Frost Armor",
-    "image": "pets/common/ice-frostbite.png",
+    "image": "pets/epic/ice-frostbite.png",
     "number": 39
   },
   {
     "id": "ice-shard",
     "name": "Shard",
     "element": "Ice",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 74,
-    "atk": 15,
-    "def": 15,
-    "spd": 14,
+    "rarity": "Legendary",
+    "priceAmt": 80,
+    "hp": 137,
+    "atk": 28,
+    "def": 28,
+    "spd": 26,
     "ability": "Frost Armor",
-    "image": "pets/common/ice-shard.png",
+    "image": "pets/legendary/ice-shard.png",
     "number": 40
   },
   {
@@ -5879,70 +5928,70 @@ const AMT_PETS = [
     "id": "fire-cinder",
     "name": "Cinder",
     "element": "Fire",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 74,
-    "atk": 15,
-    "def": 13,
-    "spd": 13,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 85,
+    "atk": 17,
+    "def": 15,
+    "spd": 15,
     "ability": "Burn",
-    "image": "pets/common/fire-cinder.png",
+    "image": "pets/uncommon/fire-cinder.png",
     "number": 46
   },
   {
     "id": "fire-spark",
     "name": "Spark",
     "element": "Fire",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 65,
-    "atk": 18,
-    "def": 10,
-    "spd": 16,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 75,
+    "atk": 21,
+    "def": 12,
+    "spd": 18,
     "ability": "Burn",
-    "image": "pets/common/fire-spark.png",
+    "image": "pets/uncommon/fire-spark.png",
     "number": 47
   },
   {
     "id": "fire-magma",
     "name": "Magma",
     "element": "Fire",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 90,
-    "atk": 14,
-    "def": 18,
-    "spd": 8,
+    "rarity": "Rare",
+    "priceAmt": 8,
+    "hp": 119,
+    "atk": 18,
+    "def": 24,
+    "spd": 11,
     "ability": "Burn",
-    "image": "pets/common/fire-magma.png",
+    "image": "pets/rare/fire-magma.png",
     "number": 48
   },
   {
     "id": "fire-lava",
     "name": "Lava",
     "element": "Fire",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 88,
-    "atk": 17,
-    "def": 15,
-    "spd": 10,
+    "rarity": "Epic",
+    "priceAmt": 25,
+    "hp": 136,
+    "atk": 26,
+    "def": 23,
+    "spd": 16,
     "ability": "Burn",
-    "image": "pets/common/fire-lava.png",
+    "image": "pets/epic/fire-lava.png",
     "number": 49
   },
   {
     "id": "fire-ash",
     "name": "Ash",
     "element": "Fire",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 76,
-    "atk": 16,
-    "def": 12,
-    "spd": 14,
+    "rarity": "Legendary",
+    "priceAmt": 80,
+    "hp": 141,
+    "atk": 30,
+    "def": 22,
+    "spd": 26,
     "ability": "Burn",
-    "image": "pets/common/fire-ash.png",
+    "image": "pets/legendary/fire-ash.png",
     "number": 50
   },
   {
@@ -6019,70 +6068,70 @@ const AMT_PETS = [
     "id": "wind-aero",
     "name": "Aero",
     "element": "Wind",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 70,
-    "atk": 14,
-    "def": 11,
-    "spd": 18,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 81,
+    "atk": 16,
+    "def": 13,
+    "spd": 21,
     "ability": "Swift Wind",
-    "image": "pets/common/wind-aero.png",
+    "image": "pets/uncommon/wind-aero.png",
     "number": 56
   },
   {
     "id": "wind-whisper",
     "name": "Whisper",
     "element": "Wind",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 62,
-    "atk": 13,
-    "def": 10,
-    "spd": 21,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 71,
+    "atk": 15,
+    "def": 12,
+    "spd": 24,
     "ability": "Swift Wind",
-    "image": "pets/common/wind-whisper.png",
+    "image": "pets/uncommon/wind-whisper.png",
     "number": 57
   },
   {
     "id": "wind-tornado",
     "name": "Tornado",
     "element": "Wind",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 80,
-    "atk": 16,
-    "def": 13,
-    "spd": 16,
+    "rarity": "Rare",
+    "priceAmt": 8,
+    "hp": 106,
+    "atk": 21,
+    "def": 17,
+    "spd": 21,
     "ability": "Swift Wind",
-    "image": "pets/common/wind-tornado.png",
+    "image": "pets/rare/wind-tornado.png",
     "number": 58
   },
   {
     "id": "wind-cyclone",
     "name": "Cyclone",
     "element": "Wind",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 82,
-    "atk": 15,
-    "def": 14,
-    "spd": 15,
+    "rarity": "Epic",
+    "priceAmt": 25,
+    "hp": 127,
+    "atk": 23,
+    "def": 22,
+    "spd": 23,
     "ability": "Swift Wind",
-    "image": "pets/common/wind-cyclone.png",
+    "image": "pets/epic/wind-cyclone.png",
     "number": 59
   },
   {
     "id": "wind-nimbus",
     "name": "Nimbus",
     "element": "Wind",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 85,
-    "atk": 12,
-    "def": 15,
-    "spd": 14,
+    "rarity": "Legendary",
+    "priceAmt": 80,
+    "hp": 157,
+    "atk": 22,
+    "def": 28,
+    "spd": 26,
     "ability": "Swift Wind",
-    "image": "pets/common/wind-nimbus.png",
+    "image": "pets/legendary/wind-nimbus.png",
     "number": 60
   },
   {
@@ -6159,70 +6208,70 @@ const AMT_PETS = [
     "id": "thunder-volt",
     "name": "Volt",
     "element": "Thunder",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 70,
-    "atk": 17,
-    "def": 11,
-    "spd": 17,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 81,
+    "atk": 20,
+    "def": 13,
+    "spd": 20,
     "ability": "Static Shock",
-    "image": "pets/common/thunder-volt.png",
+    "image": "pets/uncommon/thunder-volt.png",
     "number": 66
   },
   {
     "id": "thunder-flash",
     "name": "Flash",
     "element": "Thunder",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 62,
-    "atk": 15,
-    "def": 10,
-    "spd": 20,
+    "rarity": "Uncommon",
+    "priceAmt": 2,
+    "hp": 71,
+    "atk": 17,
+    "def": 12,
+    "spd": 23,
     "ability": "Static Shock",
-    "image": "pets/common/thunder-flash.png",
+    "image": "pets/uncommon/thunder-flash.png",
     "number": 67
   },
   {
     "id": "thunder-surge",
     "name": "Surge",
     "element": "Thunder",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 85,
-    "atk": 18,
-    "def": 14,
-    "spd": 13,
+    "rarity": "Rare",
+    "priceAmt": 8,
+    "hp": 112,
+    "atk": 24,
+    "def": 18,
+    "spd": 17,
     "ability": "Static Shock",
-    "image": "pets/common/thunder-surge.png",
+    "image": "pets/rare/thunder-surge.png",
     "number": 68
   },
   {
     "id": "thunder-flux",
     "name": "Flux",
     "element": "Thunder",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 78,
-    "atk": 16,
-    "def": 13,
-    "spd": 15,
+    "rarity": "Epic",
+    "priceAmt": 25,
+    "hp": 121,
+    "atk": 25,
+    "def": 20,
+    "spd": 23,
     "ability": "Static Shock",
-    "image": "pets/common/thunder-flux.png",
+    "image": "pets/epic/thunder-flux.png",
     "number": 69
   },
   {
     "id": "thunder-tempest",
     "name": "Tempest",
     "element": "Thunder",
-    "rarity": "Common",
-    "priceAmt": 0.5,
-    "hp": 88,
-    "atk": 20,
-    "def": 13,
-    "spd": 14,
+    "rarity": "Legendary",
+    "priceAmt": 80,
+    "hp": 163,
+    "atk": 37,
+    "def": 24,
+    "spd": 26,
     "ability": "Static Shock",
-    "image": "pets/common/thunder-tempest.png",
+    "image": "pets/legendary/thunder-tempest.png",
     "number": 70
   }
 ];
@@ -6580,27 +6629,25 @@ app.post("/api/pets/train", requireAuth, async (req, res) => {
       [req.member.id, -cost, makeReference("AMT-TRAIN")]
     );
     const gain = stat === "hp" ? 5 : 2;
-    // Safe column update (stat is already validated whitelist)
-    const updated = await client.query(
+    // Stat + energy + exp (level/rarity resolved below)
+    await client.query(
       `UPDATE owned_pets SET
         ${stat} = COALESCE(${stat}, 0) + $1,
         energy = GREATEST(0, COALESCE(energy, 0) - 20),
-        exp = COALESCE(exp, 0) + 10,
-        level = CASE
-          WHEN COALESCE(exp, 0) + 10 >= COALESCE(level, 1) * 50
-          THEN COALESCE(level, 1) + 1
-          ELSE COALESCE(level, 1)
-        END
-       WHERE id = $2 RETURNING *`,
+        exp = COALESCE(exp, 0) + 10
+       WHERE id = $2`,
       [gain, ownedId]
     );
+    const petAfter = await applyLevelAndRarity(client, ownedId);
     await client.query("COMMIT");
     res.json({
       ok: true,
       trained: stat,
       gain,
       cost,
-      pet: updated.rows[0]
+      pet: petAfter,
+      rarity: petAfter && petAfter.rarity,
+      level: petAfter && petAfter.level
     });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -6957,9 +7004,10 @@ app.post("/api/pets/battle", requireAuth, async (req, res) => {
 
     await client.query(
       `UPDATE owned_pets SET energy = GREATEST(0, energy - 15),
-        exp = exp + $1 WHERE id = $2`,
+        exp = COALESCE(exp, 0) + $1 WHERE id = $2`,
       [win ? 25 : 8, ownedId]
     );
+    const petAfterBattle = await applyLevelAndRarity(client, ownedId);
     await client.query(
       `INSERT INTO amt_ledger (member_id, amount, type, reference)
        VALUES ($1,$2,'PET_BATTLE',$3)`,
@@ -6975,6 +7023,9 @@ app.post("/api/pets/battle", requireAuth, async (req, res) => {
     res.json({
       ok: true,
       result: win ? "WIN" : "LOSS",
+      petLevel: petAfterBattle && petAfterBattle.level,
+      petRarity: petAfterBattle && petAfterBattle.rarity,
+      petExp: petAfterBattle && petAfterBattle.exp,
       opponent: opp.name,
       opponentElement: opp.element,
       opponentImage: opp.image,
@@ -8428,7 +8479,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.20"
+          "Version: 2.4.23"
         );
 
         console.log(
