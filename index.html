@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090711">
@@ -4368,6 +4371,14 @@ function petImg(pet) {
   return c[0] || "";
 }
 
+const PET_IMG_VER = "20260921b";
+
+function withImgVer(url) {
+  if (!url || /^data:/i.test(url)) return url;
+  if (/^https?:\/\//i.test(url) && url.indexOf("bonene28.github.io") < 0) return url;
+  return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + PET_IMG_VER;
+}
+
 function petArtHtml(pet, size) {
   size = size || 140;
   const emoji = PET_EMOJI[pet.element] || "🐾";
@@ -4375,9 +4386,8 @@ function petArtHtml(pet, size) {
   if (!candidates.length) {
     return `<div class="pet-card-emoji">${emoji}</div>`;
   }
-  // Try first path; onerror cycle through remaining via data-srcs
-  const primary = candidates[0];
-  const rest = candidates.slice(1).join("|");
+  const primary = withImgVer(candidates[0]);
+  const rest = candidates.slice(1).map(withImgVer).join("|");
   return `<img class="pet-card-img" src="${esc(primary)}" alt="${esc(pet.name || "pet")}"
     data-fallbacks="${esc(rest)}"
     style="width:${size}px;height:${size}px;object-fit:contain;border-radius:14px;position:relative;z-index:2;filter:drop-shadow(0 8px 16px rgba(0,0,0,.45))"
