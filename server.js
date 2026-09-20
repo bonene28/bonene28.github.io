@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.25
+FULL SERVER VERSION 2.4.26
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1130,7 +1130,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.25",
+      "2.4.26",
 
     features: [
       "Pi Login",
@@ -7029,34 +7029,88 @@ app.post("/api/pets/hatch", requireAuth, async (req, res) => {
         error: "Egg is listed for sale. Cancel listing first."
       });
     }
-    if (egg.hatch_at && new Date(egg.hatch_at) > new Date()) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        ok: false,
-        error: "Still incubating.",
-        hatchAt: egg.hatch_at
-      });
+    if (egg.hatch_at) {
+      const readyAt = new Date(egg.hatch_at).getTime();
+      // 60s grace for device/server clock skew
+      if (readyAt - 60 * 1000 > Date.now()) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          ok: false,
+          error: "Still incubating.",
+          hatchAt: egg.hatch_at
+        });
+      }
     }
-    // Pick a random common pet of same element
-    const poolPets = AMT_PETS.filter(p => p.element === egg.element);
+    // Pick a random pet of same element (prefer Common for hatch)
+    let poolPets = AMT_PETS.filter(
+      p =>
+        p.element === egg.element &&
+        String(p.rarity || "Common") === "Common"
+    );
+    if (!poolPets.length) {
+      poolPets = AMT_PETS.filter(p => p.element === egg.element);
+    }
+    if (!poolPets.length) poolPets = AMT_PETS.slice();
     const base = poolPets[Math.floor(Math.random() * poolPets.length)] || AMT_PETS[0];
+
+    // Unique owned instance; keep catalog id for art lookup
+    const ownedPetId = String(base.id || "unknown") + "-egg" + eggId;
+    const hatchRarity = rarityFromLevel(1); // Option A: Lv1 = Common
+
     const ins = await client.query(
       `INSERT INTO owned_pets
-        (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability, image)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [req.member.id, base.id + "-hatch", base.name, base.element, "Common",
-       base.hp + 5, base.atk + 1, base.def + 1, base.spd + 1, base.ability, base.image]
+        (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability, image, level, exp, energy, happiness)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1,0,100,100)
+       RETURNING *`,
+      [
+        req.member.id,
+        ownedPetId,
+        base.name,
+        base.element,
+        hatchRarity,
+        Number(base.hp || 80) + 5,
+        Number(base.atk || 10) + 1,
+        Number(base.def || 10) + 1,
+        Number(base.spd || 10) + 1,
+        base.ability || "Hatchling",
+        base.image || null
+      ]
     );
+
+    if (!ins.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(500).json({ ok: false, error: "Hatch insert failed." });
+    }
+
     await client.query(
-      `UPDATE pet_eggs SET status = 'HATCHED' WHERE id = $1`,
+      `UPDATE pet_eggs SET status = 'HATCHED', is_listed = FALSE WHERE id = $1`,
       [eggId]
     );
     await client.query("COMMIT");
-    res.json({ ok: true, hatched: true, pet: ins.rows[0] });
+
+    // Re-read to confirm visible to owner
+    const verify = await pool.query(
+      `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2`,
+      [ins.rows[0].id, req.member.id]
+    );
+    const pet = verify.rows[0] || ins.rows[0];
+
+    res.json({
+      ok: true,
+      hatched: true,
+      pet,
+      eggId,
+      message: "Delivered " + pet.name + " to My Pets!"
+    });
   } catch (e) {
-    try { await client.query("ROLLBACK"); } catch {}
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
     console.error("HATCH ERROR:", e);
-    res.status(500).json({ ok: false, error: "Hatch failed." });
+    res.status(500).json({
+      ok: false,
+      error: "Hatch failed. " + (e.message || "")
+    });
   } finally {
     client.release();
   }
@@ -8957,7 +9011,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.25"
+          "Version: 2.4.26"
         );
 
         console.log(
