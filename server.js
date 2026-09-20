@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.18
+FULL SERVER VERSION 2.4.20
 
 IMPORTANT:
 - TESTNET ONLY
@@ -117,6 +117,16 @@ const DEV_PI_USERNAMES = String(
 const DEV_PI_UIDS = String(process.env.DEV_PI_UIDS || process.env.DEV_PI_UID || "")
   .split(",")
   .map(s => s.trim())
+  .filter(Boolean);
+/* Developer match: in-app AMT ledger address (AMT-...) — NOT on-chain G... */
+const DEV_LEDGER_ADDRESSES = String(
+  process.env.DEV_LEDGER_ADDRESS ||
+    process.env.DEV_WALLETS ||
+    process.env.DEV_WALLET_ADDRESS ||
+    "AMT-654929D9EBBFAEB52B905BBB2C6A7A859685C092"
+)
+  .split(",")
+  .map(s => s.trim().toUpperCase())
   .filter(Boolean);
 const DEV_TREASURY_REF = "AMT-DEV-TREASURY-5M";
 
@@ -660,7 +670,7 @@ async function getAuthenticatedMember(
 
   /* Developer treasury: one-time 5M in-app AMT for rewards / payments */
   try {
-    await ensureDevTreasury(member, piUser);
+    await ensureDevTreasury(member, piUser, wallet);
   } catch (e) {
     console.error("DEV TREASURY:", e.message || e);
   }
@@ -672,7 +682,7 @@ async function getAuthenticatedMember(
   };
 }
 
-async function ensureDevTreasury(member, piUser) {
+async function ensureDevTreasury(member, piUser, ledgerWallet) {
   if (!member || !member.id) return;
   if (DEV_TREASURY_AMT <= 0) return;
 
@@ -681,14 +691,33 @@ async function ensureDevTreasury(member, piUser) {
   ).toLowerCase();
   const uid = String((piUser && piUser.uid) || member.pi_uid || "");
 
-  const matchUser =
-    DEV_PI_USERNAMES.length > 0 &&
-    DEV_PI_USERNAMES.includes(uname);
-  const matchUid =
-    DEV_PI_UIDS.length > 0 && DEV_PI_UIDS.includes(uid);
+  // In-app ledger address (AMT-...)
+  let ledgerAddr = String(
+    (ledgerWallet && ledgerWallet.wallet_address) || ""
+  )
+    .trim()
+    .toUpperCase();
+  if (!ledgerAddr) {
+    try {
+      const w = await pool.query(
+        `SELECT wallet_address FROM amt_wallets WHERE member_id = $1 LIMIT 1`,
+        [member.id]
+      );
+      ledgerAddr = String(w.rows[0]?.wallet_address || "")
+        .trim()
+        .toUpperCase();
+    } catch (e) {}
+  }
 
-  // If no env configured, skip (safe default)
-  if (!matchUser && !matchUid) return;
+  const matchUser =
+    DEV_PI_USERNAMES.length > 0 && DEV_PI_USERNAMES.includes(uname);
+  const matchUid = DEV_PI_UIDS.length > 0 && DEV_PI_UIDS.includes(uid);
+  const matchLedger =
+    ledgerAddr &&
+    DEV_LEDGER_ADDRESSES.length > 0 &&
+    DEV_LEDGER_ADDRESSES.includes(ledgerAddr);
+
+  if (!matchUser && !matchUid && !matchLedger) return;
 
   const exists = await pool.query(
     `SELECT id FROM amt_ledger
@@ -708,7 +737,7 @@ async function ensureDevTreasury(member, piUser) {
     DEV_TREASURY_AMT,
     "AMT → member",
     member.id,
-    uname || uid
+    ledgerAddr || uname || uid
   );
 }
 
@@ -1101,7 +1130,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.18",
+      "2.4.20",
 
     features: [
       "Pi Login",
@@ -8399,7 +8428,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.18"
+          "Version: 2.4.20"
         );
 
         console.log(
