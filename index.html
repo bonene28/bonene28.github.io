@@ -94,6 +94,27 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .egg-progress{height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.07);margin:8px 0}
 .egg-progress span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffd84c,#ff6bcb);transition:width .4s}
 .egg-emoji{font-size:42px;text-align:center;line-height:1}
+/* PiPet-style Baby Room */
+.baby-room-title{font-size:15px;font-weight:900;letter-spacing:.6px;margin:0 0 10px;color:#e8d4ff}
+.baby-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.baby-card{position:relative;padding:14px 10px 12px;border-radius:18px;background:linear-gradient(165deg,rgba(36,24,58,.95),rgba(12,8,22,.98));border:1px solid rgba(180,100,255,.18);text-align:center;min-height:210px}
+.baby-card.ready{border-color:rgba(80,255,160,.4);box-shadow:0 0 18px rgba(60,220,120,.12)}
+.baby-card.listed{border-color:rgba(255,200,60,.35)}
+.baby-card.hatched{opacity:.55}
+.baby-gen{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:rgba(140,80,255,.2);border:1px solid rgba(180,120,255,.35);color:#d4b8ff;margin-bottom:6px}
+.baby-name-row{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.baby-lv{font-size:9px;font-weight:900;background:#5b3cff;color:#fff;padding:2px 6px;border-radius:6px}
+.baby-name{font-size:11px;font-weight:800;color:#fff}
+.baby-egg-art{width:88px;height:88px;margin:6px auto 10px;border-radius:50%;display:grid;place-items:center;font-size:42px;background:radial-gradient(circle at 40% 30%,rgba(255,255,255,.18),transparent 45%),radial-gradient(circle,rgba(120,70,200,.35),rgba(20,12,40,.9));border:2px solid rgba(255,255,255,.08);box-shadow:inset 0 0 20px rgba(0,0,0,.35)}
+.baby-egg-art.ready-glow{animation:eggPulse 1.6s ease-in-out infinite}
+@keyframes eggPulse{0%,100%{box-shadow:0 0 12px rgba(80,255,160,.25)}50%{box-shadow:0 0 22px rgba(80,255,160,.5)}}
+.baby-timer-pill{display:inline-block;font-size:11px;font-weight:900;padding:5px 10px;border-radius:999px;background:rgba(180,40,60,.35);border:1px solid rgba(255,100,120,.35);color:#ffb0ba;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.baby-timer-pill.ready{background:rgba(30,140,70,.35);border-color:rgba(80,255,140,.45);color:#7dffb0}
+.baby-deliver{width:100%;border:0;padding:10px;border-radius:999px;font-weight:900;font-size:12px;color:#0a1a10;background:linear-gradient(100deg,#5dff9a,#b8ff6a);box-shadow:0 4px 14px rgba(80,255,140,.25)}
+.baby-deliver:disabled{opacity:.4;cursor:not-allowed;background:#333;color:#888;box-shadow:none}
+.baby-sell-row{display:flex;gap:6px;margin-top:8px;align-items:center}
+.baby-sell-row input{flex:1;padding:8px;font-size:12px;border-radius:10px}
+.baby-sell-btn{width:auto;padding:8px 10px;font-size:11px;white-space:nowrap}
 /* Virtual AMT Visa card */
 /* ===== PREMIUM AMT VIRTUAL CARD ===== */
 .amt-card-scene{perspective:1200px;max-width:380px;margin:0 auto 12px;cursor:default;filter:drop-shadow(0 16px 36px rgba(0,0,0,.55))}
@@ -1873,10 +1894,10 @@ SELECT 180D
 </div>
 
 <div class="card" style="margin-bottom:10px;padding:12px 14px">
-<div class="card-title" style="margin:0">incubator · 24H</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Eggs hatch after 24 hours. Countdown updates live.</div>
+<div class="baby-room-title">🍼 BABY ROOM · INCUBATOR</div>
+<div class="muted" style="font-size:11px">24h hatch · <b>Deliver baby</b> when ready · Sell eggs on Public Sell</div>
 </div>
-<div id="eggsList"></div>
+<div id="eggsList" class="baby-grid"></div>
 </div>
 
 <!-- Breed pet picker modal -->
@@ -1890,10 +1911,12 @@ SELECT 180D
 </div>
 </div>
 
-<!-- PUBLIC SELL — live P2P from My Pets -->
+<!-- PUBLIC SELL — pets + eggs -->
 <div id="petListingsPanel" class="hidden">
 <div class="notice" style="margin-bottom:12px">
-  List pets from <b>My Pets → VIEW → PUBLIC SELL</b>. Buyers pay with <b>in-app AMT</b>. Pet transfers to buyer.
+  <b>Pets:</b> My Pets → VIEW → PUBLIC SELL ·
+  <b>Eggs:</b> Eggs tab → set price → SELL EGG ·
+  Pay with <b>in-app AMT</b>
 </div>
 <div id="listingsGrid" class="market-grid"><div class="empty">Loading listings...</div></div>
 </div>
@@ -4974,28 +4997,39 @@ function stopEggTimers() {
 
 function startEggCountdown(eggId, hatchAtMs, createdMs) {
   const timerEl = $("eggTimer_" + eggId);
-  const barEl = $("eggBar_" + eggId);
   const btn = $("hatchBtn_" + eggId);
   if (!timerEl) return;
   if (_eggTimers[eggId]) clearInterval(_eggTimers[eggId]);
-  const total = Math.max(1, hatchAtMs - (createdMs || (hatchAtMs - 24 * 3600 * 1000)));
   const tick = () => {
     const left = hatchAtMs - Date.now();
     if (left <= 0) {
       timerEl.textContent = "READY";
-      timerEl.style.color = "#5dff9a";
-      if (barEl) barEl.style.width = "100%";
-      if (btn) { btn.disabled = false; btn.textContent = "🐣 HATCH NOW"; }
+      timerEl.classList.add("ready");
+      if (btn && btn.textContent.indexOf("LISTED") < 0) {
+        btn.disabled = false;
+        btn.textContent = "🐣 Deliver baby";
+      }
       clearInterval(_eggTimers[eggId]);
       delete _eggTimers[eggId];
       return;
     }
     timerEl.textContent = formatCountdown(left);
-    const pct = Math.min(100, Math.max(0, ((total - left) / total) * 100));
-    if (barEl) barEl.style.width = pct + "%";
   };
   tick();
   _eggTimers[eggId] = setInterval(tick, 1000);
+}
+
+function eggArtEmoji(element) {
+  const map = {
+    Earth: "🪨",
+    Water: "💧",
+    Nature: "🌿",
+    Ice: "❄️",
+    Fire: "🔥",
+    Wind: "💨",
+    Thunder: "⚡"
+  };
+  return map[element] || "🥚";
 }
 
 async function loadEggs() {
@@ -5006,49 +5040,89 @@ async function loadEggs() {
     const data = await api("/api/pets/eggs");
     const eggs = data.eggs || [];
     if (!eggs.length) {
-      box.innerHTML = '<div class="empty">No eggs yet. Breed two pets above.</div>';
+      box.className = "";
+      box.innerHTML =
+        '<div class="empty">No eggs yet. Breed two pets above to start incubation.</div>';
       return;
     }
-    box.innerHTML = eggs.map(egg => {
-      const isHatched = egg.status === "HATCHED";
-      const hatchMs = egg.hatch_at ? new Date(egg.hatch_at).getTime() : 0;
-      const createdMs = egg.created_at ? new Date(egg.created_at).getTime() : (hatchMs - 24 * 3600 * 1000);
-      const ready = !isHatched && hatchMs && hatchMs <= Date.now();
-      const incubating = !isHatched && !ready;
-      let cls = "card egg-card";
-      if (ready) cls += " ready";
-      if (isHatched) cls += " hatched";
-      return `<div class="${cls}">
-        <div class="egg-emoji">🥚</div>
-        <div class="row" style="justify-content:center;gap:8px;margin-bottom:4px">
-          <b>${esc(egg.element)} Egg</b>
-          <span class="muted">#${egg.id}</span>
+    box.className = "baby-grid";
+    box.innerHTML = eggs
+      .map((egg) => {
+        const isHatched = egg.status === "HATCHED";
+        const isListed = !!egg.is_listed;
+        const hatchMs = egg.hatch_at ? new Date(egg.hatch_at).getTime() : 0;
+        const createdMs = egg.created_at
+          ? new Date(egg.created_at).getTime()
+          : hatchMs - 24 * 3600 * 1000;
+        const ready = !isHatched && hatchMs && hatchMs <= Date.now();
+        let cls = "baby-card";
+        if (ready) cls += " ready";
+        if (isHatched) cls += " hatched";
+        if (isListed) cls += " listed";
+        const gen = egg.gen || 1;
+        const artCls = ready ? "baby-egg-art ready-glow" : "baby-egg-art";
+        return `<div class="${cls}">
+        <div class="baby-gen">🧬 ${gen} Gen</div>
+        <div class="baby-name-row">
+          <span class="baby-lv">LV.1</span>
+          <span class="baby-name">${esc(egg.element)} Egg #${egg.id}</span>
         </div>
-        <div class="muted" style="text-align:center;font-size:11px">${isHatched ? "Hatched" : (ready ? "Incubation complete" : "Incubating 24h")}</div>
-        ${!isHatched ? `<div class="egg-timer" id="eggTimer_${egg.id}">${ready ? "READY" : "—:—:—"}</div>
-        <div class="egg-progress"><span id="eggBar_${egg.id}" style="width:0%"></span></div>
-        <div class="muted" style="text-align:center;font-size:10px;margin-bottom:8px">Ready: ${hatchMs ? new Date(hatchMs).toLocaleString() : "—"}</div>
-        <button class="primary" id="hatchBtn_${egg.id}" onclick="hatchEgg(${egg.id})" ${ready ? "" : "disabled"}>
-          ${ready ? "🐣 HATCH NOW" : "⏳ INCUBATING"}
-        </button>` : `<div class="notice" style="text-align:center">Already hatched — check My Pets</div>`}
+        <div class="${artCls}">${eggArtEmoji(egg.element)}</div>
+        ${
+          isHatched
+            ? `<div class="muted" style="font-size:11px">Hatched · see My Pets</div>`
+            : `<div class="baby-timer-pill ${ready ? "ready" : ""}" id="eggTimer_${egg.id}">${
+                ready ? "READY" : "—:—:—:—"
+              }</div>
+        <button class="baby-deliver" id="hatchBtn_${egg.id}" onclick="hatchEgg(${egg.id})" ${
+                ready && !isListed ? "" : "disabled"
+              }>
+          ${
+            isListed
+              ? "🏪 LISTED"
+              : ready
+              ? "🐣 Deliver baby"
+              : "⏳ Incubating"
+          }
+        </button>
+        ${
+          !isListed
+            ? `<div class="baby-sell-row">
+          <input class="input" id="eggSellPrice_${egg.id}" type="number" min="0.1" step="0.1" placeholder="AMT price">
+          <button class="secondary baby-sell-btn" onclick="listEggForSale(${egg.id})">SELL EGG</button>
+        </div>`
+            : `<button class="secondary" style="margin-top:8px;font-size:11px" onclick="cancelEggListing(${egg.id})">Cancel listing</button>`
+        }`
+        }
       </div>`;
-    }).join("");
-    // start timers for incubating eggs
-    eggs.forEach(egg => {
+      })
+      .join("");
+
+    eggs.forEach((egg) => {
       if (egg.status === "HATCHED" || !egg.hatch_at) return;
       const hatchMs = new Date(egg.hatch_at).getTime();
       if (hatchMs > Date.now()) {
-        const createdMs = egg.created_at ? new Date(egg.created_at).getTime() : (hatchMs - 24 * 3600 * 1000);
+        const createdMs = egg.created_at
+          ? new Date(egg.created_at).getTime()
+          : hatchMs - 24 * 3600 * 1000;
         startEggCountdown(egg.id, hatchMs, createdMs);
       } else {
         const timerEl = $("eggTimer_" + egg.id);
-        if (timerEl) { timerEl.textContent = "READY"; timerEl.style.color = "#5dff9a"; }
-        const barEl = $("eggBar_" + egg.id);
-        if (barEl) barEl.style.width = "100%";
+        if (timerEl) {
+          timerEl.textContent = "READY";
+          timerEl.classList.add("ready");
+        }
+        const btn = $("hatchBtn_" + egg.id);
+        if (btn && !egg.is_listed) {
+          btn.disabled = false;
+          btn.textContent = "🐣 Deliver baby";
+        }
       }
     });
   } catch (e) {
-    box.innerHTML = '<div class="empty">Unable to load eggs. ' + esc(e.message || "") + '</div>';
+    box.className = "";
+    box.innerHTML =
+      '<div class="empty">Unable to load eggs. ' + esc(e.message || "") + "</div>";
   }
 }
 
@@ -5058,11 +5132,49 @@ async function hatchEgg(eggId) {
       method: "POST",
       body: JSON.stringify({ eggId })
     });
-    showToast("Hatched " + (data.pet && data.pet.name ? data.pet.name : "pet") + "! Check My Pets");
+    showToast(
+      "Delivered " +
+        (data.pet && data.pet.name ? data.pet.name : "baby") +
+        "! Check My Pets"
+    );
     await loadEggs();
     await loadOwnedPets();
   } catch (e) {
     showToast(e.message || "Hatch failed", true);
+  }
+}
+
+async function listEggForSale(eggId) {
+  const input = $("eggSellPrice_" + eggId);
+  const price = Number(input && input.value);
+  if (!(price > 0)) {
+    showToast("Enter a valid AMT price", true);
+    return;
+  }
+  try {
+    const data = await api("/api/pets/list-egg", {
+      method: "POST",
+      body: JSON.stringify({ eggId: Number(eggId), priceAmt: price })
+    });
+    showToast(data.message || "Egg listed");
+    await loadEggs();
+    if (typeof loadListings === "function") loadListings();
+  } catch (e) {
+    showToast(e.message || "List egg failed", true);
+  }
+}
+
+async function cancelEggListing(eggId) {
+  try {
+    await api("/api/pets/cancel-egg-listing", {
+      method: "POST",
+      body: JSON.stringify({ eggId: Number(eggId) })
+    });
+    showToast("Listing cancelled");
+    await loadEggs();
+    if (typeof loadListings === "function") loadListings();
+  } catch (e) {
+    showToast(e.message || "Cancel failed", true);
   }
 }
 
@@ -5075,11 +5187,35 @@ async function loadListings() {
     const list = data.listings || [];
     if (!list.length) {
       grid.innerHTML =
-        '<div class="empty">No public listings yet.<br>List a pet from <b>My Pets → VIEW → PUBLIC SELL</b>.</div>';
+        '<div class="empty">No public listings yet.<br>List a <b>pet</b> (My Pets) or <b>egg</b> (Baby Room).</div>';
       return;
     }
     grid.innerHTML = list
       .map((L) => {
+        const isEgg = L.listing_type === "EGG";
+        const elClass = petElementClass(L.element);
+        if (isEgg) {
+          const hatchMs = L.hatch_at ? new Date(L.hatch_at).getTime() : 0;
+          const ready = hatchMs && hatchMs <= Date.now();
+          return `<div class="pet-card ${elClass}">
+        <div class="pet-card-top">
+          <span class="pet-card-element">${esc(L.element || "")}</span>
+          <span class="pet-card-badge">EGG</span>
+          <div class="pet-card-emoji" style="font-size:48px">${eggArtEmoji(L.element)}</div>
+        </div>
+        <div class="pet-card-body">
+          <div class="pet-card-name">${esc(L.name || "Egg")}</div>
+          <div class="pet-card-price">${Number(L.price_amt)} AMT</div>
+          <div class="muted" style="font-size:10px;margin-top:4px">${L.gen || 1} Gen · ${
+            ready ? "Ready to hatch" : "Incubating"
+          }</div>
+          <div class="muted" style="font-size:10px">Seller: ${esc(L.seller_username || "?")}</div>
+          <div class="pet-card-footer">
+            <button class="small-btn" onclick="buyEggListing(${L.id})">BUY EGG</button>
+          </div>
+        </div>
+      </div>`;
+        }
         const pet = {
           name: L.name,
           element: L.element,
@@ -5087,20 +5223,21 @@ async function loadListings() {
           rarity: L.rarity,
           level: L.level
         };
-        const elClass = petElementClass(L.element);
         return `<div class="pet-card ${elClass}">
         <div class="pet-card-top">
           <span class="pet-card-element">${esc(L.element || "")}</span>
-          <span class="pet-card-badge">SELL</span>
+          <span class="pet-card-badge">PET</span>
           ${petArtHtml(pet, 120)}
         </div>
         <div class="pet-card-body">
           <div class="pet-card-name">${esc(L.name || "Pet")}</div>
           <div class="pet-card-price">${Number(L.price_amt)} AMT</div>
-          <div class="muted" style="font-size:10px;margin-top:4px">Lv ${L.level || 1} · ${esc(L.rarity || "Common")}</div>
+          <div class="muted" style="font-size:10px;margin-top:4px">Lv ${L.level || 1} · ${esc(
+          L.rarity || "Common"
+        )}</div>
           <div class="muted" style="font-size:10px">Seller: ${esc(L.seller_username || "?")}</div>
           <div class="pet-card-footer">
-            <button class="small-btn" onclick="buyListing(${L.id})">BUY NOW</button>
+            <button class="small-btn" onclick="buyListing(${L.id})">BUY PET</button>
           </div>
         </div>
       </div>`;
@@ -5120,12 +5257,27 @@ async function buyListing(listingId) {
       method: "POST",
       body: JSON.stringify({ listingId: Number(listingId) })
     });
-    showToast("Purchased for " + (data.price != null ? data.price : "") + " AMT");
+    showToast("Pet purchased for " + (data.price != null ? data.price : "") + " AMT");
     await loadListings();
     await loadOwnedPets();
     await refreshWallet();
   } catch (e) {
     showToast(e.message || "Buy failed", true);
+  }
+}
+
+async function buyEggListing(listingId) {
+  try {
+    const data = await api("/api/pets/buy-egg-listing", {
+      method: "POST",
+      body: JSON.stringify({ listingId: Number(listingId) })
+    });
+    showToast(data.message || "Egg purchased");
+    await loadListings();
+    await loadEggs();
+    await refreshWallet();
+  } catch (e) {
+    showToast(e.message || "Buy egg failed", true);
   }
 }
 
