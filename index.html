@@ -178,100 +178,116 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 #amtSignCanvas{display:block;width:100%;height:110px;touch-action:none;cursor:crosshair}
 .amt-sign-actions{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
 
-/* ===== REAL PET CARDS (marketplace size) ===== */
+/* ===== PRO PET CARDS (Shop · My Pets · Sell) ===== */
 .pet-card{
 position:relative;
-border-radius:22px;
+border-radius:20px;
 overflow:hidden;
-background:linear-gradient(165deg,#1a1028 0%,#0c0814 100%);
+background:linear-gradient(165deg,#1c1230 0%,#0a0712 100%);
 border:1.5px solid rgba(255,255,255,.12);
 box-shadow:0 12px 36px rgba(0,0,0,.42);
 cursor:pointer;
 transition:transform .18s ease,box-shadow .18s ease;
-min-height:280px;
+min-height:300px;
+display:flex;
+flex-direction:column;
 }
 .pet-card:active{transform:scale(.97)}
 .pet-card-top{
 position:relative;
-height:180px;
+height:168px;
+flex-shrink:0;
 display:flex;
 align-items:center;
 justify-content:center;
 overflow:hidden;
+background:radial-gradient(circle at 50% 60%,rgba(255,255,255,.04),transparent 70%);
 }
 .pet-card-top::before{
 content:"";
 position:absolute;
 inset:0;
-opacity:.55;
+opacity:.6;
 background:radial-gradient(circle at 50% 40%,var(--pet-glow,rgba(170,80,255,.5)),transparent 65%);
 }
 .pet-card-emoji{
 position:relative;
 z-index:2;
-font-size:78px;
+font-size:72px;
 filter:drop-shadow(0 4px 12px rgba(0,0,0,.45));
 line-height:1;
 }
 .pet-card-img{
-width:128px!important;
-height:128px!important;
+width:140px!important;
+height:140px!important;
 object-fit:contain;
-border-radius:16px;
+border-radius:14px;
 position:relative;
 z-index:2;
-filter:drop-shadow(0 8px 18px rgba(0,0,0,.5));
+filter:drop-shadow(0 10px 20px rgba(0,0,0,.55));
 }
 .pet-card-badge{
 position:absolute;
 top:10px;
 right:10px;
 z-index:3;
-padding:5px 10px;
+padding:4px 9px;
 border-radius:999px;
-font-size:10px;
+font-size:9px;
 font-weight:900;
-letter-spacing:.5px;
+letter-spacing:.4px;
 text-transform:uppercase;
-background:rgba(0,0,0,.55);
-border:1px solid rgba(255,255,255,.15);
+background:rgba(0,0,0,.6);
+border:1px solid rgba(255,255,255,.18);
 color:#ffd95a;
 }
+.pet-card-badge.r-common{color:#c8c0d0;border-color:rgba(200,200,210,.25)}
+.pet-card-badge.r-uncommon{color:#5dff9a;border-color:rgba(80,255,140,.35)}
+.pet-card-badge.r-rare{color:#5eb0ff;border-color:rgba(80,160,255,.4)}
+.pet-card-badge.r-epic{color:#d4a0ff;border-color:rgba(180,100,255,.45)}
+.pet-card-badge.r-legendary{color:#ffd452;border-color:rgba(255,200,60,.5);box-shadow:0 0 10px rgba(255,200,60,.25)}
+.pet-card-badge.r-mythic{color:#ff6bcb;border-color:rgba(255,100,200,.5);box-shadow:0 0 12px rgba(255,100,200,.3)}
 .pet-card-element{
 position:absolute;
 top:10px;
 left:10px;
 z-index:3;
-padding:5px 10px;
+padding:4px 9px;
 border-radius:999px;
-font-size:10px;
+font-size:9px;
 font-weight:800;
 letter-spacing:.3px;
-background:rgba(0,0,0,.5);
+background:rgba(0,0,0,.55);
 border:1px solid var(--pet-border,rgba(170,80,255,.4));
 color:#fff;
 }
-.pet-card-body{padding:14px 14px 16px}
+.pet-card-body{padding:12px 12px 14px;flex:1;display:flex;flex-direction:column}
 .pet-card-name{
-font-size:16px;
+font-size:15px;
 font-weight:900;
-letter-spacing:.3px;
+letter-spacing:.2px;
 color:#fff;
 white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
 }
 .pet-card-price{
-margin-top:5px;
-font-size:14px;
+margin-top:4px;
+font-size:13px;
 font-weight:800;
 color:#ffd452;
+}
+.pet-card-sub{
+margin-top:3px;
+font-size:10px;
+color:#958ba3;
+font-weight:700;
 }
 .pet-card-stats{
 display:grid;
 grid-template-columns:repeat(4,1fr);
 gap:4px;
-margin-top:9px;
+margin-top:8px;
 }
 .pet-stat{
 text-align:center;
@@ -293,13 +309,14 @@ font-weight:700;
 text-transform:uppercase;
 }
 .pet-card-footer{
-margin-top:9px;
+margin-top:auto;
+padding-top:8px;
 }
 .pet-card-footer .small-btn{
 background:linear-gradient(105deg,rgba(255,213,80,.15),rgba(170,80,255,.2));
 border-color:rgba(190,100,255,.35);
 font-weight:900;
-letter-spacing:.5px;
+letter-spacing:.4px;
 }
 
 /* Element themes */
@@ -4256,7 +4273,16 @@ const PET_EMOJI = {
   Thunder: "⚡", Wind: "🌪️", Fire: "🔥"
 };
 
-/* Root filenames on GitHub: 01_terra_earth_common_lv1.png */
+/**
+ * IMAGE PATH READY (Mainnet)
+ * Prefer: assets/pets/{rarity}/{id}.png  e.g. assets/pets/common/earth-terra.png
+ * Fallback: GitHub root numbered files (01_terra_earth_common_lv1.png)
+ * Fallback: backend pet.image relative path
+ * Fallback: emoji
+ */
+const PET_ASSETS_BASE = "assets/pets";
+
+/* Root filenames already on GitHub (legacy testnet uploads) */
 const PET_FILE_BY_NAME = {
   terra:"01_terra_earth_common_lv1.png",
   boulder:"02_boulder_earth_common_lv1.png",
@@ -4330,40 +4356,86 @@ const PET_FILE_BY_NAME = {
   tempest:"10_tempest_thunder_common_lv1.png"
 };
 
-function petImg(pet) {
+function rarityBadgeClass(rarity) {
+  const r = String(rarity || "common").toLowerCase();
+  if (r.indexOf("mythic") >= 0) return "r-mythic";
+  if (r.indexOf("legend") >= 0) return "r-legendary";
+  if (r.indexOf("epic") >= 0) return "r-epic";
+  if (r.indexOf("rare") >= 0) return "r-rare";
+  if (r.indexOf("uncommon") >= 0) return "r-uncommon";
+  return "r-common";
+}
+
+function petImgCandidates(pet) {
+  const list = [];
   const nameKey = String(pet.name || "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
+  const rarity = String(pet.rarity || "Common").toLowerCase();
+  const id = String(pet.pet_id || pet.id || "").replace(/-hatch$/i, "");
+  const path = pet.image || pet.imageUrl || pet.image_url || "";
 
-  // Match files already on GitHub root
-  if (nameKey && PET_FILE_BY_NAME[nameKey]) {
-    return PET_FILE_BY_NAME[nameKey];
-  }
-
-  let path = pet.image || pet.imageUrl || pet.image_url || "";
   if (path && (/^https?:\/\//i.test(path) || path.startsWith("data:"))) {
-    return path;
+    list.push(path);
   }
-
-  const element = String(pet.element || "").toLowerCase();
-  if (nameKey && element) {
-    return nameKey + "_" + element + "_common_lv1.png";
+  // Mainnet-ready folder structure
+  if (id) {
+    list.push(PET_ASSETS_BASE + "/" + rarity + "/" + id + ".png");
+    list.push(PET_ASSETS_BASE + "/common/" + id + ".png");
   }
+  if (path && !/^https?:\/\//i.test(path) && !path.startsWith("data:")) {
+    // backend path e.g. pets/common/earth-terra.png
+    list.push(path);
+    list.push(PET_ASSETS_BASE + "/" + path.replace(/^pets\//, ""));
+  }
+  // Legacy GitHub root uploads
+  if (nameKey && PET_FILE_BY_NAME[nameKey]) {
+    list.push(PET_FILE_BY_NAME[nameKey]);
+  }
+  return list.filter(Boolean);
+}
 
-  return path || "";
+function petImg(pet) {
+  const c = petImgCandidates(pet);
+  return c[0] || "";
 }
 
 function petArtHtml(pet, size) {
-  size = size || 72;
+  size = size || 140;
   const emoji = PET_EMOJI[pet.element] || "🐾";
-  const img = petImg(pet);
-  if (!img) {
+  const candidates = petImgCandidates(pet);
+  if (!candidates.length) {
     return `<div class="pet-card-emoji">${emoji}</div>`;
   }
-  return `<img class="pet-card-img" src="${esc(img)}" alt="${esc(pet.name||"pet")}"
-    style="width:${size}px;height:${size}px;object-fit:contain;border-radius:12px;position:relative;z-index:2;filter:drop-shadow(0 4px 12px rgba(0,0,0,.4))"
-    onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+  // Try first path; onerror cycle through remaining via data-srcs
+  const primary = candidates[0];
+  const rest = candidates.slice(1).join("|");
+  return `<img class="pet-card-img" src="${esc(primary)}" alt="${esc(pet.name || "pet")}"
+    data-fallbacks="${esc(rest)}"
+    style="width:${size}px;height:${size}px;object-fit:contain;border-radius:14px;position:relative;z-index:2;filter:drop-shadow(0 8px 16px rgba(0,0,0,.45))"
+    onerror="petImgFallback(this)">
     <div class="pet-card-emoji" style="display:none">${emoji}</div>`;
+}
+
+function petImgFallback(img) {
+  const raw = img.getAttribute("data-fallbacks") || "";
+  const next = raw.split("|").filter(Boolean);
+  if (next.length) {
+    img.setAttribute("data-fallbacks", next.slice(1).join("|"));
+    img.src = next[0];
+    return;
+  }
+  img.style.display = "none";
+  if (img.nextElementSibling) img.nextElementSibling.style.display = "block";
+}
+
+function petStatsRow(pet) {
+  return `<div class="pet-card-stats">
+    <div class="pet-stat"><b>${pet.hp ?? "—"}</b><span>HP</span></div>
+    <div class="pet-stat"><b>${pet.atk ?? "—"}</b><span>ATK</span></div>
+    <div class="pet-stat"><b>${pet.def ?? "—"}</b><span>DEF</span></div>
+    <div class="pet-stat"><b>${pet.spd ?? "—"}</b><span>SPD</span></div>
+  </div>`;
 }
 
 function petTab(tab) {
@@ -4409,26 +4481,35 @@ function petElementClass(element) {
 function renderPetGrid(pets) {
   const grid = $("petGrid");
   if (!grid) return;
-  if (!pets.length) { grid.innerHTML = '<div class="empty">No pets found.</div>'; return; }
+  if (!pets.length) {
+    grid.innerHTML = '<div class="empty">No pets found.</div>';
+    return;
+  }
   window._petMap = {};
-  pets.forEach(p => { window._petMap[p.id] = p; });
-  grid.innerHTML = pets.map(pet => {
-    const elClass = petElementClass(pet.element);
-    return `<div class="pet-card ${elClass}" onclick="openPetById('${esc(pet.id)}')">
+  pets.forEach((p) => {
+    window._petMap[p.id] = p;
+  });
+  grid.innerHTML = pets
+    .map((pet) => {
+      const elClass = petElementClass(pet.element);
+      const rCls = rarityBadgeClass(pet.rarity);
+      return `<div class="pet-card ${elClass}" onclick="openPetById('${esc(pet.id)}')">
       <div class="pet-card-top">
         <span class="pet-card-element">${esc(pet.element)}</span>
-        <span class="pet-card-badge">${esc(pet.rarity || "Common")}</span>
-        ${petArtHtml(pet, 128)}
+        <span class="pet-card-badge ${rCls}">${esc(pet.rarity || "Common")}</span>
+        ${petArtHtml(pet, 140)}
       </div>
       <div class="pet-card-body">
         <div class="pet-card-name">${esc(pet.name)}</div>
         <div class="pet-card-price">${pet.priceAmt} AMT</div>
+        ${petStatsRow(pet)}
         <div class="pet-card-footer">
-          <button class="small-btn" onclick="event.stopPropagation();openPetById('${esc(pet.id)}')">VIEW DETAILS</button>
+          <button class="small-btn" onclick="event.stopPropagation();openPetById('${esc(pet.id)}')">VIEW / BUY</button>
         </div>
       </div>
     </div>`;
-  }).join("");
+    })
+    .join("");
 }
 
 function openPetById(petId) {
@@ -4559,24 +4640,30 @@ async function loadOwnedPets() {
         '<div class="empty">No pets yet. Buy from Shop (need in-app AMT from mining/airdrop).</div>';
       return;
     }
-    grid.innerHTML = pets.map(pet => {
-      const elClass = petElementClass(pet.element);
-      const pid = pet.id;
-      return `<div class="pet-card ${elClass}" onclick="openOwnedModal(${pid})">
+    grid.innerHTML = pets
+      .map((pet) => {
+        const elClass = petElementClass(pet.element);
+        const rCls = rarityBadgeClass(pet.rarity);
+        const pid = pet.id;
+        return `<div class="pet-card ${elClass}" onclick="openOwnedModal(${pid})">
         <div class="pet-card-top">
           <span class="pet-card-element">${esc(pet.element)}</span>
-          <span class="pet-card-badge">Lv ${pet.level||1}</span>
-          ${petArtHtml(pet, 128)}
+          <span class="pet-card-badge ${rCls}">Lv ${pet.level || 1}</span>
+          ${petArtHtml(pet, 140)}
         </div>
         <div class="pet-card-body">
           <div class="pet-card-name">${esc(pet.name)}</div>
-          <div class="pet-card-price">Lv ${pet.level||1} · ⚡${pet.energy??100} · 😊${pet.happiness??100}</div>
+          <div class="pet-card-sub">${esc(pet.rarity || "Common")} · ⚡${
+          pet.energy ?? 100
+        } · 😊${pet.happiness ?? 100}</div>
+          ${petStatsRow(pet)}
           <div class="pet-card-footer">
             <button class="small-btn" onclick="event.stopPropagation();openOwnedModal(${pid})">VIEW / CARE / BATTLE</button>
           </div>
         </div>
       </div>`;
-    }).join("");
+      })
+      .join("");
   } catch (e) {
     console.log("Owned pets error:", e);
     grid.innerHTML =
