@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.23
+FULL SERVER VERSION 2.4.24
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1130,7 +1130,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.23",
+      "2.4.24",
 
     features: [
       "Pi Login",
@@ -3470,22 +3470,33 @@ app.post("/api/daily/claim", requireAuth, async (req, res) => {
 REFERRAL
 ========================================================= */
 
+/** Both-sides welcome bonus when a referral is first linked */
+const REFERRAL_INVITEE_BONUS = Number(
+  process.env.REFERRAL_INVITEE_BONUS || "2"
+);
+const REFERRAL_INVITER_FLAT = Number(
+  process.env.REFERRAL_INVITER_FLAT || "2"
+);
+
 /**
- * Credit referral reward + milestone bonus to the referrer.
- * Called after a new referral is successfully linked.
- * Uses the same DB client/transaction when possible.
+ * Credit referral reward + milestone bonus to the referrer,
+ * and fixed welcome AMT to the invitee (both sides).
  */
 async function creditReferralReward(
   referrerMemberId,
   newReferralCount,
-  db = pool
+  db = pool,
+  referredMemberId = null
 ) {
   const tier = getReferralTier(newReferralCount);
-  const reward = Number(tier.rewardPerReferral.toFixed(8));
+  const reward = Number(
+    Math.max(tier.rewardPerReferral, REFERRAL_INVITER_FLAT).toFixed(8)
+  );
   const results = {
     tier: tier.name,
     referralReward: reward,
     milestoneBonus: 0,
+    inviteeBonus: 0,
     totalCredited: 0
   };
 
@@ -3503,12 +3514,28 @@ async function creditReferralReward(
     results.totalCredited += reward;
   }
 
+  // Invitee both-sides bonus (one-time per referred member)
+  if (referredMemberId && REFERRAL_INVITEE_BONUS > 0) {
+    const invRef = `AMT-REF-INVITEE-${referredMemberId}`;
+    const existsInv = await db.query(
+      `SELECT id FROM amt_ledger WHERE member_id = $1 AND reference = $2 LIMIT 1`,
+      [referredMemberId, invRef]
+    );
+    if (!existsInv.rows.length) {
+      await db.query(
+        `INSERT INTO amt_ledger (member_id, amount, type, reference)
+         VALUES ($1, $2, 'REFERRAL_INVITEE', $3)`,
+        [referredMemberId, REFERRAL_INVITEE_BONUS, invRef]
+      );
+      results.inviteeBonus = REFERRAL_INVITEE_BONUS;
+    }
+  }
+
   // Check milestones (one-time)
   for (const mile of REFERRAL_MILESTONES) {
     if (newReferralCount >= mile.count) {
       const mileRef = `AMT-MILESTONE-${mile.key}-${referrerMemberId}`;
 
-      // Check if already claimed
       const existing = await db.query(
         `
         SELECT id FROM amt_ledger
@@ -3765,7 +3792,8 @@ app.post(
       const rewardInfo = await creditReferralReward(
         req.member.id,
         newCount,
-        client
+        client,
+        referredMemberId
       );
 
       await client.query(
@@ -3996,7 +4024,8 @@ app.post(
         const rewardInfo = await creditReferralReward(
           referrerMember.id,
           newCount,
-          client
+          client,
+          auth.member.id
         );
 
         await client.query(
@@ -5269,15 +5298,43 @@ function rarityFromLevel(level) {
 function evolvedRarity(_baseRarity, level) {
   return rarityFromLevel(level);
 }
-async function applyLevelAndRarity(client, ownedId) {
+const PET_LEVEL_MILESTONES = [
+  { level: 10, amount: 2, key: "LV10" },
+  { level: 20, amount: 5, key: "LV20" },
+  { level: 50, amount: 15, key: "LV50" }
+];
+
+async function creditPetLevelMilestones(db, memberId, ownedId, newLevel) {
+  const bonuses = [];
+  for (const m of PET_LEVEL_MILESTONES) {
+    if (newLevel < m.level) continue;
+    const ref = `AMT-PET-LV-${m.key}-${ownedId}`;
+    const exists = await db.query(
+      `SELECT id FROM amt_ledger WHERE member_id = $1 AND reference = $2 LIMIT 1`,
+      [memberId, ref]
+    );
+    if (exists.rows.length) continue;
+    await db.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference)
+       VALUES ($1, $2, 'PET_LEVEL_MILESTONE', $3)`,
+      [memberId, m.amount, ref]
+    );
+    bonuses.push({ level: m.level, amount: m.amount });
+  }
+  return bonuses;
+}
+
+async function applyLevelAndRarity(client, ownedId, memberId) {
   const db = client || pool;
   const row = await db.query(
-    `SELECT id, level, exp FROM owned_pets WHERE id = $1`,
+    `SELECT id, level, exp, member_id FROM owned_pets WHERE id = $1`,
     [ownedId]
   );
   if (!row.rows.length) return null;
   let { level, exp } = row.rows[0];
-  level = Number(level) || 1;
+  const ownerId = memberId || row.rows[0].member_id;
+  const oldLevel = Number(level) || 1;
+  level = oldLevel;
   exp = Number(exp) || 0;
   // Multi level-up if lots of exp
   while (exp >= level * 50 && level < 99) {
@@ -5290,7 +5347,17 @@ async function applyLevelAndRarity(client, ownedId) {
      WHERE id = $4 RETURNING *`,
     [level, exp, newRarity, ownedId]
   );
-  return updated.rows[0];
+  let milestones = [];
+  if (level > oldLevel && ownerId) {
+    try {
+      milestones = await creditPetLevelMilestones(db, ownerId, ownedId, level);
+    } catch (e) {
+      console.error("PET LEVEL MILESTONE:", e.message || e);
+    }
+  }
+  const pet = updated.rows[0];
+  if (pet) pet._milestones = milestones;
+  return pet;
 }
 
 const AMT_PETS = [
@@ -6523,6 +6590,192 @@ app.post("/api/pets/buy", requireAuth, async (req, res) => {
   }
 });
 
+/* ---------- Starter pet (one free Common per pioneer) ---------- */
+app.get("/api/pets/starter-status", requireAuth, async (req, res) => {
+  try {
+    await ensurePetTables();
+    const claimed = await pool.query(
+      `SELECT id FROM amt_ledger
+       WHERE member_id = $1 AND type = 'PET_STARTER'
+       LIMIT 1`,
+      [req.member.id]
+    );
+    const ownedCount = await pool.query(
+      `SELECT COUNT(*)::INT AS c FROM owned_pets WHERE member_id = $1`,
+      [req.member.id]
+    );
+    res.json({
+      ok: true,
+      claimed: claimed.rows.length > 0,
+      ownedCount: Number(ownedCount.rows[0]?.c || 0),
+      canClaim: claimed.rows.length === 0
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message || "Status failed" });
+  }
+});
+
+app.post("/api/pets/claim-starter", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await ensurePetTables();
+    await client.query("BEGIN");
+    await client.query(`SELECT id FROM members WHERE id = $1 FOR UPDATE`, [
+      req.member.id
+    ]);
+
+    const claimed = await client.query(
+      `SELECT id FROM amt_ledger
+       WHERE member_id = $1 AND type = 'PET_STARTER'
+       LIMIT 1`,
+      [req.member.id]
+    );
+    if (claimed.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({
+        ok: false,
+        error: "Starter pet already claimed."
+      });
+    }
+
+    // Prefer Terra; fallback first Common
+    let pet =
+      getPetById("earth-terra") ||
+      AMT_PETS.find(p => p.rarity === "Common") ||
+      AMT_PETS[0];
+    if (!pet) {
+      await client.query("ROLLBACK");
+      return res.status(500).json({ ok: false, error: "No starter pet available." });
+    }
+
+    const ref = `AMT-PET-STARTER-${req.member.id}`;
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference)
+       VALUES ($1, 0, 'PET_STARTER', $2)`,
+      [req.member.id, ref]
+    );
+
+    const ins = await client.query(
+      `INSERT INTO owned_pets
+        (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability, image, level, exp)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1,0)
+       RETURNING *`,
+      [
+        req.member.id,
+        pet.id,
+        pet.name,
+        pet.element,
+        "Common",
+        pet.hp,
+        pet.atk,
+        pet.def,
+        pet.spd,
+        pet.ability,
+        pet.image
+      ]
+    );
+    await client.query("COMMIT");
+    res.json({
+      ok: true,
+      pet: ins.rows[0],
+      message: "Starter pet " + pet.name + " claimed — free once per pioneer."
+    });
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    if (e.code === "23505") {
+      return res.status(409).json({
+        ok: false,
+        error: "Starter pet already claimed."
+      });
+    }
+    console.error("STARTER PET:", e);
+    res.status(500).json({
+      ok: false,
+      error: "Unable to claim starter. " + (e.message || "")
+    });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Energy pack shop (AMT sink) ---------- */
+const ENERGY_PACKS = {
+  energy: { cost: 1, energy: 100, happiness: 0, label: "Full Energy" },
+  full: { cost: 3, energy: 100, happiness: 100, label: "Energy + Happiness" }
+};
+
+app.post("/api/pets/energy-pack", requireAuth, async (req, res) => {
+  const ownedId = Number(req.body?.ownedPetId);
+  const packId = String(req.body?.pack || "energy").toLowerCase();
+  const pack = ENERGY_PACKS[packId];
+  if (!pack) {
+    return res.status(400).json({
+      ok: false,
+      error: "Invalid pack. Use energy (1 AMT) or full (3 AMT)."
+    });
+  }
+  if (!Number.isFinite(ownedId) || ownedId < 1) {
+    return res.status(400).json({ ok: false, error: "ownedPetId required." });
+  }
+
+  const client = await pool.connect();
+  try {
+    await ensurePetTables();
+    await client.query("BEGIN");
+    const pet = await client.query(
+      `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2 FOR UPDATE`,
+      [ownedId, req.member.id]
+    );
+    if (!pet.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found in My Pets." });
+    }
+    const balance = await getBalance(req.member.id, client);
+    if (balance < pack.cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        ok: false,
+        error:
+          "Need " + pack.cost + " AMT (you have " + balance + ")."
+      });
+    }
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference)
+       VALUES ($1,$2,'ENERGY_PACK',$3)`,
+      [req.member.id, -pack.cost, makeReference("AMT-PACK")]
+    );
+    const final = await client.query(
+      `UPDATE owned_pets SET
+        energy = CASE WHEN $1 > 0 THEN 100 ELSE energy END,
+        happiness = CASE WHEN $2 > 0 THEN 100 ELSE happiness END
+       WHERE id = $3 RETURNING *`,
+      [pack.energy, pack.happiness, ownedId]
+    );
+    await client.query("COMMIT");
+    res.json({
+      ok: true,
+      pack: packId,
+      cost: pack.cost,
+      label: pack.label,
+      pet: final.rows[0],
+      message: pack.label + " applied (−" + pack.cost + " AMT)"
+    });
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    console.error("ENERGY PACK:", e);
+    res.status(500).json({
+      ok: false,
+      error: "Pack failed. " + (e.message || "")
+    });
+  } finally {
+    client.release();
+  }
+});
+
 /* ---------- Care (feed / play) ---------- */
 app.post("/api/pets/care", requireAuth, async (req, res) => {
   const ownedId = Number(req.body?.ownedPetId);
@@ -6638,7 +6891,11 @@ app.post("/api/pets/train", requireAuth, async (req, res) => {
        WHERE id = $2`,
       [gain, ownedId]
     );
-    const petAfter = await applyLevelAndRarity(client, ownedId);
+    const petAfter = await applyLevelAndRarity(
+      client,
+      ownedId,
+      req.member.id
+    );
     await client.query("COMMIT");
     res.json({
       ok: true,
@@ -6647,7 +6904,8 @@ app.post("/api/pets/train", requireAuth, async (req, res) => {
       cost,
       pet: petAfter,
       rarity: petAfter && petAfter.rarity,
-      level: petAfter && petAfter.level
+      level: petAfter && petAfter.level,
+      milestones: (petAfter && petAfter._milestones) || []
     });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -7007,7 +7265,11 @@ app.post("/api/pets/battle", requireAuth, async (req, res) => {
         exp = COALESCE(exp, 0) + $1 WHERE id = $2`,
       [win ? 25 : 8, ownedId]
     );
-    const petAfterBattle = await applyLevelAndRarity(client, ownedId);
+    const petAfterBattle = await applyLevelAndRarity(
+      client,
+      ownedId,
+      req.member.id
+    );
     await client.query(
       `INSERT INTO amt_ledger (member_id, amount, type, reference)
        VALUES ($1,$2,'PET_BATTLE',$3)`,
@@ -7026,6 +7288,7 @@ app.post("/api/pets/battle", requireAuth, async (req, res) => {
       petLevel: petAfterBattle && petAfterBattle.level,
       petRarity: petAfterBattle && petAfterBattle.rarity,
       petExp: petAfterBattle && petAfterBattle.exp,
+      milestones: (petAfterBattle && petAfterBattle._milestones) || [],
       opponent: opp.name,
       opponentElement: opp.element,
       opponentImage: opp.image,
@@ -8139,7 +8402,8 @@ app.post(
       const rewardInfo = await creditReferralReward(
         req.member.id,
         newCount,
-        client
+        client,
+        referralMemberId
       );
 
       await client.query(
@@ -8479,7 +8743,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.23"
+          "Version: 2.4.24"
         );
 
         console.log(
