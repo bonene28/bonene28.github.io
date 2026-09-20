@@ -1389,28 +1389,28 @@ CLAIM DAILY REWARD
         <div class="amt-visa-mark">VISA</div>
       </div>
     </div>
-    <!-- BACK — signature only, no flip while drawing -->
-    <div class="amt-card-face amt-card-back">
-      <div class="amt-card-stripe"></div>
-      <div class="amt-card-cvv-row">
-        <div class="amt-card-cvv-box"></div>
-        <div class="amt-card-cvv" id="amtCardCvv">•••</div>
-      </div>
-      <div class="amt-card-back-info">
-        <div class="amt-card-label">SIGN FIRST &amp; LAST NAME</div>
-        <div class="amt-sign-pad-wrap">
-          <canvas id="amtSignCanvas" width="300" height="110"></canvas>
-        </div>
-        <div class="amt-sign-actions">
-          <button type="button" class="small-btn" style="width:auto;padding:8px 12px" onclick="clearAmtSignature()">Clear</button>
-          <button type="button" class="small-btn" style="width:auto;padding:8px 12px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff" onclick="saveAmtSignature()">Save sign</button>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
-<button type="button" class="secondary amt-flip-btn" id="amtFlipBtn" onclick="flipAmtCard()">🔄 FLIP CARD · SIGN NAME</button>
-<div class="muted" style="text-align:center;font-size:10px;margin-top:6px">Card stays still while you sign · Virtual only</div>
+<button type="button" class="secondary amt-flip-btn" id="amtSignOpenBtn" onclick="openAmtSignModal()">✍️ SIGN FIRST &amp; LAST NAME</button>
+<div class="muted" style="text-align:center;font-size:10px;margin-top:6px">Card stays fixed · Sign opens in a stable pad · Virtual only</div>
+</div>
+
+<!-- Fixed signature modal — card does not move -->
+<div id="amtSignModal" class="hidden" style="position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px;touch-action:none">
+  <div class="card" style="max-width:400px;width:100%;margin:0;max-height:90vh;overflow:auto" onclick="event.stopPropagation()">
+    <div class="row">
+      <div class="card-title" style="margin:0">Sign your name</div>
+      <button class="small-btn" style="width:auto;padding:6px 12px" onclick="closeAmtSignModal()">✕</button>
+    </div>
+    <div class="muted" style="font-size:11px;margin:8px 0 10px">Write first name + last name · pad does not scroll the page</div>
+    <div class="amt-sign-pad-wrap" style="min-height:160px;touch-action:none">
+      <canvas id="amtSignCanvas" width="340" height="160" style="height:160px;touch-action:none"></canvas>
+    </div>
+    <div class="amt-sign-actions" style="margin-top:12px">
+      <button type="button" class="secondary" style="width:auto;padding:10px 14px" onclick="clearAmtSignature()">Clear</button>
+      <button type="button" class="primary" style="width:auto;padding:10px 14px" onclick="saveAmtSignature();closeAmtSignModal()">Save sign</button>
+    </div>
+  </div>
 </div>
 
 <div class="card">
@@ -1881,8 +1881,11 @@ SELECT 180D
 </div>
 </div>
 
-<!-- PUBLIC SELL -->
+<!-- PUBLIC SELL — live P2P from My Pets -->
 <div id="petListingsPanel" class="hidden">
+<div class="notice" style="margin-bottom:12px">
+  List pets from <b>My Pets → VIEW → PUBLIC SELL</b>. Buyers pay with <b>in-app AMT</b>. Pet transfers to buyer.
+</div>
 <div id="listingsGrid" class="market-grid"><div class="empty">Loading listings...</div></div>
 </div>
 
@@ -2616,44 +2619,47 @@ function updateAmtVisaCard(onchainAmt, linked, walletAddr){
   }
 }
 
-function flipAmtCard(){
-  // Flip ONLY via button — card does not move while signing
-  const card = $("amtCard");
-  const btn = $("amtFlipBtn");
-  if(!card) return;
-  card.classList.toggle("flipped");
-  const back = card.classList.contains("flipped");
-  if(btn){
-    btn.textContent = back
-      ? "🔄 SHOW FRONT"
-      : "🔄 FLIP CARD · SIGN NAME";
-  }
-  if(back){
-    setTimeout(initAmtSignPad, 80);
-  }
-}
-
 let _amtSignDrawing = false;
 let _amtSignPadReady = false;
 
+function openAmtSignModal(){
+  const modal = $("amtSignModal");
+  if(!modal) return;
+  modal.classList.remove("hidden");
+  modal.style.display = "flex";
+  document.body.style.overflow = "hidden";
+  _amtSignPadReady = false;
+  setTimeout(initAmtSignPad, 60);
+}
+
+function closeAmtSignModal(){
+  const modal = $("amtSignModal");
+  if(modal){
+    modal.classList.add("hidden");
+    modal.style.display = "none";
+  }
+  document.body.style.overflow = "";
+}
+
 function initAmtSignPad(){
   const canvas = $("amtSignCanvas");
-  if(!canvas || _amtSignPadReady) return;
+  if(!canvas) return;
   const ctx = canvas.getContext("2d");
   if(!ctx) return;
 
-  // Fit canvas internal size to display size
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.max(280, Math.floor(rect.width * dpr));
-  canvas.height = Math.max(90, Math.floor(rect.height * dpr));
+  const w = Math.max(300, Math.floor(rect.width * dpr));
+  const h = Math.max(140, Math.floor(rect.height * dpr));
+  canvas.width = w;
+  canvas.height = h;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
-  ctx.strokeStyle = "#1a0a2e";
-  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = 2.4;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  // Restore saved signature
   try{
     const saved = localStorage.getItem("amt_card_signature");
     if(saved){
@@ -2665,13 +2671,16 @@ function initAmtSignPad(){
     }
   }catch(e){}
 
+  if(_amtSignPadReady) return;
+
   function pos(ev){
     const r = canvas.getBoundingClientRect();
-    const t = ev.touches ? ev.touches[0] : ev;
+    const t = (ev.touches && ev.touches[0]) || (ev.changedTouches && ev.changedTouches[0]) || ev;
     return { x: t.clientX - r.left, y: t.clientY - r.top };
   }
   function start(ev){
     ev.preventDefault();
+    ev.stopPropagation();
     _amtSignDrawing = true;
     const p = pos(ev);
     ctx.beginPath();
@@ -2680,12 +2689,13 @@ function initAmtSignPad(){
   function move(ev){
     if(!_amtSignDrawing) return;
     ev.preventDefault();
+    ev.stopPropagation();
     const p = pos(ev);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
   }
   function end(ev){
-    if(ev) ev.preventDefault();
+    if(ev){ ev.preventDefault(); ev.stopPropagation(); }
     _amtSignDrawing = false;
   }
 
@@ -2695,7 +2705,7 @@ function initAmtSignPad(){
   canvas.addEventListener("mouseleave", end);
   canvas.addEventListener("touchstart", start, { passive: false });
   canvas.addEventListener("touchmove", move, { passive: false });
-  canvas.addEventListener("touchend", end);
+  canvas.addEventListener("touchend", end, { passive: false });
   _amtSignPadReady = true;
 }
 
@@ -4711,17 +4721,27 @@ async function playBattleArena(data) {
 }
 
 async function listPetForSale() {
-  if (!selectedOwned) return;
-  const price = Number($("sellPrice").value);
-  if (!(price > 0)) return showToast("Enter a valid price", true);
+  if (!selectedOwned || !selectedOwned.id) {
+    showToast("Open a pet from My Pets first", true);
+    return;
+  }
+  const price = Number($("sellPrice") && $("sellPrice").value);
+  if (!(price > 0)) {
+    showToast("Enter a valid price (AMT)", true);
+    return;
+  }
   try {
     await api("/api/pets/list", {
       method: "POST",
-      body: JSON.stringify({ ownedPetId: selectedOwned.id, priceAmt: price })
+      body: JSON.stringify({
+        ownedPetId: Number(selectedOwned.id),
+        priceAmt: price
+      })
     });
-    showToast("Listed for " + price + " AMT");
+    showToast("Listed " + (selectedOwned.name || "pet") + " for " + price + " AMT");
     closeOwnedModal();
-    loadOwnedPets();
+    await loadOwnedPets();
+    if (typeof loadListings === "function") loadListings();
   } catch (e) {
     showToast(e.message || "List failed", true);
   }
@@ -4968,37 +4988,51 @@ async function hatchEgg(eggId) {
   }
 }
 
-/* ---- Public listings ---- */
+/* ---- Public listings (live P2P · My Pets) ---- */
 async function loadListings() {
+  const grid = $("listingsGrid");
+  if (!grid) return;
   try {
     const data = await api("/api/pets/listings");
     const list = data.listings || [];
-    const grid = $("listingsGrid");
     if (!list.length) {
-      grid.innerHTML = '<div class="empty">No public listings yet.</div>';
+      grid.innerHTML =
+        '<div class="empty">No public listings yet.<br>List a pet from <b>My Pets → VIEW → PUBLIC SELL</b>.</div>';
       return;
     }
-    grid.innerHTML = list.map(L => {
-      const emoji = PET_EMOJI[L.element] || "🐾";
-      const elClass = petElementClass(L.element);
-      return `<div class="pet-card ${elClass}">
+    grid.innerHTML = list
+      .map((L) => {
+        const pet = {
+          name: L.name,
+          element: L.element,
+          image: L.image,
+          rarity: L.rarity,
+          level: L.level
+        };
+        const elClass = petElementClass(L.element);
+        return `<div class="pet-card ${elClass}">
         <div class="pet-card-top">
-          <span class="pet-card-element">${esc(L.element)}</span>
+          <span class="pet-card-element">${esc(L.element || "")}</span>
           <span class="pet-card-badge">SELL</span>
-          <div class="pet-card-emoji">${emoji}</div>
+          ${petArtHtml(pet, 120)}
         </div>
         <div class="pet-card-body">
-          <div class="pet-card-name">${esc(L.name)}</div>
-          <div class="pet-card-price">${L.price_amt} AMT</div>
-          <div class="muted" style="font-size:10px;margin-top:4px">Seller: ${esc(L.seller_username||"?")}</div>
+          <div class="pet-card-name">${esc(L.name || "Pet")}</div>
+          <div class="pet-card-price">${Number(L.price_amt)} AMT</div>
+          <div class="muted" style="font-size:10px;margin-top:4px">Lv ${L.level || 1} · ${esc(L.rarity || "Common")}</div>
+          <div class="muted" style="font-size:10px">Seller: ${esc(L.seller_username || "?")}</div>
           <div class="pet-card-footer">
             <button class="small-btn" onclick="buyListing(${L.id})">BUY NOW</button>
           </div>
         </div>
       </div>`;
-    }).join("");
+      })
+      .join("");
   } catch (e) {
-    $("listingsGrid").innerHTML = '<div class="empty">Unable to load listings.</div>';
+    grid.innerHTML =
+      '<div class="empty">Unable to load listings. ' +
+      esc(e.message || "") +
+      "</div>";
   }
 }
 
@@ -5006,10 +5040,11 @@ async function buyListing(listingId) {
   try {
     const data = await api("/api/pets/buy-listing", {
       method: "POST",
-      body: JSON.stringify({ listingId })
+      body: JSON.stringify({ listingId: Number(listingId) })
     });
-    showToast("Purchased for " + data.price + " AMT");
-    loadListings();
+    showToast("Purchased for " + (data.price != null ? data.price : "") + " AMT");
+    await loadListings();
+    await loadOwnedPets();
     await refreshWallet();
   } catch (e) {
     showToast(e.message || "Buy failed", true);
