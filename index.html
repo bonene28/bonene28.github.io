@@ -5239,20 +5239,35 @@ async function loadEggs() {
 }
 
 async function hatchEgg(eggId) {
+  const btn = $("hatchBtn_" + eggId);
   try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Delivering…";
+    }
     const data = await api("/api/pets/hatch", {
       method: "POST",
-      body: JSON.stringify({ eggId })
+      body: JSON.stringify({ eggId: Number(eggId) })
     });
-    showToast(
-      "Delivered " +
-        (data.pet && data.pet.name ? data.pet.name : "baby") +
-        "! Check My Pets"
-    );
+    const name = (data.pet && data.pet.name) || "baby";
+    showToast(data.message || ("Delivered " + name + "! Opening My Pets…"));
     await loadEggs();
     await loadOwnedPets();
+    petTab("owned");
+    if (data.pet && data.pet.id) {
+      setTimeout(function () {
+        try {
+          openOwnedModal(data.pet.id);
+        } catch (err) {}
+      }, 400);
+    }
   } catch (e) {
     showToast(e.message || "Hatch failed", true);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🐣 Deliver baby";
+    }
+    loadEggs().catch(function () {});
   }
 }
 
