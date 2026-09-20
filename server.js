@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.24
+FULL SERVER VERSION 2.4.25
 
 IMPORTANT:
 - TESTNET ONLY
@@ -1130,7 +1130,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.24",
+      "2.4.25",
 
     features: [
       "Pi Login",
@@ -6381,13 +6381,26 @@ async function ensurePetTables() {
       rarity TEXT NOT NULL DEFAULT 'Common',
       status TEXT NOT NULL DEFAULT 'READY',
       hatch_at TIMESTAMPTZ,
+      is_listed BOOLEAN NOT NULL DEFAULT FALSE,
+      gen INT NOT NULL DEFAULT 1,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS pet_listings (
       id BIGSERIAL PRIMARY KEY,
       seller_member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
-      owned_pet_id BIGINT NOT NULL REFERENCES owned_pets(id) ON DELETE CASCADE,
+      owned_pet_id BIGINT REFERENCES owned_pets(id) ON DELETE CASCADE,
+      egg_id BIGINT REFERENCES pet_eggs(id) ON DELETE CASCADE,
+      listing_type TEXT NOT NULL DEFAULT 'PET',
+      price_amt NUMERIC(20,8) NOT NULL,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS egg_listings (
+      id BIGSERIAL PRIMARY KEY,
+      seller_member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      egg_id BIGINT NOT NULL REFERENCES pet_eggs(id) ON DELETE CASCADE,
       price_amt NUMERIC(20,8) NOT NULL,
       status TEXT NOT NULL DEFAULT 'ACTIVE',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -6411,7 +6424,12 @@ async function ensurePetTables() {
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS image TEXT`,
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS level INT NOT NULL DEFAULT 1`,
-    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS exp INT NOT NULL DEFAULT 0`
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS exp INT NOT NULL DEFAULT 0`,
+    `ALTER TABLE pet_eggs ADD COLUMN IF NOT EXISTS is_listed BOOLEAN NOT NULL DEFAULT FALSE`,
+    `ALTER TABLE pet_eggs ADD COLUMN IF NOT EXISTS gen INT NOT NULL DEFAULT 1`,
+    `ALTER TABLE pet_listings ADD COLUMN IF NOT EXISTS egg_id BIGINT`,
+    `ALTER TABLE pet_listings ADD COLUMN IF NOT EXISTS listing_type TEXT DEFAULT 'PET'`,
+    `ALTER TABLE pet_listings ALTER COLUMN owned_pet_id DROP NOT NULL`
   ];
   for (const q of alts) {
     try {
@@ -6950,11 +6968,14 @@ app.post("/api/pets/breed", requireAuth, async (req, res) => {
     const element = pets.rows[0].element === pets.rows[1].element
       ? pets.rows[0].element
       : pets.rows[Math.floor(Math.random()*2)].element;
+    const avgLv =
+      (Number(pets.rows[0].level || 1) + Number(pets.rows[1].level || 1)) / 2;
+    const gen = Math.max(1, Math.min(10, Math.floor(avgLv / 5) + 1));
     const hatchAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     const egg = await client.query(
-      `INSERT INTO pet_eggs (member_id, parent1_id, parent2_id, element, rarity, status, hatch_at)
-       VALUES ($1,$2,$3,$4,'Common','INCUBATING',$5) RETURNING *`,
-      [req.member.id, p1, p2, element, hatchAt]
+      `INSERT INTO pet_eggs (member_id, parent1_id, parent2_id, element, rarity, status, hatch_at, gen)
+       VALUES ($1,$2,$3,$4,'Common','INCUBATING',$5,$6) RETURNING *`,
+      [req.member.id, p1, p2, element, hatchAt, gen]
     );
     await client.query("COMMIT");
     res.json({ ok: true, egg: egg.rows[0], cost, message: "Egg is incubating. Hatch in 24 hours." });
@@ -7000,6 +7021,13 @@ app.post("/api/pets/hatch", requireAuth, async (req, res) => {
     if (egg.status === "HATCHED") {
       await client.query("ROLLBACK");
       return res.status(400).json({ ok: false, error: "Already hatched." });
+    }
+    if (egg.is_listed) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        ok: false,
+        error: "Egg is listed for sale. Cancel listing first."
+      });
     }
     if (egg.hatch_at && new Date(egg.hatch_at) > new Date()) {
       await client.query("ROLLBACK");
@@ -7072,21 +7100,207 @@ app.post("/api/pets/list", requireAuth, async (req, res) => {
   }
 });
 
-/* ---------- Public listings ---------- */
+/* ---------- List egg for public sell ---------- */
+app.post("/api/pets/list-egg", requireAuth, async (req, res) => {
+  const eggId = Number(req.body?.eggId);
+  const price = Number(req.body?.priceAmt);
+  if (!Number.isInteger(eggId) || !(price > 0)) {
+    return res.status(400).json({ ok: false, error: "eggId and priceAmt required." });
+  }
+  const client = await pool.connect();
+  try {
+    await ensurePetTables();
+    await client.query("BEGIN");
+    const egg = await client.query(
+      `SELECT * FROM pet_eggs WHERE id = $1 AND member_id = $2 FOR UPDATE`,
+      [eggId, req.member.id]
+    );
+    if (!egg.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Egg not found." });
+    }
+    const E = egg.rows[0];
+    if (E.status === "HATCHED") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Cannot sell a hatched egg." });
+    }
+    if (E.is_listed) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Egg already listed." });
+    }
+    await client.query(`UPDATE pet_eggs SET is_listed = TRUE WHERE id = $1`, [eggId]);
+    const listing = await client.query(
+      `INSERT INTO egg_listings (seller_member_id, egg_id, price_amt)
+       VALUES ($1,$2,$3) RETURNING *`,
+      [req.member.id, eggId, price]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, listing: listing.rows[0], message: "Egg listed for " + price + " AMT" });
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    console.error("LIST EGG:", e);
+    res.status(500).json({ ok: false, error: "List egg failed. " + (e.message || "") });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Cancel egg listing ---------- */
+app.post("/api/pets/cancel-egg-listing", requireAuth, async (req, res) => {
+  const eggId = Number(req.body?.eggId);
+  if (!Number.isInteger(eggId)) {
+    return res.status(400).json({ ok: false, error: "eggId required." });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const egg = await client.query(
+      `SELECT * FROM pet_eggs WHERE id = $1 AND member_id = $2 FOR UPDATE`,
+      [eggId, req.member.id]
+    );
+    if (!egg.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Egg not found." });
+    }
+    await client.query(
+      `UPDATE egg_listings SET status = 'CANCELLED'
+       WHERE egg_id = $1 AND seller_member_id = $2 AND status = 'ACTIVE'`,
+      [eggId, req.member.id]
+    );
+    await client.query(`UPDATE pet_eggs SET is_listed = FALSE WHERE id = $1`, [eggId]);
+    await client.query("COMMIT");
+    res.json({ ok: true, cancelled: true });
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    res.status(500).json({ ok: false, error: "Cancel failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Buy egg from public sell ---------- */
+app.post("/api/pets/buy-egg-listing", requireAuth, async (req, res) => {
+  const listingId = Number(req.body?.listingId);
+  if (!Number.isInteger(listingId)) {
+    return res.status(400).json({ ok: false, error: "listingId required." });
+  }
+  const client = await pool.connect();
+  try {
+    await ensurePetTables();
+    await client.query("BEGIN");
+    const listing = await client.query(
+      `SELECT * FROM egg_listings WHERE id = $1 AND status = 'ACTIVE' FOR UPDATE`,
+      [listingId]
+    );
+    if (!listing.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Egg listing not found." });
+    }
+    const L = listing.rows[0];
+    if (Number(L.seller_member_id) === Number(req.member.id)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Cannot buy your own egg." });
+    }
+    const price = Number(L.price_amt);
+    const balance = await getBalance(req.member.id, client);
+    if (balance < price) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Insufficient AMT." });
+    }
+    const egg = await client.query(
+      `SELECT * FROM pet_eggs WHERE id = $1 FOR UPDATE`,
+      [L.egg_id]
+    );
+    if (!egg.rows.length || egg.rows[0].status === "HATCHED") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Egg no longer available." });
+    }
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'EGG_SALE',$3)`,
+      [L.seller_member_id, price, makeReference("AMT-EGG-SALE")]
+    );
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'EGG_BUY',$3)`,
+      [req.member.id, -price, makeReference("AMT-EGG-BUY")]
+    );
+    await client.query(
+      `UPDATE pet_eggs SET member_id = $1, is_listed = FALSE WHERE id = $2`,
+      [req.member.id, L.egg_id]
+    );
+    await client.query(
+      `UPDATE egg_listings SET status = 'SOLD' WHERE id = $1`,
+      [listingId]
+    );
+    await client.query("COMMIT");
+    res.json({
+      ok: true,
+      purchased: true,
+      price,
+      eggId: L.egg_id,
+      message: "Egg purchased — check Baby Room (Eggs tab)"
+    });
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+    console.error("BUY EGG:", e);
+    res.status(500).json({ ok: false, error: "Buy egg failed. " + (e.message || "") });
+  } finally {
+    client.release();
+  }
+});
+
+/* ---------- Public listings (pets + eggs) ---------- */
 app.get("/api/pets/listings", async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT l.*, p.name, p.element, p.rarity, p.hp, p.atk, p.def, p.spd, p.ability, p.image, p.level,
-             m.username AS seller_username
+    await ensurePetTables();
+    const pets = await pool.query(`
+      SELECT l.id, l.price_amt, l.created_at, l.status,
+             'PET' AS listing_type,
+             p.name, p.element, p.rarity, p.hp, p.atk, p.def, p.spd, p.ability, p.image, p.level,
+             m.username AS seller_username,
+             NULL::BIGINT AS egg_id,
+             NULL::TIMESTAMPTZ AS hatch_at,
+             NULL::TEXT AS egg_status,
+             NULL::INT AS gen
       FROM pet_listings l
       JOIN owned_pets p ON p.id = l.owned_pet_id
       JOIN members m ON m.id = l.seller_member_id
       WHERE l.status = 'ACTIVE'
       ORDER BY l.created_at DESC
-      LIMIT 100
+      LIMIT 80
     `);
-    res.json({ ok: true, listings: result.rows });
+    let eggs = { rows: [] };
+    try {
+      eggs = await pool.query(`
+        SELECT l.id, l.price_amt, l.created_at, l.status,
+               'EGG' AS listing_type,
+               (e.element || ' Egg') AS name,
+               e.element, e.rarity,
+               NULL::INT AS hp, NULL::INT AS atk, NULL::INT AS def, NULL::INT AS spd,
+               NULL::TEXT AS ability, NULL::TEXT AS image, 1 AS level,
+               m.username AS seller_username,
+               e.id AS egg_id, e.hatch_at, e.status AS egg_status, e.gen
+        FROM egg_listings l
+        JOIN pet_eggs e ON e.id = l.egg_id
+        JOIN members m ON m.id = l.seller_member_id
+        WHERE l.status = 'ACTIVE' AND e.status <> 'HATCHED'
+        ORDER BY l.created_at DESC
+        LIMIT 80
+      `);
+    } catch (err) {
+      console.error("EGG LISTINGS QUERY:", err.message);
+    }
+    const listings = [...pets.rows, ...eggs.rows].sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+    res.json({ ok: true, listings });
   } catch (e) {
+    console.error("LISTINGS:", e);
     res.status(500).json({ ok: false, error: "Unable to load listings." });
   }
 });
@@ -8743,7 +8957,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.24"
+          "Version: 2.4.25"
         );
 
         console.log(
