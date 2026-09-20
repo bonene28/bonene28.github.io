@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.16
+FULL SERVER VERSION 2.4.18
 
 IMPORTANT:
 - TESTNET ONLY
@@ -102,6 +102,23 @@ const DAILY_MAX_STREAK = DAILY_REWARD_AMOUNTS.length;
 const AIRDROP_AMOUNT_AMT = Number(
   process.env.AIRDROP_AMOUNT_AMT || "100"
 );
+
+/* Developer in-app treasury for rewards / payments (one-time ledger credit) */
+const DEV_TREASURY_AMT = Number(
+  process.env.DEV_TREASURY_AMT || "5000000"
+);
+/* Match by Pi username and/or pi_uid (comma-separated). Empty = disabled. */
+const DEV_PI_USERNAMES = String(
+  process.env.DEV_PI_USERNAMES || process.env.DEV_PI_USERNAME || ""
+)
+  .split(",")
+  .map(s => s.trim().toLowerCase())
+  .filter(Boolean);
+const DEV_PI_UIDS = String(process.env.DEV_PI_UIDS || process.env.DEV_PI_UID || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+const DEV_TREASURY_REF = "AMT-DEV-TREASURY-5M";
 
 /* 48-hour claim window for NEW 100 AMT airdrop (shared campaign window) */
 const AIRDROP_CLAIM_WINDOW_SECONDS =
@@ -641,11 +658,58 @@ async function getAuthenticatedMember(
       member.id
     );
 
+  /* Developer treasury: one-time 5M in-app AMT for rewards / payments */
+  try {
+    await ensureDevTreasury(member, piUser);
+  } catch (e) {
+    console.error("DEV TREASURY:", e.message || e);
+  }
+
   return {
     member,
     wallet,
     piUser
   };
+}
+
+async function ensureDevTreasury(member, piUser) {
+  if (!member || !member.id) return;
+  if (DEV_TREASURY_AMT <= 0) return;
+
+  const uname = String(
+    (piUser && piUser.username) || member.username || ""
+  ).toLowerCase();
+  const uid = String((piUser && piUser.uid) || member.pi_uid || "");
+
+  const matchUser =
+    DEV_PI_USERNAMES.length > 0 &&
+    DEV_PI_USERNAMES.includes(uname);
+  const matchUid =
+    DEV_PI_UIDS.length > 0 && DEV_PI_UIDS.includes(uid);
+
+  // If no env configured, skip (safe default)
+  if (!matchUser && !matchUid) return;
+
+  const exists = await pool.query(
+    `SELECT id FROM amt_ledger
+     WHERE member_id = $1 AND reference = $2
+     LIMIT 1`,
+    [member.id, DEV_TREASURY_REF]
+  );
+  if (exists.rows.length) return;
+
+  await pool.query(
+    `INSERT INTO amt_ledger (member_id, amount, type, reference)
+     VALUES ($1, $2, 'DEV_TREASURY', $3)`,
+    [member.id, DEV_TREASURY_AMT, DEV_TREASURY_REF]
+  );
+  console.log(
+    "DEV TREASURY credited:",
+    DEV_TREASURY_AMT,
+    "AMT → member",
+    member.id,
+    uname || uid
+  );
 }
 
 async function requireAuth(
@@ -1037,7 +1101,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.16",
+      "2.4.18",
 
     features: [
       "Pi Login",
@@ -6774,25 +6838,37 @@ app.post("/api/pets/battle", requireAuth, async (req, res) => {
       });
     }
 
-    const opponents = [
-      { name: "Wild Slime", emoji: "🟢", base: 35 },
-      { name: "Shadow Pup", emoji: "🌑", base: 42 },
-      { name: "Stone Mite", emoji: "🪨", base: 48 },
-      { name: "Frost Bat", emoji: "🦇", base: 40 },
-      { name: "Ember Rat", emoji: "🔥", base: 45 },
-      { name: "Crystal Golem", emoji: "💎", base: 55 }
-    ];
-    const opp = opponents[Math.floor(Math.random() * opponents.length)];
+    // Opponent = random catalog pet (real uploaded art), not generic emoji
+    let foePool = AMT_PETS.filter(
+      p => p.id !== pet.pet_id && p.name !== pet.name
+    );
+    if (!foePool.length) foePool = AMT_PETS.slice();
+    const wild = foePool[Math.floor(Math.random() * foePool.length)] || AMT_PETS[0];
+    const opp = {
+      name: "Wild " + wild.name,
+      element: wild.element,
+      image: wild.image || null,
+      petId: wild.id,
+      base: Math.round(
+        (Number(wild.hp) || 40) * 0.55 + Math.floor(Math.random() * 15)
+      )
+    };
 
     let myHp = Number(pet.hp) + Number(pet.level) * 8;
-    let enHp = opp.base + Math.floor(Math.random() * 25) + Number(pet.level) * 5;
+    let enHp =
+      opp.base + Math.floor(Math.random() * 20) + Number(pet.level) * 5;
     const myMax = myHp;
     const enMax = enHp;
     const myAtk = Number(pet.atk) + Number(pet.level) * 2;
     const myDef = Number(pet.def);
     const mySpd = Number(pet.spd);
-    const enAtk = 10 + Math.floor(Math.random() * 12) + Number(pet.level);
-    const enDef = 8 + Math.floor(Math.random() * 10);
+    const enAtk =
+      Math.round((Number(wild.atk) || 10) * 0.7) +
+      Math.floor(Math.random() * 8) +
+      Number(pet.level);
+    const enDef =
+      Math.round((Number(wild.def) || 8) * 0.6) +
+      Math.floor(Math.random() * 6);
 
     const rounds = [];
     let round = 0;
@@ -6871,7 +6947,20 @@ app.post("/api/pets/battle", requireAuth, async (req, res) => {
       ok: true,
       result: win ? "WIN" : "LOSS",
       opponent: opp.name,
-      opponentEmoji: opp.emoji,
+      opponentElement: opp.element,
+      opponentImage: opp.image,
+      opponentPetId: opp.petId,
+      // Legacy emoji fallback (UI prefers image)
+      opponentEmoji:
+        ({
+          Earth: "🌍",
+          Water: "💧",
+          Nature: "🌿",
+          Ice: "❄️",
+          Fire: "🔥",
+          Wind: "🌬️",
+          Thunder: "⚡"
+        }[opp.element] || "🐾"),
       petName: pet.name,
       petElement: pet.element,
       petImage: pet.image,
@@ -8310,7 +8399,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.16"
+          "Version: 2.4.18"
         );
 
         console.log(
