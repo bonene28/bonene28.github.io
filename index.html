@@ -94,27 +94,42 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .egg-progress{height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.07);margin:8px 0}
 .egg-progress span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffd84c,#ff6bcb);transition:width .4s}
 .egg-emoji{font-size:42px;text-align:center;line-height:1}
-/* PiPet-style Baby Room */
+/* PiPet-style Baby Room — full cards */
 .baby-room-title{font-size:15px;font-weight:900;letter-spacing:.6px;margin:0 0 10px;color:#e8d4ff}
 .baby-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.baby-card{position:relative;padding:14px 10px 12px;border-radius:18px;background:linear-gradient(165deg,rgba(36,24,58,.95),rgba(12,8,22,.98));border:1px solid rgba(180,100,255,.18);text-align:center;min-height:210px}
-.baby-card.ready{border-color:rgba(80,255,160,.4);box-shadow:0 0 18px rgba(60,220,120,.12)}
-.baby-card.listed{border-color:rgba(255,200,60,.35)}
+.baby-card{position:relative;padding:12px 10px 12px;border-radius:18px;background:linear-gradient(165deg,rgba(36,24,58,.98),rgba(12,8,22,.99));border:1px solid rgba(180,100,255,.22);text-align:center;min-height:248px;display:flex;flex-direction:column;align-items:center}
+.baby-card.ready{border-color:rgba(80,255,160,.45);box-shadow:0 0 20px rgba(60,220,120,.15)}
+.baby-card.listed{border-color:rgba(255,200,60,.4)}
 .baby-card.hatched{opacity:.55}
-.baby-gen{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:rgba(140,80,255,.2);border:1px solid rgba(180,120,255,.35);color:#d4b8ff;margin-bottom:6px}
-.baby-name-row{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.baby-lv{font-size:9px;font-weight:900;background:#5b3cff;color:#fff;padding:2px 6px;border-radius:6px}
-.baby-name{font-size:11px;font-weight:800;color:#fff}
-.baby-egg-art{width:88px;height:88px;margin:6px auto 10px;border-radius:50%;display:grid;place-items:center;font-size:42px;background:radial-gradient(circle at 40% 30%,rgba(255,255,255,.18),transparent 45%),radial-gradient(circle,rgba(120,70,200,.35),rgba(20,12,40,.9));border:2px solid rgba(255,255,255,.08);box-shadow:inset 0 0 20px rgba(0,0,0,.35)}
-.baby-egg-art.ready-glow{animation:eggPulse 1.6s ease-in-out infinite}
-@keyframes eggPulse{0%,100%{box-shadow:0 0 12px rgba(80,255,160,.25)}50%{box-shadow:0 0 22px rgba(80,255,160,.5)}}
-.baby-timer-pill{display:inline-block;font-size:11px;font-weight:900;padding:5px 10px;border-radius:999px;background:rgba(180,40,60,.35);border:1px solid rgba(255,100,120,.35);color:#ffb0ba;margin-bottom:8px;font-variant-numeric:tabular-nums}
-.baby-timer-pill.ready{background:rgba(30,140,70,.35);border-color:rgba(80,255,140,.45);color:#7dffb0}
-.baby-deliver{width:100%;border:0;padding:10px;border-radius:999px;font-weight:900;font-size:12px;color:#0a1a10;background:linear-gradient(100deg,#5dff9a,#b8ff6a);box-shadow:0 4px 14px rgba(80,255,140,.25)}
-.baby-deliver:disabled{opacity:.4;cursor:not-allowed;background:#333;color:#888;box-shadow:none}
-.baby-sell-row{display:flex;gap:6px;margin-top:8px;align-items:center}
-.baby-sell-row input{flex:1;padding:8px;font-size:12px;border-radius:10px}
-.baby-sell-btn{width:auto;padding:8px 10px;font-size:11px;white-space:nowrap}
+.baby-gen{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(140,80,255,.25);border:1px solid rgba(180,120,255,.4);color:#d4b8ff;margin:0 0 6px}
+.baby-name-row{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;margin-bottom:4px;width:100%}
+.baby-lv{font-size:9px;font-weight:900;background:#5b3cff;color:#fff;padding:2px 6px;border-radius:6px;flex-shrink:0}
+.baby-name{font-size:11px;font-weight:800;color:#fff;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.baby-egg-wrap{width:100px;height:100px;margin:4px auto 8px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.12),transparent 55%),rgba(8,6,18,.9);border:1px solid rgba(255,255,255,.08)}
+.baby-egg-wrap.ready-glow{animation:eggPulse 1.6s ease-in-out infinite}
+@keyframes eggPulse{0%,100%{box-shadow:0 0 12px rgba(80,255,160,.25)}50%{box-shadow:0 0 24px rgba(80,255,160,.55)}}
+.pipet-egg{width:52px;height:64px;border-radius:50% 50% 48% 48%/58% 58% 42% 42%;position:relative;box-shadow:inset -6px -8px 14px rgba(0,0,0,.25),inset 4px 6px 10px rgba(255,255,255,.35),0 6px 14px rgba(0,0,0,.35)}
+.pipet-egg:before,.pipet-egg:after{content:"";position:absolute;border-radius:50%;background:rgba(0,0,0,.22)}
+.pipet-egg:before{width:12px;height:10px;top:28%;left:18%}
+.pipet-egg:after{width:9px;height:8px;top:48%;right:16%}
+.pipet-egg.earth{background:linear-gradient(145deg,#c4b8a8,#8a7a68)}
+.pipet-egg.water{background:linear-gradient(145deg,#9ad4ff,#3a8fd4)}
+.pipet-egg.nature{background:linear-gradient(145deg,#b8f0a0,#4caf50)}
+.pipet-egg.ice{background:linear-gradient(145deg,#e8f6ff,#7ec8e8)}
+.pipet-egg.fire{background:linear-gradient(145deg,#ffb080,#e85d3a)}
+.pipet-egg.wind{background:linear-gradient(145deg,#e8e0ff,#9b8ad4)}
+.pipet-egg.thunder{background:linear-gradient(145deg,#fff3a0,#f0c020)}
+.pipet-egg.default{background:linear-gradient(145deg,#f5e6c8,#d4b896)}
+.pipet-egg.fire:before,.pipet-egg.fire:after{background:rgba(120,20,10,.35)}
+.pipet-egg.water:before,.pipet-egg.water:after{background:rgba(10,40,100,.3)}
+.pipet-egg.thunder:before,.pipet-egg.thunder:after{background:rgba(100,60,0,.3)}
+.baby-timer-pill{display:inline-block;font-size:11px;font-weight:900;padding:5px 11px;border-radius:999px;background:rgba(180,40,60,.4);border:1px solid rgba(255,100,120,.4);color:#ffb0ba;margin-bottom:8px;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+.baby-timer-pill.ready{background:rgba(30,140,70,.4);border-color:rgba(80,255,140,.5);color:#7dffb0}
+.baby-deliver{width:100%;border:0;padding:10px;border-radius:999px;font-weight:900;font-size:12px;color:#0a1a10;background:linear-gradient(100deg,#5dff9a,#b8ff6a);box-shadow:0 4px 14px rgba(80,255,140,.25);margin-top:auto}
+.baby-deliver:disabled{opacity:.45;cursor:not-allowed;background:rgba(60,55,70,.9);color:#9a94a8;box-shadow:none}
+.baby-sell-row{display:flex;gap:6px;margin-top:8px;align-items:center;width:100%}
+.baby-sell-row input{flex:1;min-width:0;padding:8px;font-size:11px;border-radius:10px}
+.baby-sell-btn{width:auto;padding:8px 10px;font-size:10px;white-space:nowrap;flex-shrink:0}
 /* Virtual AMT Visa card */
 /* ===== PREMIUM AMT VIRTUAL CARD ===== */
 .amt-card-scene{perspective:1200px;max-width:380px;margin:0 auto 12px;cursor:default;filter:drop-shadow(0 16px 36px rgba(0,0,0,.55))}
@@ -5032,6 +5047,21 @@ function eggArtEmoji(element) {
   return map[element] || "🥚";
 }
 
+function eggCssClass(element) {
+  const e = String(element || "").toLowerCase();
+  if (["earth", "water", "nature", "ice", "fire", "wind", "thunder"].includes(e)) {
+    return e;
+  }
+  return "default";
+}
+
+/** PiPet-style spotted egg (CSS shape, not placeholder icon) */
+function eggArtHtml(element, ready) {
+  const cls = eggCssClass(element);
+  const wrap = ready ? "baby-egg-wrap ready-glow" : "baby-egg-wrap";
+  return `<div class="${wrap}"><div class="pipet-egg ${cls}"></div></div>`;
+}
+
 async function loadEggs() {
   stopEggTimers();
   const box = $("eggsList");
@@ -5042,7 +5072,7 @@ async function loadEggs() {
     if (!eggs.length) {
       box.className = "";
       box.innerHTML =
-        '<div class="empty">No eggs yet. Breed two pets above to start incubation.</div>';
+        '<div class="empty">No eggs yet. Breed two pets above to start the Baby Room.</div>';
       return;
     }
     box.className = "baby-grid";
@@ -5051,47 +5081,42 @@ async function loadEggs() {
         const isHatched = egg.status === "HATCHED";
         const isListed = !!egg.is_listed;
         const hatchMs = egg.hatch_at ? new Date(egg.hatch_at).getTime() : 0;
-        const createdMs = egg.created_at
-          ? new Date(egg.created_at).getTime()
-          : hatchMs - 24 * 3600 * 1000;
         const ready = !isHatched && hatchMs && hatchMs <= Date.now();
         let cls = "baby-card";
         if (ready) cls += " ready";
         if (isHatched) cls += " hatched";
         if (isListed) cls += " listed";
         const gen = egg.gen || 1;
-        const artCls = ready ? "baby-egg-art ready-glow" : "baby-egg-art";
+        const elName = esc(egg.element || "Mystery");
         return `<div class="${cls}">
         <div class="baby-gen">🧬 ${gen} Gen</div>
         <div class="baby-name-row">
           <span class="baby-lv">LV.1</span>
-          <span class="baby-name">${esc(egg.element)} Egg #${egg.id}</span>
+          <span class="baby-name">${elName} Egg #${egg.id}</span>
         </div>
-        <div class="${artCls}">${eggArtEmoji(egg.element)}</div>
+        ${eggArtHtml(egg.element, ready)}
         ${
           isHatched
-            ? `<div class="muted" style="font-size:11px">Hatched · see My Pets</div>`
+            ? `<div class="muted" style="font-size:11px;margin-top:8px">Hatched · see My Pets</div>`
             : `<div class="baby-timer-pill ${ready ? "ready" : ""}" id="eggTimer_${egg.id}">${
-                ready ? "READY" : "—:—:—:—"
+                ready ? "READY" : "00:00:00"
               }</div>
         <button class="baby-deliver" id="hatchBtn_${egg.id}" onclick="hatchEgg(${egg.id})" ${
                 ready && !isListed ? "" : "disabled"
-              }>
-          ${
-            isListed
-              ? "🏪 LISTED"
-              : ready
-              ? "🐣 Deliver baby"
-              : "⏳ Incubating"
-          }
-        </button>
+              }>${
+                isListed
+                  ? "🏪 LISTED FOR SALE"
+                  : ready
+                  ? "🐣 Deliver baby"
+                  : "⏳ Incubating"
+              }</button>
         ${
           !isListed
             ? `<div class="baby-sell-row">
           <input class="input" id="eggSellPrice_${egg.id}" type="number" min="0.1" step="0.1" placeholder="AMT price">
           <button class="secondary baby-sell-btn" onclick="listEggForSale(${egg.id})">SELL EGG</button>
         </div>`
-            : `<button class="secondary" style="margin-top:8px;font-size:11px" onclick="cancelEggListing(${egg.id})">Cancel listing</button>`
+            : `<button class="secondary" style="margin-top:8px;font-size:11px;width:100%" onclick="cancelEggListing(${egg.id})">Cancel listing</button>`
         }`
         }
       </div>`;
@@ -5201,7 +5226,7 @@ async function loadListings() {
         <div class="pet-card-top">
           <span class="pet-card-element">${esc(L.element || "")}</span>
           <span class="pet-card-badge">EGG</span>
-          <div class="pet-card-emoji" style="font-size:48px">${eggArtEmoji(L.element)}</div>
+          <div style="padding:8px 0">${eggArtHtml(L.element, false)}</div>
         </div>
         <div class="pet-card-body">
           <div class="pet-card-name">${esc(L.name || "Egg")}</div>
