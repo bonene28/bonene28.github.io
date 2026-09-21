@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.27
+FULL SERVER VERSION 2.4.28
 
 IMPORTANT:
 - TESTNET ONLY
@@ -84,8 +84,9 @@ const PI_API_KEY =
 const DATABASE_URL =
   process.env.DATABASE_URL || "";
 
+/* Testnet mining rate — AMT per hour. Override with env AMT_MINING_RATE */
 const AMT_MINING_RATE = Number(
-  process.env.AMT_MINING_RATE || "0.01"
+  process.env.AMT_MINING_RATE || "0.5"
 );
 
 const MINING_DURATION_SECONDS =
@@ -96,8 +97,15 @@ const MAXIMUM_BASE_REWARD = Number(
 );
 
 /* Daily login reward — 1 claim per UTC day, streak bonus up to 7 days */
-const DAILY_REWARD_AMOUNTS = [1, 1.5, 2, 2.5, 3, 3.5, 5]; // index 0 = day 1 streak
+/* Day1→Day7 — higher to keep miners active */
+const DAILY_REWARD_AMOUNTS = [2, 3, 4, 5, 7, 9, 12]; // index 0 = day 1 streak
 const DAILY_MAX_STREAK = DAILY_REWARD_AMOUNTS.length;
+
+/* Comeback bonus: if no mining claim in 3+ days, +5 AMT on next claim */
+const COMEBACK_BONUS_AMT = Number(
+  process.env.COMEBACK_BONUS_AMT || "5"
+);
+const COMEBACK_IDLE_DAYS = 3;
 
 const AIRDROP_AMOUNT_AMT = Number(
   process.env.AIRDROP_AMOUNT_AMT || "100"
@@ -1130,7 +1138,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.27",
+      "2.4.28",
 
     features: [
       "Pi Login",
@@ -3213,7 +3221,7 @@ app.post(
           });
       }
 
-      const reward =
+      let reward =
         Number(
           (
             Number(
@@ -3221,6 +3229,27 @@ app.post(
             ) * 24
           ).toFixed(8)
         );
+
+      // Comeback bonus if idle 3+ days since last completed claim
+      let comebackBonus = 0;
+      try {
+        const last = await client.query(
+          `SELECT claimed_amount, ends_at FROM mining_sessions
+           WHERE member_id = $1 AND status = 'COMPLETED'
+           ORDER BY ends_at DESC LIMIT 1`,
+          [req.member.id]
+        );
+        if (last.rows.length) {
+          const lastEnd = new Date(last.rows[0].ends_at).getTime();
+          const idleDays = (Date.now() - lastEnd) / (24 * 3600 * 1000);
+          if (idleDays >= COMEBACK_IDLE_DAYS) {
+            comebackBonus = COMEBACK_BONUS_AMT;
+            reward = Number((reward + comebackBonus).toFixed(8));
+          }
+        }
+      } catch (e) {
+        console.error("COMEBACK CHECK:", e.message);
+      }
 
       const reference =
         makeReference(
@@ -3276,15 +3305,19 @@ app.post(
 
       res.json({
         ok: true,
-
         reward,
-
+        comebackBonus,
         reference,
-
         balance,
-
-        status:
-          "COMPLETED"
+        status: "COMPLETED",
+        message:
+          comebackBonus > 0
+            ? "Mining +" +
+              reward +
+              " AMT (includes +" +
+              comebackBonus +
+              " comeback bonus)"
+            : "Mining +" + reward + " AMT claimed"
       });
 
     } catch (error) {
@@ -9011,7 +9044,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.27"
+          "Version: 2.4.28"
         );
 
         console.log(
