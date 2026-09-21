@@ -4376,31 +4376,59 @@ function petImg(pet) {
   return c[0] || "";
 }
 
-const PET_IMG_VER = "20260921d";
-const PET_IMG_HOST = "https://bonene28.github.io";
+const PET_IMG_VER = "20260921e";
+const PET_IMG_HOSTS = [
+  "https://cdn.jsdelivr.net/gh/bonene28/bonene28.github.io@main",
+  "https://bonene28.github.io"
+];
 
-function withImgVer(url) {
-  if (!url || /^data:/i.test(url)) return url;
-  // Always absolute on our GitHub host — fixes Pi Browser relative/cache issues
-  let abs = url;
-  if (!/^https?:\/\//i.test(url)) {
-    abs = PET_IMG_HOST + "/" + String(url).replace(/^\//, "");
-  } else if (url.indexOf("bonene28.github.io") >= 0) {
-    abs = url;
-  } else {
-    return url;
-  }
-  return abs + (abs.indexOf("?") >= 0 ? "&" : "?") + "v=" + PET_IMG_VER;
-}
+const PET_OLD_NAME_MAP = {
+  terra: "earth-rock-puppy",
+  boulder: "earth-mud-turtle",
+  clayto: "earth-clay-puppy",
+  stonepaw: "earth-mountain-bear",
+  granite: "earth-golem",
+  muddo: "earth-sand-cat",
+  stonix: "earth-crystal-wolf",
+  earthen: "earth-emerald-snake",
+  golem: "earth-golem",
+  pebble: "earth-gaia-titan",
+  aqua: "water-bubble-puppy",
+  marina: "water-mermaid-puppy",
+  splash: "water-splash-turtle",
+  bubble: "water-bubble-puppy",
+  tide: "water-wave-wolf",
+  coral: "water-coral-cat",
+  leafy: "nature-leaf-puppy",
+  sprout: "nature-sprout-cat",
+  bloom: "nature-bloom-dragon",
+  forest: "nature-forest-wolf",
+  vine: "nature-vine-snake",
+  flora: "nature-mother-earth",
+  frosty: "ice-snow-puppy",
+  glacier: "ice-glacier-bear",
+  phoenix: "fire-phoenix-chick",
+  ember: "fire-ember-puppy",
+  blaze: "fire-blaze-dragon",
+  flame: "fire-ember-puppy",
+  breeze: "wind-breeze-bunny",
+  zephyr: "wind-zephyr-wolf",
+  bolt: "thunder-bolt-fox",
+  storm: "thunder-storm-dragon",
+  zap: "thunder-zap-cat",
+  tempest: "thunder-zeus-titan",
+  shard: "ice-winter-god"
+};
 
-function petArtHtml(pet, size) {
-  size = size || 140;
-  const emoji = PET_EMOJI[pet.element] || "🐾";
-  let candidates = petImgCandidates(pet);
-  // Prefer catalog id → root PNG (e.g. earth-rock-puppy.png)
-  let id = String(pet.pet_id || "").replace(/-hatch$/i, "").replace(/-egg\d+$/i, "");
+function resolvePetFileId(pet) {
+  let id = String(pet.pet_id || "")
+    .replace(/-hatch$/i, "")
+    .replace(/-egg\d+$/i, "");
   if (!id || /^\d+$/.test(id)) {
-    id = String(pet.id || "").replace(/-hatch$/i, "").replace(/-egg\d+$/i, "");
+    const raw = String(pet.id || "");
+    if (raw && !/^\d+$/.test(raw)) {
+      id = raw.replace(/-hatch$/i, "").replace(/-egg\d+$/i, "");
+    }
   }
   if (!id || /^\d+$/.test(id)) {
     const el = String(pet.element || "").toLowerCase();
@@ -4411,15 +4439,63 @@ function petArtHtml(pet, size) {
       .replace(/[^a-z0-9-]/g, "");
     if (el && slug) id = el + "-" + slug;
   }
-  if (id && !/^\d+$/.test(id)) {
-    const rootPng = id + ".png";
-    candidates = [rootPng].concat(candidates.filter((u) => u !== rootPng));
+  const short = String(pet.name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  if (PET_OLD_NAME_MAP[short]) id = PET_OLD_NAME_MAP[short];
+  const tail = String(id || "").replace(/^[a-z]+-/, "");
+  if (PET_OLD_NAME_MAP[tail]) id = PET_OLD_NAME_MAP[tail];
+  return id;
+}
+
+function withImgVer(url) {
+  if (!url || /^data:/i.test(url)) return url;
+  let path = url;
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      path = new URL(url).pathname.replace(/^\//, "");
+    } catch (e) {
+      path = url.replace(/^https?:\/\/[^/]+\//, "");
+    }
   }
+  path = String(path).replace(/^\//, "");
+  return PET_IMG_HOSTS[0] + "/" + path + "?v=" + PET_IMG_VER;
+}
+
+function petArtHtml(pet, size) {
+  size = size || 140;
+  const emoji = PET_EMOJI[pet.element] || "🐾";
+  const fileId = resolvePetFileId(pet);
+  const candidates = [];
+  if (fileId && !/^\d+$/.test(fileId)) {
+    candidates.push(fileId + ".png");
+  }
+  // also try github.io direct as fallback host via petImgFallback hosts
+  const fromCandidates = petImgCandidates(pet);
+  fromCandidates.forEach((u) => {
+    if (candidates.indexOf(u) < 0) candidates.push(u);
+  });
   if (!candidates.length) {
     return `<div class="pet-card-emoji">${emoji}</div>`;
   }
-  const primary = withImgVer(candidates[0]);
-  const rest = candidates.slice(1).map(withImgVer).join("|");
+  // Build absolute URLs for both CDN and github.io
+  const absList = [];
+  candidates.forEach((u) => {
+    let path = u;
+    if (/^https?:\/\//i.test(u)) {
+      try {
+        path = new URL(u).pathname.replace(/^\//, "");
+      } catch (e) {
+        path = u.replace(/^https?:\/\/[^/]+\//, "");
+      }
+    }
+    path = String(path).replace(/^\//, "");
+    PET_IMG_HOSTS.forEach((host) => {
+      absList.push(host + "/" + path + "?v=" + PET_IMG_VER);
+    });
+  });
+  const primary = absList[0];
+  const rest = absList.slice(1).join("|");
   return `<img class="pet-card-img" src="${esc(primary)}" alt="${esc(pet.name || "pet")}"
     data-fallbacks="${esc(rest)}"
     loading="eager"
