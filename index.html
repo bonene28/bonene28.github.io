@@ -4307,19 +4307,24 @@ function petImgCandidates(pet) {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
   const rarity = String(pet.rarity || "Common").toLowerCase();
-  // Normalize id: strip hatch/egg suffixes from owned instances
-  let id = String(pet.pet_id || pet.id || "")
+  // Normalize id: prefer pet_id (catalog), never bare numeric owned id
+  let id = String(pet.pet_id || "")
     .replace(/-hatch$/i, "")
     .replace(/-egg\d+$/i, "");
-  // Catalog id is always element-slug (e.g. earth-rock-puppy)
+  if (!id || /^\d+$/.test(id)) {
+    const raw = String(pet.id || "");
+    if (raw && !/^\d+$/.test(raw)) {
+      id = raw.replace(/-hatch$/i, "").replace(/-egg\d+$/i, "");
+    }
+  }
   const path = pet.image || pet.imageUrl || pet.image_url || "";
 
   if (path && (/^https?:\/\//i.test(path) || path.startsWith("data:"))) {
     list.push(path);
   }
 
-  // 1) GitHub root (you uploaded files here) — PRIORITY
-  if (id) {
+  // 1) GitHub root — absolute filenames (PRIORITY)
+  if (id && !/^\d+$/.test(id)) {
     list.push(id + ".png");
     list.push(id + ".jpg");
   }
@@ -4371,18 +4376,45 @@ function petImg(pet) {
   return c[0] || "";
 }
 
-const PET_IMG_VER = "20260921b";
+const PET_IMG_VER = "20260921d";
+const PET_IMG_HOST = "https://bonene28.github.io";
 
 function withImgVer(url) {
   if (!url || /^data:/i.test(url)) return url;
-  if (/^https?:\/\//i.test(url) && url.indexOf("bonene28.github.io") < 0) return url;
-  return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + PET_IMG_VER;
+  // Always absolute on our GitHub host — fixes Pi Browser relative/cache issues
+  let abs = url;
+  if (!/^https?:\/\//i.test(url)) {
+    abs = PET_IMG_HOST + "/" + String(url).replace(/^\//, "");
+  } else if (url.indexOf("bonene28.github.io") >= 0) {
+    abs = url;
+  } else {
+    return url;
+  }
+  return abs + (abs.indexOf("?") >= 0 ? "&" : "?") + "v=" + PET_IMG_VER;
 }
 
 function petArtHtml(pet, size) {
   size = size || 140;
   const emoji = PET_EMOJI[pet.element] || "🐾";
-  const candidates = petImgCandidates(pet);
+  let candidates = petImgCandidates(pet);
+  // Prefer catalog id → root PNG (e.g. earth-rock-puppy.png)
+  let id = String(pet.pet_id || "").replace(/-hatch$/i, "").replace(/-egg\d+$/i, "");
+  if (!id || /^\d+$/.test(id)) {
+    id = String(pet.id || "").replace(/-hatch$/i, "").replace(/-egg\d+$/i, "");
+  }
+  if (!id || /^\d+$/.test(id)) {
+    const el = String(pet.element || "").toLowerCase();
+    const slug = String(pet.name || "")
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+    if (el && slug) id = el + "-" + slug;
+  }
+  if (id && !/^\d+$/.test(id)) {
+    const rootPng = id + ".png";
+    candidates = [rootPng].concat(candidates.filter((u) => u !== rootPng));
+  }
   if (!candidates.length) {
     return `<div class="pet-card-emoji">${emoji}</div>`;
   }
@@ -4390,7 +4422,8 @@ function petArtHtml(pet, size) {
   const rest = candidates.slice(1).map(withImgVer).join("|");
   return `<img class="pet-card-img" src="${esc(primary)}" alt="${esc(pet.name || "pet")}"
     data-fallbacks="${esc(rest)}"
-    style="width:${size}px;height:${size}px;object-fit:contain;border-radius:14px;position:relative;z-index:2;filter:drop-shadow(0 8px 16px rgba(0,0,0,.45))"
+    loading="eager"
+    style="width:${size}px;height:${size}px;object-fit:contain;border-radius:14px;position:relative;z-index:2;filter:drop-shadow(0 8px 16px rgba(0,0,0,.45));background:transparent"
     onerror="petImgFallback(this)">
     <div class="pet-card-emoji" style="display:none">${emoji}</div>`;
 }
