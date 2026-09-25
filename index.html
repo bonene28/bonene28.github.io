@@ -39,20 +39,6 @@ button:disabled{opacity:.45;cursor:not-allowed}.row{display:flex;align-items:cen
 .mining-ring:before{content:"";position:absolute;inset:8px;border-radius:50%;border:1px solid rgba(255,255,255,.13)}
 .mining-inner{width:180px;height:180px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#0b0813;z-index:2}
 @keyframes spin{to{transform:rotate(360deg)}}.mining-time{font-size:25px;font-weight:900}.mining-rate{color:#ffd452;margin-top:6px;font-size:11px}
-/* Cave mini-game (visual layer on existing mining) */
-.cave-stage{position:relative;height:210px;margin:12px 0 14px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,212,82,.2);background:linear-gradient(180deg,#1a1428 0%,#0d0a14 40%,#1c1510 100%)}
-.cave-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:28px 28px;opacity:.5}
-.cave-floor{position:absolute;left:0;right:0;bottom:0;height:42%;background:repeating-linear-gradient(90deg,#3d2e1f 0 14px,#2a1f14 14px 28px);opacity:.9}
-.cave-rock{position:absolute;width:22px;height:18px;border-radius:6px 6px 4px 4px;background:#5a5a62;box-shadow:inset -3px -2px 0 #3a3a42}
-.cave-gem{position:absolute;width:12px;height:12px;transform:rotate(45deg);background:#4db8ff;box-shadow:0 0 10px #4db8ff}
-.cave-miner{position:absolute;bottom:38%;left:46%;font-size:28px;z-index:3;filter:drop-shadow(0 4px 6px rgba(0,0,0,.6));transition:left .8s ease}
-.cave-miner.digging{animation:caveDig 1.1s ease-in-out infinite}
-@keyframes caveDig{0%,100%{transform:translateY(0)}50%{transform:translateY(4px) rotate(-6deg)}}
-.cave-chest{position:absolute;bottom:40%;left:50%;transform:translateX(-50%) scale(.9);font-size:42px;z-index:4;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;filter:drop-shadow(0 0 12px rgba(255,212,82,.55))}
-.cave-chest.ready{opacity:1;pointer-events:auto;animation:chestPulse 1.4s ease-in-out infinite;cursor:pointer}
-@keyframes chestPulse{0%,100%{transform:translateX(-50%) scale(.95)}50%{transform:translateX(-50%) scale(1.08)}}
-.cave-banner{position:absolute;top:10px;left:10px;right:10px;z-index:5;text-align:center;font-size:11px;font-weight:700;color:#ffd452;text-shadow:0 1px 4px #000;letter-spacing:.3px}
-.cave-banner span{display:block;color:#cbb8e8;font-weight:500;margin-top:2px;font-size:10px}
 .status-pill{display:block;text-align:center;padding:11px;border-radius:999px;margin-bottom:12px;color:#120b17;font-weight:900;background:linear-gradient(100deg,#ffd94d,#b75dff)}
 .progress{height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.07);margin:14px 0}.progress span{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#ffd84c,#9c55ff);transition:width .4s}
 .input{width:100%;padding:13px 14px;border-radius:14px;color:#fff;outline:none;border:1px solid rgba(255,255,255,.1);background:#0a0711}.input:focus{border-color:#a95cff}
@@ -1343,28 +1329,12 @@ CLAIM DAILY REWARD
 <div class="daily-schedule muted" id="dailyScheduleHint">Day 1: 2 · Day 7: 12 AMT</div>
 </div>
 
-<!-- MINING SESSION + CAVE MINI-GAME -->
+<!-- MINING SESSION -->
 <div class="card">
-<div class="card-title">⛏️ CAVE MINING</div>
-<div class="muted" style="margin-bottom:8px">Wait in the cave · Watch your miner dig · Claim the chest when ready · <b>0.5 AMT/hr · 24h</b></div>
+<div class="card-title">MINING SESSION</div>
+<div class="muted" style="margin-bottom:8px">24h session · 0.5 AMT/hr · Claim when timer ends</div>
 
-<div class="cave-stage" id="caveStage">
-  <div class="cave-grid"></div>
-  <div class="cave-floor"></div>
-  <div class="cave-banner" id="caveBanner">MINING READY<span>Tap START to send your miner into the cave</span></div>
-  <div class="cave-rock" style="left:12%;top:28%"></div>
-  <div class="cave-rock" style="left:70%;top:22%;width:18px;height:14px"></div>
-  <div class="cave-rock" style="left:30%;top:48%;background:#6a6a72"></div>
-  <div class="cave-rock" style="left:78%;top:52%;width:26px"></div>
-  <div class="cave-rock" style="left:8%;top:58%"></div>
-  <div class="cave-gem" style="left:22%;top:36%"></div>
-  <div class="cave-gem" style="left:62%;top:44%;background:#7dffb3;box-shadow:0 0 10px #7dffb3"></div>
-  <div class="cave-gem" style="left:48%;top:30%;background:#c9a0ff;box-shadow:0 0 10px #c9a0ff"></div>
-  <div class="cave-miner" id="caveMiner">⛏️</div>
-  <div class="cave-chest" id="caveChest" onclick="claimMining()" title="Claim chest">🧰</div>
-</div>
-
-<div class="mining-ring" style="margin-top:4px">
+<div class="mining-ring">
 <div class="mining-inner">
 <div id="miningTimer" class="mining-time">24:00:00</div>
 <div class="mining-rate">0.5 AMT / HOUR</div>
@@ -1374,17 +1344,17 @@ CLAIM DAILY REWARD
 <div id="miningStatus" class="status-pill">MINING READY</div>
 
 <button id="startMiningBtn" class="primary" onclick="startMining()">
-⛏️ START DIGGING
+⛏️ START MINING
 </button>
 
 <button id="claimMiningBtn" class="secondary hidden" style="margin-top:10px" onclick="claimMining()">
-🧰 CLAIM CHEST REWARD
+💰 CLAIM MINING REWARD
 </button>
 
 <div class="progress"><span id="miningProgress"></span></div>
 
 <div class="row">
-<span class="muted">Chest filling</span>
+<span class="muted">Current Earned</span>
 <b id="currentEarned">0.00000000 AMT</b>
 </div>
 </div>
@@ -3081,10 +3051,10 @@ fmt(earned)+" AMT";
 if(active&&completed){
 
 $("miningStatus").textContent=
-"🧰 CHEST READY";
+"REWARD READY";
 
 $("miniMiningStatus").textContent=
-"Chest Ready";
+"Reward Ready";
 
 $("startMiningBtn").disabled=true;
 
@@ -3096,10 +3066,6 @@ $("miningTimer").textContent=
 
 $("miningProgress").style.width=
 "100%";
-
-if($("caveBanner")) $("caveBanner").innerHTML='CHEST READY<span>Tap the chest or CLAIM to collect AMT</span>';
-if($("caveMiner")){ $("caveMiner").classList.remove("digging"); $("caveMiner").style.opacity="0.35"; }
-if($("caveChest")) $("caveChest").classList.add("ready");
 
 if(miningInterval){
 
@@ -3114,19 +3080,15 @@ return;
 if(active){
 
 $("miningStatus").textContent=
-"⛏️ DIGGING IN CAVE";
+"⛏️ MINING ACTIVE";
 
 $("miniMiningStatus").textContent=
-"Digging";
+"Active";
 
 $("startMiningBtn").disabled=true;
 
 $("claimMiningBtn")
 .classList.add("hidden");
-
-if($("caveBanner")) $("caveBanner").innerHTML='WAIT IN THE CAVE<span>Watch your miner dig · Claim when the chest is ready</span>';
-if($("caveMiner")){ $("caveMiner").classList.add("digging"); $("caveMiner").style.opacity="1"; }
-if($("caveChest")) $("caveChest").classList.remove("ready");
 
 startMiningClock(data);
 
@@ -3149,10 +3111,6 @@ $("miningTimer").textContent=
 
 $("miningProgress").style.width=
 "0%";
-
-if($("caveBanner")) $("caveBanner").innerHTML='MINING READY<span>Tap START to send your miner into the cave</span>';
-if($("caveMiner")){ $("caveMiner").classList.remove("digging"); $("caveMiner").style.opacity="1"; }
-if($("caveChest")) $("caveChest").classList.remove("ready");
 
 if(miningInterval){
 
