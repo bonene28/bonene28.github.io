@@ -9091,14 +9091,29 @@ app.post(
         )
       );
 
-      let PiNetwork;
+      let PiNetworkMod;
       try {
-        PiNetwork = require("pi-backend");
+        PiNetworkMod = require("pi-backend");
       } catch (e) {
         return res.status(503).json({
           ok: false,
           error:
             "pi-backend package not installed. Add pi-backend to package.json and redeploy."
+        });
+      }
+
+      // CJS/ESM interop: package may export default or named class
+      const PiNetwork =
+        (typeof PiNetworkMod === "function" && PiNetworkMod) ||
+        (PiNetworkMod && typeof PiNetworkMod.default === "function" && PiNetworkMod.default) ||
+        (PiNetworkMod && typeof PiNetworkMod.PiNetwork === "function" && PiNetworkMod.PiNetwork) ||
+        null;
+
+      if (!PiNetwork) {
+        return res.status(500).json({
+          ok: false,
+          error:
+            "pi-backend loaded but PiNetwork constructor not found. Check package version."
         });
       }
 
