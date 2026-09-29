@@ -9068,9 +9068,9 @@ app.post(
       // One successful A2U test payout per member (enough for uniqueness count)
       const prior = await pool.query(
         `
-        SELECT id FROM ledger_entries
+        SELECT id FROM amt_ledger
         WHERE member_id = $1
-          AND entry_type = 'A2U_TEST_PAYOUT'
+          AND type = 'A2U_TEST_PAYOUT'
         LIMIT 1
         `,
         [req.member.id]
@@ -9162,19 +9162,18 @@ app.post(
           txid
         );
 
-      // Audit row (no AMT balance change — this is Test-Pi on chain)
+      // Audit row only (amount 0 so in-app AMT balance is unchanged — Test-Pi is on-chain)
       try {
         await pool.query(
           `
-          INSERT INTO ledger_entries
-            (member_id, entry_type, amount, reference, created_at)
+          INSERT INTO amt_ledger
+            (member_id, amount, type, reference)
           VALUES
-            ($1, 'A2U_TEST_PAYOUT', $2, $3, NOW())
+            ($1, 0, 'A2U_TEST_PAYOUT', $2)
           `,
           [
             req.member.id,
-            amount,
-            String(paymentId)
+            "A2U-" + String(paymentId)
           ]
         );
       } catch (e) {
