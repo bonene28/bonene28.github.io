@@ -3,11 +3,11 @@
 /*
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
-PI TESTNET BACKEND
+PI BACKEND (APP LEDGER)
 FULL SERVER VERSION 2.4.28
 
 IMPORTANT:
-- TESTNET ONLY
+- Application ledger backend (works with Mainnet or Testnet Pi app keys)
 - AMT application ledger wallet only
 - Generated AMT- address is NOT a Pi/Stellar blockchain wallet
 - Pi authentication is verified server-side
@@ -15,8 +15,8 @@ IMPORTANT:
 - Airdrop is application-ledger accounting
 - AMT transfers are application-ledger accounting
 - Staking is application-ledger accounting
-- Marketplace payments use Pi Testnet Payments API
-- NO MAINNET VALUE IS CLAIMED
+- Pi Payments API depends on PI_API_KEY network (Mainnet key = Mainnet payments)
+- In-app AMT balances are ledger accounting; on-chain Mainnet AMT is separate
 
 VERSION 2.4.3:
 - OLD 1 AMT airdrop claims are cleared → users can claim new 100 AMT airdrop
@@ -138,15 +138,16 @@ const DEV_LEDGER_ADDRESSES = String(
   .filter(Boolean);
 const DEV_TREASURY_REF = "AMT-DEV-TREASURY-5M";
 
-/* 48-hour claim window for NEW 100 AMT airdrop (shared campaign window) */
+/* Airdrop claim window (shared campaign). Default: 30 days from campaign start.
+   Override with env: AIRDROP_CAMPAIGN_START, AIRDROP_WINDOW_HOURS */
 const AIRDROP_CLAIM_WINDOW_SECONDS =
-  48 * 60 * 60;
+  Number(process.env.AIRDROP_WINDOW_HOURS || "720") * 60 * 60; /* default 30 days */
 
-/* Campaign starts when 100 AMT airdrop went live — all users share this window */
+/* Campaign start — reopen for Mainnet app era. Override via env if needed. */
 const AIRDROP_CAMPAIGN_START_MS =
   new Date(
     process.env.AIRDROP_CAMPAIGN_START ||
-    "2026-09-18T00:00:00.000Z"
+    "2026-09-29T00:00:00.000Z"
   ).getTime();
 
 const MAX_DIRECT_REFERRALS = null;
@@ -462,11 +463,16 @@ async function verifyPiAccessToken(
     !response.ok ||
     !data?.uid
   ) {
+    console.error("AUTH ERROR detail:", {
+      status: response.status,
+      body: data,
+      tokenPrefix: String(accessToken).slice(0, 12) + "…"
+    });
     throw new HttpError(
       401,
       data?.error ||
         data?.message ||
-        "Pi authentication failed."
+        `Pi authentication failed (${response.status}).`
     );
   }
 
@@ -2691,7 +2697,7 @@ app.get(
         "Pi Testnet",
 
       type:
-        "ONE_TIME_TESTNET_AIRDROP_48H",
+        "ONE_TIME_AIRDROP",
 
       claimWindowSeconds:
         AIRDROP_CLAIM_WINDOW_SECONDS,
@@ -2754,7 +2760,7 @@ app.post(
           .json({
             ok: false,
             error:
-              "Airdrop claim window has expired (48 hours).",
+              "Airdrop claim window has expired.",
             expired: true
           });
       }
@@ -9008,6 +9014,206 @@ app.use(
           err.message ||
           "Internal server error."
       });
+  }
+);
+
+/* =========================================================
+TESTNET A2U (App → User) — for Pi "5 unique wallets" requirement
+Env required on Render (Testnet service only):
+  PI_API_KEY              = Testnet app API key
+  PI_WALLET_PRIVATE_SEED  = Testnet app wallet seed (starts with S) — SECRET
+Optional:
+  A2U_TEST_AMOUNT         = amount of Test-Pi per payout (default 0.01)
+========================================================= */
+
+app.post(
+  "/api/test/a2u",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const seed = String(
+        process.env.PI_WALLET_PRIVATE_SEED || ""
+      ).trim();
+      const apiKey = String(
+        process.env.PI_API_KEY || ""
+      ).trim();
+
+      if (!apiKey || !seed) {
+        return res.status(503).json({
+          ok: false,
+          error:
+            "A2U not configured. Set PI_API_KEY and PI_WALLET_PRIVATE_SEED on Render (Testnet)."
+        });
+      }
+
+      if (!seed.startsWith("S")) {
+        return res.status(500).json({
+          ok: false,
+          error:
+            "PI_WALLET_PRIVATE_SEED must be a secret seed starting with S."
+        });
+      }
+
+      const uid = String(
+        req.member.pi_uid || ""
+      ).trim();
+      if (!uid) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Missing Pi user uid. Re-login with Pi on the Testnet app."
+        });
+      }
+
+      // One successful A2U test payout per member (enough for uniqueness count)
+      const prior = await pool.query(
+        `
+        SELECT id FROM ledger_entries
+        WHERE member_id = $1
+          AND entry_type = 'A2U_TEST_PAYOUT'
+        LIMIT 1
+        `,
+        [req.member.id]
+      );
+      if (prior.rows.length > 0) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "This account already received a test A2U payout. Use another Pi account for remaining unique wallets."
+        });
+      }
+
+      const amount = Math.min(
+        1,
+        Math.max(
+          0.001,
+          Number(process.env.A2U_TEST_AMOUNT || "0.01")
+        )
+      );
+
+      let PiNetwork;
+      try {
+        PiNetwork = require("pi-backend");
+      } catch (e) {
+        return res.status(503).json({
+          ok: false,
+          error:
+            "pi-backend package not installed. Add pi-backend to package.json and redeploy."
+        });
+      }
+
+      const pi = new PiNetwork(apiKey, seed);
+
+      // Clear stuck incomplete server payments if any
+      try {
+        const incomplete =
+          await pi.getIncompleteServerPayments();
+        if (
+          Array.isArray(incomplete) &&
+          incomplete.length
+        ) {
+          for (const p of incomplete) {
+            const id = p.identifier || p.paymentId;
+            if (!id) continue;
+            try {
+              if (
+                p.transaction &&
+                p.transaction.txid
+              ) {
+                await pi.completePayment(
+                  id,
+                  p.transaction.txid
+                );
+              } else {
+                await pi.cancelPayment(id);
+              }
+            } catch (e2) {
+              console.warn(
+                "A2U incomplete cleanup:",
+                e2.message || e2
+              );
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(
+          "getIncompleteServerPayments:",
+          e.message || e
+        );
+      }
+
+      const paymentData = {
+        amount,
+        memo: "AMT Testnet A2U test payout",
+        metadata: {
+          purpose: "a2u_unique_wallet_test",
+          member_id: req.member.id
+        },
+        uid
+      };
+
+      const paymentId =
+        await pi.createPayment(paymentData);
+      const txid =
+        await pi.submitPayment(paymentId);
+      const completed =
+        await pi.completePayment(
+          paymentId,
+          txid
+        );
+
+      // Audit row (no AMT balance change — this is Test-Pi on chain)
+      try {
+        await pool.query(
+          `
+          INSERT INTO ledger_entries
+            (member_id, entry_type, amount, reference, created_at)
+          VALUES
+            ($1, 'A2U_TEST_PAYOUT', $2, $3, NOW())
+          `,
+          [
+            req.member.id,
+            amount,
+            String(paymentId)
+          ]
+        );
+      } catch (e) {
+        console.warn(
+          "A2U ledger audit:",
+          e.message || e
+        );
+      }
+
+      return res.json({
+        ok: true,
+        amount,
+        paymentId,
+        txid,
+        to_address:
+          completed && completed.to_address
+            ? completed.to_address
+            : null,
+        direction:
+          completed && completed.direction
+            ? completed.direction
+            : "app_to_user",
+        message:
+          "A2U test payout submitted. Check Test-Pi wallet. Need 5 unique wallets total."
+      });
+    } catch (err) {
+      console.error(
+        "A2U ERROR:",
+        err && err.response
+          ? err.response.data
+          : err
+      );
+      return res.status(500).json({
+        ok: false,
+        error:
+          (err && err.message) ||
+          "A2U payout failed."
+      });
+    }
   }
 );
 
