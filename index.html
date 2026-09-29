@@ -1757,6 +1757,15 @@ Pi UID: —
 </div>
 
 <div class="card">
+<div class="card-title">TESTNET A2U (APP → USER)</div>
+<p class="muted" style="font-size:12px;margin-bottom:10px">
+Sends a small <b>Test-Pi</b> from the app wallet to your Pi wallet.
+Need 5 unique accounts for Mainnet app wallet application.
+</p>
+<button class="primary" onclick="testA2U()">🧪 Test A2U 0.01π</button>
+</div>
+
+<div class="card">
 <div class="card-title">SESSION</div>
 <button class="danger" onclick="logoutPi()">🚪 LOGOUT</button>
 </div>
@@ -2441,6 +2450,21 @@ loadAll();
 /* ============================================================
    LOGOUT
 ============================================================ */
+
+
+async function testA2U(){
+  try{
+    if(typeof accessToken==="undefined"||!accessToken){
+      showToast("Login with Pi first (Testnet app).",true);
+      return;
+    }
+    showToast("Sending Test-Pi A2U…");
+    const data=await api("/api/test/a2u",{method:"POST",body:JSON.stringify({})});
+    showToast("A2U OK · "+(data.amount||0.01)+" Test-Pi · "+(data.to_address?String(data.to_address).slice(0,8)+"…":"check wallet"));
+  }catch(e){
+    showToast(e.message||"A2U failed",true);
+  }
+}
 
 function logoutPi(showMessage=true){
 
