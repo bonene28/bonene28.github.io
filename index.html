@@ -61,12 +61,18 @@ label{display:block;margin:0 0 7px;font-size:11px;color:#aaa1b5}.form-group{marg
 .market-art{height:130px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px;font-size:48px;background:radial-gradient(circle at 50% 30%,rgba(179,80,255,.4),transparent 50%),#10091a}
 .market-name{font-weight:900;font-size:14px}.market-price{color:#ffd34f;margin:5px 0 9px;font-size:13px}.small-btn{border:1px solid rgba(170,80,255,.3);border-radius:10px;padding:10px;width:100%;color:#fff;background:rgba(170,80,255,.1);font-size:12px;font-weight:800}
 .empty{padding:25px 12px;text-align:center;color:#807688;font-size:12px}hr{border:0;border-top:1px solid rgba(255,255,255,.06);margin:15px 0}
-/* Daily reward + pro wallet */
+/* Daily Spin Wheel + pro wallet */
 .daily-card{border:1px solid rgba(255,212,82,.22);background:linear-gradient(165deg,rgba(40,28,12,.55),rgba(12,8,20,.95))}
-.streak-badge{background:rgba(255,140,40,.18);border:1px solid rgba(255,180,60,.35);color:#ffd452;font-weight:900;font-size:14px;padding:8px 12px;border-radius:999px;white-space:nowrap}
-.daily-amount-row{display:flex;justify-content:space-between;align-items:flex-end;margin:14px 0 12px}
-.daily-amount{font-size:28px;font-weight:900;color:#ffd452;letter-spacing:-.5px}
-.daily-schedule{margin-top:10px;font-size:11px;text-align:center}
+.spin-badge{background:rgba(255,140,40,.18);border:1px solid rgba(255,180,60,.35);color:#ffd452;font-weight:900;font-size:13px;padding:8px 12px;border-radius:999px;white-space:nowrap}
+.spin-wheel-wrap{position:relative;width:min(280px,86vw);height:min(280px,86vw);margin:16px auto 12px}
+.spin-pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:5;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:22px solid #ffd452;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.spin-wheel{width:100%;height:100%;border-radius:50%;position:relative;overflow:hidden;border:4px solid rgba(255,212,82,.55);box-shadow:0 0 28px rgba(170,80,255,.35),inset 0 0 20px rgba(0,0,0,.5);transition:transform 4.2s cubic-bezier(.12,.75,.18,1);background:conic-gradient(from -22.5deg,#ffd452 0deg 45deg,#b65cff 45deg 90deg,#5dff9a 90deg 135deg,#5eb0ff 135deg 180deg,#ff8c3a 180deg 225deg,#ff6bcb 225deg 270deg,#e8e0ff 270deg 315deg,#ff4d6a 315deg 360deg)}
+.spin-wheel.spinning{pointer-events:none}
+.spin-labels{position:absolute;inset:0;border-radius:50%}
+.spin-label{position:absolute;left:50%;top:50%;width:42%;text-align:center;font-size:11px;font-weight:900;color:#120b17;transform-origin:0 0;text-shadow:0 1px 0 rgba(255,255,255,.35)}
+.spin-hub{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px;border-radius:50%;z-index:4;display:grid;place-items:center;font-size:11px;font-weight:1000;color:#ffd95a;background:radial-gradient(circle at 40% 30%,#6b2fa0,#12091f);border:2px solid rgba(255,216,90,.85);box-shadow:0 0 16px rgba(170,80,255,.5)}
+.spin-prizes-hint{font-size:10px;text-align:center;color:#958ba3;margin-top:8px;line-height:1.45}
+.spin-result{text-align:center;font-size:18px;font-weight:900;color:#ffd452;min-height:28px;margin:8px 0 4px}
 .wallet-hero-card{border:1px solid rgba(170,80,255,.25);background:linear-gradient(165deg,rgba(40,20,70,.4),rgba(10,7,18,.98))}
 .balance-stack{display:flex;flex-direction:column;gap:10px}
 .balance-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
@@ -1297,36 +1303,36 @@ AMT shown here has no Mainnet value.
 <section id="miningSection" class="section">
 <div class="hero">
 <h1><span>AMT</span> MINING</h1>
-<p>Mine · Daily reward · Build your balance</p>
+<p>Mine · Daily Spin · Build your balance</p>
 <div class="notice">
 Pi KYC is <b>not required</b> for AMT Testnet mining.
 KYC may be required for applicable Mainnet functions.
 </div>
 </div>
 
-<!-- DAILY REWARD -->
+<!-- DAILY SPIN (3 spins / day · 1000 jackpot) -->
 <div class="card daily-card">
 <div class="row" style="align-items:flex-start">
 <div>
-<div class="card-title" style="margin:0">🎁 DAILY REWARD</div>
-<div class="muted" style="margin-top:4px">1 claim per day · Streak bonus up to Day 7</div>
+<div class="card-title" style="margin:0">🎰 DAILY SPIN</div>
+<div class="muted" style="margin-top:4px">3 spins per day · Jackpot 1000 AMT</div>
 </div>
-<div class="streak-badge" id="dailyStreakBadge">🔥 0</div>
+<div class="spin-badge" id="spinLeftBadge">3 left</div>
 </div>
-<div class="daily-amount-row">
-<div>
-<div class="muted" style="font-size:11px">Today's reward</div>
-<div class="daily-amount" id="dailyNextAmount">— AMT</div>
+<div class="spin-wheel-wrap">
+<div class="spin-pointer"></div>
+<div class="spin-wheel" id="spinWheel">
+<div class="spin-labels" id="spinLabels"></div>
 </div>
-<div style="text-align:right">
-<div class="muted" style="font-size:11px" id="dailyStatusLabel">Checking…</div>
-<div class="muted" style="font-size:11px;margin-top:4px" id="dailyResetTimer"></div>
+<div class="spin-hub">SPIN</div>
 </div>
-</div>
-<button id="dailyClaimBtn" class="primary" onclick="claimDailyReward()" disabled>
-CLAIM DAILY REWARD
+<div class="spin-result" id="spinResult"></div>
+<div class="muted" style="text-align:center;font-size:11px" id="spinStatusLabel">Checking…</div>
+<div class="muted" style="text-align:center;font-size:11px;margin-top:4px" id="spinResetTimer"></div>
+<button id="spinBtn" class="primary" onclick="doDailySpin()" disabled style="margin-top:12px">
+SPIN NOW
 </button>
-<div class="daily-schedule muted" id="dailyScheduleHint">Day 1: 2 · Day 7: 12 AMT</div>
+<div class="spin-prizes-hint" id="spinPrizesHint">Prizes: 5 · 10 · 25 · 50 · 100 · 250 · 500 · <b style="color:#ffd452">1000 JACKPOT</b></div>
 </div>
 
 <!-- MINING SESSION -->
@@ -1387,7 +1393,7 @@ CLAIM DAILY REWARD
 <span id="walletBalance">0.00000000</span>
 <span class="balance-symbol">AMT</span>
 </div>
-<div class="muted" style="margin-top:6px">Mining · Daily · Pets · Staking ledger</div>
+<div class="muted" style="margin-top:6px">Mining · Daily Spin · Pets · Staking ledger</div>
 <div class="grid" style="margin-top:15px">
 <div class="stat">
 <div class="stat-label">Available</div>
@@ -2971,78 +2977,170 @@ true
 ============================================================ */
 
 let dailyResetInterval=null;
+let spinBusy=false;
+let spinRotation=0;
+
+/* 8 segments — last is 1000 jackpot */
+const SPIN_PRIZES=[5,10,25,50,100,250,500,1000];
+const SPIN_MAX_PER_DAY=3;
+
+function initSpinLabels(){
+  const box=$("spinLabels");
+  if(!box||box.dataset.ready)return;
+  box.innerHTML=SPIN_PRIZES.map((p,i)=>{
+    const mid=-22.5+i*45+22.5;
+    const label=p===1000?"1000★":String(p);
+    return `<div class="spin-label" style="transform:rotate(${mid}deg) translateY(-118px) translateX(-50%)">${label}</div>`;
+  }).join("");
+  box.dataset.ready="1";
+}
+
+function pickSpinPrize(){
+  const weights=[28,24,18,12,8,5,3,2];
+  const total=weights.reduce((a,b)=>a+b,0);
+  let r=Math.random()*total;
+  for(let i=0;i<weights.length;i++){
+    r-=weights[i];
+    if(r<=0)return{index:i,amount:SPIN_PRIZES[i]};
+  }
+  return{index:0,amount:SPIN_PRIZES[0]};
+}
+
+function animateSpinTo(index){
+  return new Promise(resolve=>{
+    const wheel=$("spinWheel");
+    if(!wheel){resolve();return;}
+    const seg=45;
+    const targetMid=-22.5+index*seg+seg/2;
+    const extra=5*360+Math.random()*20-10;
+    const final=extra+(360-targetMid);
+    spinRotation+=final;
+    wheel.classList.add("spinning");
+    wheel.style.transform="rotate("+spinRotation+"deg)";
+    setTimeout(()=>{
+      wheel.classList.remove("spinning");
+      resolve();
+    },4300);
+  });
+}
 
 async function loadDailyStatus(){
+  initSpinLabels();
   try{
     if(!accessToken){
-      if($("dailyStatusLabel")) $("dailyStatusLabel").textContent="Login to claim";
-      if($("dailyClaimBtn")) $("dailyClaimBtn").disabled=true;
+      if($("spinStatusLabel")) $("spinStatusLabel").textContent="Login to spin";
+      if($("spinBtn")) $("spinBtn").disabled=true;
+      if($("spinLeftBadge")) $("spinLeftBadge").textContent="0 left";
       return;
     }
-    const data=await api("/api/daily/status");
-    const streak=Number(data.streak||0);
-    const nextStreak=Number(data.nextStreak||1);
-    const nextAmt=Number(data.nextAmount||1);
-    const canClaim=Boolean(data.canClaim);
-    if($("dailyStreakBadge")) $("dailyStreakBadge").textContent="🔥 "+(data.claimedToday?streak:Math.max(0,streak));
-    if($("dailyNextAmount")) $("dailyNextAmount").textContent=fmt(nextAmt)+" AMT";
-    if($("dailyScheduleHint")&&Array.isArray(data.schedule)){
-      $("dailyScheduleHint").textContent=
-        "Streak: "+data.schedule.map((a,i)=>"D"+(i+1)+":"+a).join(" · ");
+    let data={};
+    try{
+      data=await api("/api/spin/status");
+    }catch(err){
+      try{
+        const d=await api("/api/daily/status");
+        data={
+          spinsLeft:d.canClaim?SPIN_MAX_PER_DAY:0,
+          spinsUsed:d.canClaim?0:SPIN_MAX_PER_DAY,
+          maxSpins:SPIN_MAX_PER_DAY,
+          secondsUntilReset:d.secondsUntilReset||0,
+          prizes:SPIN_PRIZES
+        };
+      }catch(e2){
+        data={spinsLeft:SPIN_MAX_PER_DAY,maxSpins:SPIN_MAX_PER_DAY,secondsUntilReset:0};
+      }
     }
-    const btn=$("dailyClaimBtn");
+    const max=Number(data.maxSpins||SPIN_MAX_PER_DAY);
+    const left=Math.max(0,Number(data.spinsLeft!=null?data.spinsLeft:max));
+    const canSpin=left>0&&!spinBusy;
+    if($("spinLeftBadge")) $("spinLeftBadge").textContent=left+" left";
+    const btn=$("spinBtn");
     if(btn){
-      btn.disabled=!canClaim;
-      btn.textContent=canClaim
-        ?("🎁 CLAIM "+fmt(nextAmt)+" AMT")
-        :"✅ CLAIMED TODAY";
+      btn.disabled=!canSpin;
+      btn.textContent=left>0?("🎰 SPIN NOW ("+left+"/"+max+")"):"✅ NO SPINS LEFT";
     }
-    if($("dailyStatusLabel")){
-      $("dailyStatusLabel").textContent=canClaim
-        ?("Ready · Streak → "+nextStreak+"/"+ (data.maxStreak||7))
-        :("Claimed · Streak "+streak+"/"+(data.maxStreak||7));
+    if($("spinStatusLabel")){
+      $("spinStatusLabel").textContent=left>0
+        ?(left+" spin"+(left===1?"":"s")+" remaining today · Jackpot 1000 AMT")
+        :"All 3 spins used · Resets daily (UTC)";
+    }
+    if(Array.isArray(data.prizes)&&$("spinPrizesHint")){
+      $("spinPrizesHint").innerHTML=
+        "Prizes: "+data.prizes.map(p=>p>=1000?'<b style="color:#ffd452">'+p+" JACKPOT</b>":p).join(" · ");
     }
     if(dailyResetInterval){clearInterval(dailyResetInterval);dailyResetInterval=null;}
-    if(!canClaim && data.secondsUntilReset>0){
-      let left=Number(data.secondsUntilReset);
+    if(left<=0 && data.secondsUntilReset>0){
+      let t=Number(data.secondsUntilReset);
       const tick=()=>{
-        if(left<=0){
-          if($("dailyResetTimer")) $("dailyResetTimer").textContent="Refresh for next claim";
+        if(t<=0){
+          if($("spinResetTimer")) $("spinResetTimer").textContent="Refresh for new spins";
           loadDailyStatus();
           return;
         }
-        const h=Math.floor(left/3600);
-        const m=Math.floor((left%3600)/60);
-        const s=Math.floor(left%60);
-        if($("dailyResetTimer"))
-          $("dailyResetTimer").textContent=
-            "Next in "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+" UTC";
-        left--;
+        const h=Math.floor(t/3600);
+        const m=Math.floor((t%3600)/60);
+        const s=Math.floor(t%60);
+        if($("spinResetTimer"))
+          $("spinResetTimer").textContent=
+            "Next spins in "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+" UTC";
+        t--;
       };
       tick();
       dailyResetInterval=setInterval(tick,1000);
-    }else if($("dailyResetTimer")){
-      $("dailyResetTimer").textContent=canClaim?"":"";
+    }else if($("spinResetTimer")){
+      $("spinResetTimer").textContent="";
     }
   }catch(e){
-    console.log("Daily status:",e);
-    if($("dailyStatusLabel")) $("dailyStatusLabel").textContent=e.message||"Unavailable";
+    console.log("Spin status:",e);
+    if($("spinStatusLabel")) $("spinStatusLabel").textContent=e.message||"Unavailable";
   }
 }
 
-async function claimDailyReward(){
-  const btn=$("dailyClaimBtn");
+async function doDailySpin(){
+  if(spinBusy)return;
+  const btn=$("spinBtn");
   try{
-    if(btn){btn.disabled=true;btn.textContent="CLAIMING…";}
-    const data=await api("/api/daily/claim",{method:"POST",body:JSON.stringify({})});
-    showToast(data.message||("Daily +"+fmt(data.amount||0)+" AMT"));
+    if(!accessToken){
+      showToast("Login with Pi first",true);
+      return;
+    }
+    spinBusy=true;
+    if(btn){btn.disabled=true;btn.textContent="SPINNING…";}
+    if($("spinResult")) $("spinResult").textContent="";
+
+    let amount,index;
+    try{
+      const data=await api("/api/spin/claim",{method:"POST",body:JSON.stringify({})});
+      amount=Number(data.amount||data.prize||0);
+      index=SPIN_PRIZES.indexOf(amount);
+      if(index<0){
+        index=SPIN_PRIZES.reduce((best,p,i)=>Math.abs(p-amount)<Math.abs(SPIN_PRIZES[best]-amount)?i:best,0);
+      }
+      await animateSpinTo(index);
+      const jackpot=amount>=1000;
+      if($("spinResult"))
+        $("spinResult").textContent=jackpot?("🏆 JACKPOT +"+fmt(amount)+" AMT!"):("+"+fmt(amount)+" AMT");
+      showToast(data.message||(jackpot?("JACKPOT! +"+fmt(amount)+" AMT"):("Spin +"+fmt(amount)+" AMT")));
+    }catch(apiErr){
+      const pick=pickSpinPrize();
+      index=pick.index;
+      amount=pick.amount;
+      await animateSpinTo(index);
+      if($("spinResult"))
+        $("spinResult").textContent="Demo: "+amount+" AMT (API offline)";
+      showToast(apiErr.message||"Spin API unavailable — demo only",true);
+    }
     await loadDailyStatus();
     await refreshWallet();
   }catch(e){
-    showToast(e.message||"Daily claim failed",true);
+    showToast(e.message||"Spin failed",true);
     await loadDailyStatus();
+  }finally{
+    spinBusy=false;
   }
 }
+
+async function claimDailyReward(){return doDailySpin();}
 
 async function loadMiningStatus(){
 
@@ -5532,6 +5630,7 @@ document.addEventListener(
 ()=>{
 
 selectPool("30D");
+initSpinLabels();
 
 // Capture ?ref= from URL early (before login)
 getPendingReferralCode();
