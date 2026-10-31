@@ -3047,7 +3047,12 @@ async function loadDailyStatus(){
           prizes:SPIN_PRIZES
         };
       }catch(e2){
-        data={spinsLeft:SPIN_MAX_PER_DAY,maxSpins:SPIN_MAX_PER_DAY,secondsUntilReset:0};
+        // Do NOT fake spins when API is down
+        if($("spinStatusLabel")) $("spinStatusLabel").textContent="Spin API error: "+(err.message||"offline");
+        if($("spinBtn")){ $("spinBtn").disabled=true; $("spinBtn").textContent="API OFFLINE"; }
+        if($("spinLeftBadge")) $("spinLeftBadge").textContent="—";
+        showToast(err.message||"Spin status unavailable",true);
+        return;
       }
     }
     const max=Number(data.maxSpins||SPIN_MAX_PER_DAY);
@@ -3108,32 +3113,25 @@ async function doDailySpin(){
     if(btn){btn.disabled=true;btn.textContent="SPINNING…";}
     if($("spinResult")) $("spinResult").textContent="";
 
-    let amount,index;
-    try{
-      const data=await api("/api/spin/claim",{method:"POST",body:JSON.stringify({})});
-      amount=Number(data.amount||data.prize||0);
-      index=SPIN_PRIZES.indexOf(amount);
-      if(index<0){
-        index=SPIN_PRIZES.reduce((best,p,i)=>Math.abs(p-amount)<Math.abs(SPIN_PRIZES[best]-amount)?i:best,0);
-      }
-      await animateSpinTo(index);
-      const jackpot=amount>=1000;
-      if($("spinResult"))
-        $("spinResult").textContent=jackpot?("🏆 JACKPOT +"+fmt(amount)+" AMT!"):("+"+fmt(amount)+" AMT");
-      showToast(data.message||(jackpot?("JACKPOT! +"+fmt(amount)+" AMT"):("Spin +"+fmt(amount)+" AMT")));
-    }catch(apiErr){
-      const pick=pickSpinPrize();
-      index=pick.index;
-      amount=pick.amount;
-      await animateSpinTo(index);
-      if($("spinResult"))
-        $("spinResult").textContent="Demo: "+amount+" AMT (API offline)";
-      showToast(apiErr.message||"Spin API unavailable — demo only",true);
+    // Real API only — no silent demo fallback
+    const data=await api("/api/spin/claim",{method:"POST",body:JSON.stringify({})});
+    let amount=Number(data.amount||data.prize||0);
+    let index=SPIN_PRIZES.indexOf(amount);
+    if(index<0){
+      index=SPIN_PRIZES.reduce((best,p,i)=>Math.abs(p-amount)<Math.abs(SPIN_PRIZES[best]-amount)?i:best,0);
     }
+    await animateSpinTo(index);
+    const jackpot=amount>=1000;
+    if($("spinResult"))
+      $("spinResult").textContent=jackpot?("🏆 JACKPOT +"+fmt(amount)+" AMT!"):("+"+fmt(amount)+" AMT");
+    showToast(data.message||(jackpot?("JACKPOT! +"+fmt(amount)+" AMT"):("Spin +"+fmt(amount)+" AMT")));
+
     await loadDailyStatus();
     await refreshWallet();
   }catch(e){
-    showToast(e.message||"Spin failed",true);
+    const msg=e.message||"Spin failed";
+    if($("spinResult")) $("spinResult").textContent="Error: "+msg;
+    showToast(msg,true);
     await loadDailyStatus();
   }finally{
     spinBusy=false;
