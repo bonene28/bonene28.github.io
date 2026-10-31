@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.2.1
+FULL SERVER VERSION 2.2.2
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.2.1:
+VERSION 2.2.2:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -38,6 +38,7 @@ VERSION 2.2.1:
 - ADDED: Tier system (Bronze → Silver → Gold → Platinum → Diamond → Legend)
 - FIXED: Multiple referral field names for frontend compatibility (code, referralCode, inviteCode, referralLink, etc.)
 - ADDED: Real Daily Spin API (/api/spin/status, /api/spin/claim) — 3 spins/day, weighted prizes, 1000 jackpot
+- FIXED: Spin claim SQL — removed invalid FOR UPDATE on COUNT (was causing "Unable to claim spin reward")
 ============================================================
 */
 
@@ -1053,7 +1054,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.2.1",
+      "2.2.2",
 
     features: [
       "Pi Login",
@@ -2411,13 +2412,14 @@ app.post(
 
       const dayKey = getUtcDayKey();
 
+      // Member row already locked above — count without FOR UPDATE
+      // (PostgreSQL does not allow FOR UPDATE with aggregate COUNT)
       const usedResult = await client.query(
         `
         SELECT COUNT(*)::INT AS used
         FROM amt_spins
         WHERE member_id = $1
           AND day_key = $2
-        FOR UPDATE
         `,
         [req.member.id, dayKey]
       );
@@ -2492,7 +2494,7 @@ app.post(
 
       res.status(500).json({
         ok: false,
-        error: "Unable to claim spin reward."
+        error: error.message || "Unable to claim spin reward."
       });
     } finally {
       client.release();
@@ -5894,7 +5896,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.2.1"
+          "Version: 2.2.2"
         );
 
         console.log(
