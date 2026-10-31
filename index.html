@@ -1883,6 +1883,8 @@ SELECT 180D
 <div style="display:flex;flex-wrap:wrap;gap:6px">
 <button class="small-btn" style="width:auto;padding:8px 12px" onclick="petTab('shop')">🛒 Shop</button>
 <button class="small-btn" style="width:auto;padding:8px 12px" onclick="petTab('owned')">🐾 My Pets</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="petTab('food')">🍖 Food</button>
+<button class="small-btn" style="width:auto;padding:8px 12px" onclick="petTab('outpost')">🏰 Outpost</button>
 <button class="small-btn" style="width:auto;padding:8px 12px" onclick="petTab('eggs')">🥚 Eggs</button>
 <button class="small-btn" style="width:auto;padding:8px 12px" onclick="petTab('listings')">🏪 Public Sell</button>
 </div>
@@ -1916,7 +1918,45 @@ SELECT 180D
 <div class="notice" style="margin-bottom:10px;font-size:11px">
   Level milestones: <b>Lv10 → +2 AMT</b> · <b>Lv20 → +5</b> · <b>Lv50 Mythic → +15</b> (once per pet)
 </div>
+<button class="primary" style="margin-bottom:12px" onclick="feedAllPets()">🍖 FEED ALL PETS (1 click)</button>
 <div id="ownedPetGrid" class="market-grid"><div class="empty">No pets yet. Claim starter or buy from Shop.</div></div>
+</div>
+
+<!-- FOOD SHOP -->
+<div id="petFoodPanel" class="hidden">
+<div class="card">
+<div class="card-title">🍖 FOOD & WATER SHOP</div>
+<div class="muted" style="font-size:12px;margin-bottom:12px">Buy supplies, then feed pets. Or use <b>Feed All</b> from My Pets.</div>
+<div id="foodInventory" class="grid" style="margin-bottom:12px">
+<div class="stat"><div class="stat-label">Food</div><div class="stat-value" id="invFood">0</div></div>
+<div class="stat"><div class="stat-label">Water</div><div class="stat-value" id="invWater">0</div></div>
+<div class="stat"><div class="stat-label">Premium</div><div class="stat-value" id="invPremium">0</div></div>
+</div>
+<button class="secondary" style="margin-bottom:8px" onclick="buyPetFood('food',1)">Buy Food · 0.15 AMT</button>
+<button class="secondary" style="margin-bottom:8px" onclick="buyPetFood('water',1)">Buy Water · 0.10 AMT</button>
+<button class="secondary" style="margin-bottom:8px" onclick="buyPetFood('premium_meal',1)">Buy Premium Meal · 0.50 AMT</button>
+<button class="secondary" style="margin-bottom:8px" onclick="buyPetFood('food',5)">Buy 5x Food · 0.75 AMT</button>
+<button class="primary" onclick="feedAllPets()">🍖 FEED ALL PETS</button>
+</div>
+</div>
+
+<!-- OUTPOST WAR -->
+<div id="petOutpostPanel" class="hidden">
+<div class="card">
+<div class="card-title">🏰 OUTPOST WAR</div>
+<div class="muted" style="font-size:12px;margin-bottom:10px">Send a pet to defend / raid. Uses energy + skill power.</div>
+<div class="grid" style="margin-bottom:12px">
+<div class="stat"><div class="stat-label">Outpost Lv</div><div class="stat-value" id="outpostLv">1</div></div>
+<div class="stat"><div class="stat-label">Wins</div><div class="stat-value" id="outpostWins">0</div></div>
+<div class="stat"><div class="stat-label">Losses</div><div class="stat-value" id="outpostLosses">0</div></div>
+</div>
+<div class="form-group">
+<label>Select pet ID (from My Pets)</label>
+<input id="outpostPetId" class="input" type="number" placeholder="Pet ID">
+</div>
+<button class="primary" onclick="startOutpostWar()">⚔️ START OUTPOST WAR</button>
+<div id="outpostResult" class="spin-result" style="margin-top:12px"></div>
+</div>
 </div>
 
 <!-- EGGS / BREED / INCUBATOR -->
@@ -2045,7 +2085,7 @@ SELECT 180D
 <div class="stat"><div class="stat-label">Lv</div><div class="stat-value" id="ownedLv">1</div></div>
 <div class="stat"><div class="stat-label">Energy</div><div class="stat-value" id="ownedEnergy">100</div></div>
 <div class="stat"><div class="stat-label">Happy</div><div class="stat-value" id="ownedHappy">100</div></div>
-<div class="stat"><div class="stat-label">ID</div><div class="stat-value" id="ownedId" style="font-size:11px">—</div></div>
+<div class="stat"><div class="stat-label">Hunger</div><div class="stat-value" id="ownedHunger">100</div></div>
 </div>
 <div class="grid" style="margin-bottom:12px">
 <div class="stat"><div class="stat-label">HP</div><div class="stat-value" id="ownedHp">—</div></div>
@@ -2053,8 +2093,15 @@ SELECT 180D
 <div class="stat"><div class="stat-label">DEF</div><div class="stat-value" id="ownedDef">—</div></div>
 <div class="stat"><div class="stat-label">SPD</div><div class="stat-value" id="ownedSpd">—</div></div>
 </div>
+<div class="stat" style="margin-bottom:12px">
+  <div class="stat-label">Skill</div>
+  <div class="stat-value" id="ownedSkill" style="font-size:13px">—</div>
+</div>
+<div class="muted" style="font-size:11px;margin-bottom:8px">ID: <span id="ownedId">—</span></div>
 <button class="secondary" style="margin-bottom:8px" onclick="carePet('feed')">🍖 FEED (0.2 AMT)</button>
 <button class="secondary" style="margin-bottom:8px" onclick="carePet('play')">🎾 PLAY (0.1 AMT)</button>
+<button class="secondary" style="margin-bottom:8px" onclick="feedPetItem('food')">🍖 Use Food Item</button>
+<button class="secondary" style="margin-bottom:8px" onclick="feedPetItem('water')">💧 Use Water</button>
 <button class="secondary" style="margin-bottom:8px" onclick="buyEnergyPack('energy')">⚡ ENERGY PACK (1 AMT)</button>
 <button class="secondary" style="margin-bottom:8px" onclick="buyEnergyPack('full')">💖 FULL PACK (3 AMT)</button>
 <button class="secondary" style="margin-bottom:8px" onclick="trainPet('atk')">⚔️ TRAIN ATK (0.5)</button>
@@ -4647,12 +4694,14 @@ function petStatsRow(pet) {
 
 function petTab(tab) {
   currentPetTab = tab;
-  ["petShopPanel","petOwnedPanel","petEggsPanel","petListingsPanel"].forEach(id => {
+  ["petShopPanel","petOwnedPanel","petFoodPanel","petOutpostPanel","petEggsPanel","petListingsPanel"].forEach(id => {
     const el = $(id);
     if (el) el.classList.add("hidden");
   });
   if (tab === "shop") { $("petShopPanel").classList.remove("hidden"); loadPets(currentElementFilter); loadStarterStatus(); }
   if (tab === "owned") { $("petOwnedPanel").classList.remove("hidden"); loadOwnedPets(); }
+  if (tab === "food") { $("petFoodPanel").classList.remove("hidden"); loadFoodShop(); }
+  if (tab === "outpost") { $("petOutpostPanel").classList.remove("hidden"); loadOutpost(); }
   if (tab === "eggs") { $("petEggsPanel").classList.remove("hidden"); loadEggs(); }
   if (tab === "listings") { $("petListingsPanel").classList.remove("hidden"); loadListings(); }
 }
@@ -4862,7 +4911,7 @@ async function loadOwnedPets() {
           <div class="pet-card-name">${esc(pet.name)}</div>
           <div class="pet-card-sub">${esc(pet.rarity || "Common")} · ⚡${
           pet.energy ?? 100
-        } · 😊${pet.happiness ?? 100}</div>
+        } · 🍖${pet.hunger ?? 100} · ✨${esc((pet.skill && pet.skill.name) || pet.skill_name || "")}</div>
           ${petStatsRow(pet)}
           <div class="pet-card-footer">
             <button class="small-btn" onclick="event.stopPropagation();openOwnedModal(${pid})">VIEW / CARE / BATTLE</button>
@@ -4895,11 +4944,19 @@ function openOwnedModal(id) {
   if ($("ownedLv")) $("ownedLv").textContent = pet.level || 1;
   if ($("ownedEnergy")) $("ownedEnergy").textContent = pet.energy ?? 100;
   if ($("ownedHappy")) $("ownedHappy").textContent = pet.happiness ?? 100;
+  if ($("ownedHunger")) $("ownedHunger").textContent = pet.hunger ?? 100;
   if ($("ownedId")) $("ownedId").textContent = pet.id;
   if ($("ownedHp")) $("ownedHp").textContent = pet.hp;
   if ($("ownedAtk")) $("ownedAtk").textContent = pet.atk;
   if ($("ownedDef")) $("ownedDef").textContent = pet.def;
   if ($("ownedSpd")) $("ownedSpd").textContent = pet.spd;
+  if ($("ownedSkill")) {
+    const sk = pet.skill || {};
+    const sn = sk.name || pet.skill_name || "Basic Strike";
+    const sp = sk.power || pet.skill_power || 10;
+    const sl = sk.level || pet.skill_level || 1;
+    $("ownedSkill").textContent = sn + " · Lv" + sl + " · Pw" + sp;
+  }
   const modal = $("ownedModal");
   if (modal) {
     modal.classList.remove("hidden");
@@ -4946,6 +5003,115 @@ async function carePet(action) {
     loadOwnedPets().catch(() => {});
   } catch (e) {
     showToast(e.message || "Care failed", true);
+  }
+}
+
+async function feedPetItem(item) {
+  if (!selectedOwned || !selectedOwned.id) {
+    showToast("Open a pet first", true);
+    return;
+  }
+  try {
+    const data = await api("/api/pets/feed-item", {
+      method: "POST",
+      body: JSON.stringify({ ownedPetId: Number(selectedOwned.id), item: item || "food" })
+    });
+    showToast(data.message || "Fed!");
+    if (data.pet) fillOwnedModalFromPet(data.pet);
+    loadOwnedPets().catch(() => {});
+    loadFoodShop().catch(() => {});
+  } catch (e) {
+    showToast(e.message || "Feed item failed", true);
+  }
+}
+
+async function feedAllPets() {
+  try {
+    showToast("Feeding all pets...");
+    const data = await api("/api/pets/feed-all", { method: "POST", body: "{}" });
+    showToast(data.message || ("Fed " + (data.fed || 0) + " pets"));
+    if (data.inventory) {
+      if ($("invFood")) $("invFood").textContent = data.inventory.food;
+      if ($("invWater")) $("invWater").textContent = data.inventory.water;
+      if ($("invPremium")) $("invPremium").textContent = data.inventory.premium_meal;
+    }
+    await refreshWallet();
+    loadOwnedPets().catch(() => {});
+  } catch (e) {
+    showToast(e.message || "Feed all failed", true);
+  }
+}
+
+async function loadFoodShop() {
+  try {
+    const data = await api("/api/pets/food-shop");
+    const inv = data.inventory || {};
+    if ($("invFood")) $("invFood").textContent = inv.food ?? 0;
+    if ($("invWater")) $("invWater").textContent = inv.water ?? 0;
+    if ($("invPremium")) $("invPremium").textContent = inv.premium_meal ?? 0;
+  } catch (e) {
+    showToast(e.message || "Food shop unavailable", true);
+  }
+}
+
+async function buyPetFood(item, qty) {
+  try {
+    const data = await api("/api/pets/buy-food", {
+      method: "POST",
+      body: JSON.stringify({ item: item || "food", qty: qty || 1 })
+    });
+    showToast(data.message || "Bought");
+    if (data.inventory) {
+      if ($("invFood")) $("invFood").textContent = data.inventory.food;
+      if ($("invWater")) $("invWater").textContent = data.inventory.water;
+      if ($("invPremium")) $("invPremium").textContent = data.inventory.premium_meal;
+    }
+    await refreshWallet();
+  } catch (e) {
+    showToast(e.message || "Buy food failed", true);
+  }
+}
+
+async function loadOutpost() {
+  try {
+    const data = await api("/api/pets/outpost");
+    const o = data.outpost || {};
+    if ($("outpostLv")) $("outpostLv").textContent = o.level ?? 1;
+    if ($("outpostWins")) $("outpostWins").textContent = o.wins ?? 0;
+    if ($("outpostLosses")) $("outpostLosses").textContent = o.losses ?? 0;
+  } catch (e) {
+    console.log("Outpost:", e);
+  }
+}
+
+async function startOutpostWar() {
+  const id = Number($("outpostPetId") && $("outpostPetId").value);
+  if (!id) {
+    showToast("Enter a pet ID from My Pets", true);
+    return;
+  }
+  try {
+    showToast("Outpost war starting...");
+    const data = await api("/api/pets/outpost-war", {
+      method: "POST",
+      body: JSON.stringify({ ownedPetId: id })
+    });
+    if ($("outpostResult")) {
+      $("outpostResult").textContent =
+        (data.result === "WIN" ? "🏆 " : "💀 ") +
+        (data.message || data.result) +
+        (data.skillUsed ? " · " + data.skillUsed : "");
+    }
+    showToast(data.message || data.result);
+    if (data.outpost) {
+      if ($("outpostLv")) $("outpostLv").textContent = data.outpost.level;
+      if ($("outpostWins")) $("outpostWins").textContent = data.outpost.wins;
+      if ($("outpostLosses")) $("outpostLosses").textContent = data.outpost.losses;
+    }
+    await refreshWallet();
+    loadOwnedPets().catch(() => {});
+  } catch (e) {
+    showToast(e.message || "Outpost war failed", true);
   }
 }
 
