@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.2.2
+FULL SERVER VERSION 2.3.0
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.2.2:
+VERSION 2.3.0:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -39,6 +39,7 @@ VERSION 2.2.2:
 - FIXED: Multiple referral field names for frontend compatibility (code, referralCode, inviteCode, referralLink, etc.)
 - ADDED: Real Daily Spin API (/api/spin/status, /api/spin/claim) — 3 spins/day, weighted prizes, 1000 jackpot
 - FIXED: Spin claim SQL — removed invalid FOR UPDATE on COUNT (was causing "Unable to claim spin reward")
+- ADDED: Full Pets system — skills, hunger, food/water shop, one-click feed-all, outpost war, battle, train, breed
 ============================================================
 */
 
@@ -981,6 +982,95 @@ async function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_spins_member_day
       ON amt_spins (member_id, day_key);
+
+    /* ---- PETS ---- */
+    CREATE TABLE IF NOT EXISTS pet_catalog (
+      id BIGSERIAL PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      element TEXT NOT NULL DEFAULT 'Earth',
+      rarity TEXT NOT NULL DEFAULT 'Common',
+      base_hp INT NOT NULL DEFAULT 100,
+      base_atk INT NOT NULL DEFAULT 20,
+      base_def INT NOT NULL DEFAULT 15,
+      base_spd INT NOT NULL DEFAULT 15,
+      price_amt NUMERIC(30,8) NOT NULL DEFAULT 1,
+      image TEXT DEFAULT '',
+      skill_name TEXT NOT NULL DEFAULT 'Basic Strike',
+      skill_power INT NOT NULL DEFAULT 10,
+      active BOOLEAN NOT NULL DEFAULT TRUE
+    );
+
+    CREATE TABLE IF NOT EXISTS owned_pets (
+      id BIGSERIAL PRIMARY KEY,
+      member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      catalog_id BIGINT REFERENCES pet_catalog(id) ON DELETE SET NULL,
+      name TEXT NOT NULL,
+      element TEXT NOT NULL DEFAULT 'Earth',
+      rarity TEXT NOT NULL DEFAULT 'Common',
+      level INT NOT NULL DEFAULT 1,
+      xp INT NOT NULL DEFAULT 0,
+      hp INT NOT NULL DEFAULT 100,
+      atk INT NOT NULL DEFAULT 20,
+      def INT NOT NULL DEFAULT 15,
+      spd INT NOT NULL DEFAULT 15,
+      energy INT NOT NULL DEFAULT 100,
+      happiness INT NOT NULL DEFAULT 100,
+      hunger INT NOT NULL DEFAULT 100,
+      skill_name TEXT NOT NULL DEFAULT 'Basic Strike',
+      skill_power INT NOT NULL DEFAULT 10,
+      skill_level INT NOT NULL DEFAULT 1,
+      image TEXT DEFAULT '',
+      is_listed BOOLEAN NOT NULL DEFAULT FALSE,
+      last_fed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_care_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS pet_inventory (
+      member_id BIGINT PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
+      food INT NOT NULL DEFAULT 0,
+      water INT NOT NULL DEFAULT 0,
+      premium_meal INT NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS pet_eggs (
+      id BIGSERIAL PRIMARY KEY,
+      member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      element TEXT NOT NULL DEFAULT 'Mystery',
+      gen INT NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'INCUBATING',
+      hatch_at TIMESTAMPTZ NOT NULL,
+      is_listed BOOLEAN NOT NULL DEFAULT FALSE,
+      parent1_id BIGINT,
+      parent2_id BIGINT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS pet_listings (
+      id BIGSERIAL PRIMARY KEY,
+      seller_member_id BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      listing_type TEXT NOT NULL DEFAULT 'PET',
+      owned_pet_id BIGINT REFERENCES owned_pets(id) ON DELETE CASCADE,
+      egg_id BIGINT REFERENCES pet_eggs(id) ON DELETE CASCADE,
+      price_amt NUMERIC(30,8) NOT NULL,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS outpost_state (
+      member_id BIGINT PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
+      outpost_level INT NOT NULL DEFAULT 1,
+      wins INT NOT NULL DEFAULT 0,
+      losses INT NOT NULL DEFAULT 0,
+      last_war_at TIMESTAMPTZ,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_owned_pets_member ON owned_pets(member_id);
+    CREATE INDEX IF NOT EXISTS idx_pet_eggs_member ON pet_eggs(member_id);
+    CREATE INDEX IF NOT EXISTS idx_pet_listings_status ON pet_listings(status);
   `);
 
   await pool.query(`
@@ -1054,7 +1144,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.2.2",
+      "2.3.0",
 
     features: [
       "Pi Login",
@@ -1067,7 +1157,9 @@ app.get("/", async (req, res) => {
       "Security Circle",
       "Profile",
       "Marketplace",
-      "Staking"
+      "Staking",
+      "Pets",
+      "Outpost War"
     ],
 
     timestamp:
@@ -5833,6 +5925,980 @@ app.delete(
 );
 
 /* =========================================================
+PETS — catalog, care, skills, food shop, feed-all, outpost war
+========================================================= */
+
+const PET_SKILLS = {
+  Fire:    { name: "Blaze Strike", power: 18 },
+  Water:   { name: "Tidal Wave", power: 16 },
+  Earth:   { name: "Stone Guard", power: 14 },
+  Nature:  { name: "Vine Bind", power: 15 },
+  Ice:     { name: "Frost Bite", power: 17 },
+  Wind:    { name: "Gale Slash", power: 15 },
+  Thunder: { name: "Thunder Shock", power: 19 }
+};
+
+const PET_SHOP_DEFAULTS = [
+  { slug: "ember-pup", name: "Ember Pup", element: "Fire", rarity: "Common", price: 2, hp: 90, atk: 28, def: 12, spd: 18 },
+  { slug: "tide-cub", name: "Tide Cub", element: "Water", rarity: "Common", price: 2, hp: 100, atk: 22, def: 16, spd: 16 },
+  { slug: "moss-kit", name: "Moss Kit", element: "Nature", rarity: "Common", price: 2, hp: 95, atk: 20, def: 18, spd: 14 },
+  { slug: "pebble-pup", name: "Pebble Pup", element: "Earth", rarity: "Common", price: 2, hp: 110, atk: 18, def: 22, spd: 12 },
+  { slug: "frost-kit", name: "Frost Kit", element: "Ice", rarity: "Rare", price: 5, hp: 100, atk: 26, def: 14, spd: 20 },
+  { slug: "gale-fox", name: "Gale Fox", element: "Wind", rarity: "Rare", price: 5, hp: 85, atk: 24, def: 12, spd: 28 },
+  { slug: "spark-lynx", name: "Spark Lynx", element: "Thunder", rarity: "Rare", price: 5, hp: 90, atk: 30, def: 12, spd: 22 },
+  { slug: "inferno-wolf", name: "Inferno Wolf", element: "Fire", rarity: "Epic", price: 15, hp: 120, atk: 38, def: 18, spd: 24 }
+];
+
+const FOOD_SHOP = {
+  food: { key: "food", name: "Pet Food", price: 0.15, hunger: 35, happiness: 5 },
+  water: { key: "water", name: "Fresh Water", price: 0.10, hunger: 15, happiness: 8 },
+  premium_meal: { key: "premium_meal", name: "Premium Meal", price: 0.50, hunger: 70, happiness: 20 }
+};
+
+function skillForElement(element) {
+  return PET_SKILLS[element] || { name: "Basic Strike", power: 10 };
+}
+
+function applyHungerDecay(pet) {
+  const last = new Date(pet.last_fed_at || pet.created_at || Date.now()).getTime();
+  const hours = Math.max(0, (Date.now() - last) / (1000 * 60 * 60));
+  const decay = Math.floor(hours * 3); // ~3 hunger per hour
+  const hunger = Math.max(0, Math.min(100, Number(pet.hunger) - decay));
+  return { ...pet, hunger };
+}
+
+function serializePet(row) {
+  const p = applyHungerDecay(row);
+  return {
+    id: Number(p.id),
+    name: p.name,
+    element: p.element,
+    rarity: p.rarity,
+    level: Number(p.level),
+    xp: Number(p.xp),
+    hp: Number(p.hp),
+    atk: Number(p.atk),
+    def: Number(p.def),
+    spd: Number(p.spd),
+    energy: Number(p.energy),
+    happiness: Number(p.happiness),
+    hunger: Number(p.hunger),
+    skill: {
+      name: p.skill_name,
+      power: Number(p.skill_power),
+      level: Number(p.skill_level || 1)
+    },
+    skill_name: p.skill_name,
+    skill_power: Number(p.skill_power),
+    skill_level: Number(p.skill_level || 1),
+    image: p.image || "",
+    is_listed: !!p.is_listed,
+    last_fed_at: p.last_fed_at,
+    created_at: p.created_at
+  };
+}
+
+async function ensurePetCatalog() {
+  const count = await pool.query(`SELECT COUNT(*)::INT AS c FROM pet_catalog`);
+  if (Number(count.rows[0].c) > 0) return;
+
+  for (const p of PET_SHOP_DEFAULTS) {
+    const sk = skillForElement(p.element);
+    await pool.query(
+      `
+      INSERT INTO pet_catalog
+        (slug, name, element, rarity, base_hp, base_atk, base_def, base_spd, price_amt, skill_name, skill_power)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      ON CONFLICT (slug) DO NOTHING
+      `,
+      [p.slug, p.name, p.element, p.rarity, p.hp, p.atk, p.def, p.spd, p.price, sk.name, sk.power]
+    );
+  }
+}
+
+async function ensurePetInventory(memberId, db = pool) {
+  await db.query(
+    `
+    INSERT INTO pet_inventory (member_id, food, water, premium_meal)
+    VALUES ($1, 0, 0, 0)
+    ON CONFLICT (member_id) DO NOTHING
+    `,
+    [memberId]
+  );
+  const r = await db.query(`SELECT * FROM pet_inventory WHERE member_id = $1`, [memberId]);
+  return r.rows[0];
+}
+
+async function loadOwnedPet(memberId, ownedPetId, db = pool) {
+  const r = await db.query(
+    `SELECT * FROM owned_pets WHERE id = $1 AND member_id = $2 LIMIT 1`,
+    [ownedPetId, memberId]
+  );
+  return r.rows[0] || null;
+}
+
+function petPower(pet) {
+  return Number(pet.hp) + Number(pet.atk) * 2 + Number(pet.def) + Number(pet.spd) + Number(pet.skill_power || 0) * Number(pet.skill_level || 1);
+}
+
+// Seed catalog on boot (called from startServer path via init)
+async function seedPetsIfNeeded() {
+  try {
+    await ensurePetCatalog();
+  } catch (e) {
+    console.error("PET CATALOG SEED ERROR:", e.message);
+  }
+}
+
+/* Shop catalog */
+app.get("/api/pets", requireAuth, async (req, res) => {
+  try {
+    await ensurePetCatalog();
+    const r = await pool.query(
+      `SELECT * FROM pet_catalog WHERE active = TRUE ORDER BY price_amt ASC, id ASC`
+    );
+    res.json({
+      ok: true,
+      pets: r.rows.map((c) => ({
+        id: Number(c.id),
+        slug: c.slug,
+        name: c.name,
+        element: c.element,
+        rarity: c.rarity,
+        hp: c.base_hp,
+        atk: c.base_atk,
+        def: c.base_def,
+        spd: c.base_spd,
+        price: Number(c.price_amt),
+        price_amt: Number(c.price_amt),
+        image: c.image || "",
+        skill: { name: c.skill_name, power: c.skill_power }
+      }))
+    });
+  } catch (e) {
+    console.error("PETS SHOP ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "Unable to load pets." });
+  }
+});
+
+/* Owned pets */
+app.get("/api/pets/owned", requireAuth, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT * FROM owned_pets WHERE member_id = $1 AND is_listed = FALSE ORDER BY id DESC`,
+      [req.member.id]
+    );
+    // persist decayed hunger lightly
+    const pets = [];
+    for (const row of r.rows) {
+      const s = serializePet(row);
+      if (s.hunger !== Number(row.hunger)) {
+        await pool.query(`UPDATE owned_pets SET hunger = $1 WHERE id = $2`, [s.hunger, row.id]);
+      }
+      pets.push(s);
+    }
+    res.json({ ok: true, pets });
+  } catch (e) {
+    console.error("OWNED PETS ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "Unable to load owned pets." });
+  }
+});
+
+/* Buy from shop */
+app.post("/api/pets/buy", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await ensurePetCatalog();
+    const catalogId = Number(req.body?.catalogId ?? req.body?.petId ?? req.body?.id);
+    if (!Number.isInteger(catalogId)) {
+      return res.status(400).json({ ok: false, error: "Valid pet id is required." });
+    }
+
+    await client.query("BEGIN");
+    const cat = await client.query(`SELECT * FROM pet_catalog WHERE id = $1 AND active = TRUE`, [catalogId]);
+    if (!cat.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found in shop." });
+    }
+    const c = cat.rows[0];
+    const price = Number(c.price_amt);
+    const bal = await getBalance(req.member.id, client);
+    if (bal < price) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Not enough AMT." });
+    }
+
+    const ref = makeReference("AMT-PET-BUY");
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_PURCHASE',$3)`,
+      [req.member.id, -price, ref]
+    );
+
+    const sk = skillForElement(c.element);
+    const ins = await client.query(
+      `
+      INSERT INTO owned_pets
+        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
+      RETURNING *
+      `,
+      [req.member.id, c.id, c.name, c.element, c.rarity, c.base_hp, c.base_atk, c.base_def, c.base_spd, c.skill_name || sk.name, c.skill_power || sk.power, c.image || ""]
+    );
+
+    await client.query("COMMIT");
+    res.json({ ok: true, pet: serializePet(ins.rows[0]), balance: await getBalance(req.member.id) });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("PET BUY ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "Buy failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* Care: feed / play (AMT cost) */
+app.post("/api/pets/care", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const ownedPetId = Number(req.body?.ownedPetId);
+    const action = String(req.body?.action || "feed").toLowerCase();
+    if (!Number.isInteger(ownedPetId)) {
+      return res.status(400).json({ ok: false, error: "ownedPetId required." });
+    }
+
+    const cost = action === "play" ? 0.1 : 0.2;
+    await client.query("BEGIN");
+    const pet = await loadOwnedPet(req.member.id, ownedPetId, client);
+    if (!pet) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+
+    const bal = await getBalance(req.member.id, client);
+    if (bal < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Not enough AMT." });
+    }
+
+    const ref = makeReference("AMT-PET-CARE");
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_CARE',$3)`,
+      [req.member.id, -cost, ref]
+    );
+
+    let hunger = Number(applyHungerDecay(pet).hunger);
+    let happiness = Number(pet.happiness);
+    let energy = Number(pet.energy);
+
+    if (action === "play") {
+      happiness = Math.min(100, happiness + 15);
+      energy = Math.min(100, energy + 10);
+    } else {
+      hunger = Math.min(100, hunger + 40);
+      happiness = Math.min(100, happiness + 8);
+    }
+
+    const upd = await client.query(
+      `
+      UPDATE owned_pets SET
+        hunger = $1,
+        happiness = $2,
+        energy = $3,
+        last_fed_at = CASE WHEN $4 = 'feed' THEN NOW() ELSE last_fed_at END,
+        last_care_at = NOW()
+      WHERE id = $5
+      RETURNING *
+      `,
+      [hunger, happiness, energy, action === "play" ? "play" : "feed", ownedPetId]
+    );
+
+    await client.query("COMMIT");
+    res.json({ ok: true, pet: serializePet(upd.rows[0]), balance: await getBalance(req.member.id) });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("PET CARE ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "Care failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* Train stat */
+app.post("/api/pets/train", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const ownedPetId = Number(req.body?.ownedPetId);
+    const stat = String(req.body?.stat || "atk").toLowerCase();
+    if (!Number.isInteger(ownedPetId)) {
+      return res.status(400).json({ ok: false, error: "ownedPetId required." });
+    }
+    const cost = 0.5;
+    await client.query("BEGIN");
+    const pet = await loadOwnedPet(req.member.id, ownedPetId, client);
+    if (!pet) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+    if (Number(pet.energy) < 10) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Pet too tired. Restore energy first." });
+    }
+    const bal = await getBalance(req.member.id, client);
+    if (bal < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Not enough AMT." });
+    }
+
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_TRAIN',$3)`,
+      [req.member.id, -cost, makeReference("AMT-PET-TRAIN")]
+    );
+
+    const gain = 2 + Math.floor(Math.random() * 3);
+    const col = ["hp", "atk", "def", "spd"].includes(stat) ? stat : "atk";
+    let level = Number(pet.level);
+    let xp = Number(pet.xp) + 15;
+    const milestones = [];
+    while (xp >= level * 50) {
+      xp -= level * 50;
+      level += 1;
+      if ([10, 20, 50].includes(level)) {
+        const bonus = level === 10 ? 2 : level === 20 ? 5 : 15;
+        milestones.push({ level, amount: bonus });
+        await client.query(
+          `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_MILESTONE',$3)`,
+          [req.member.id, bonus, makeReference("AMT-PET-MS")]
+        );
+      }
+    }
+
+    // skill levels up every 5 pet levels
+    const skillLevel = Math.max(1, Math.floor(level / 5) + 1);
+
+    const upd = await client.query(
+      `
+      UPDATE owned_pets SET
+        ${col} = ${col} + $1,
+        level = $2,
+        xp = $3,
+        energy = GREATEST(0, energy - 10),
+        skill_level = $4,
+        skill_power = skill_power + CASE WHEN $4 > skill_level THEN 2 ELSE 0 END
+      WHERE id = $5
+      RETURNING *
+      `,
+      [gain, level, xp, skillLevel, ownedPetId]
+    );
+
+    await client.query("COMMIT");
+    res.json({
+      ok: true,
+      pet: serializePet(upd.rows[0]),
+      gain,
+      milestones,
+      balance: await getBalance(req.member.id)
+    });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("PET TRAIN ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "Train failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* Energy packs */
+app.post("/api/pets/energy-pack", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const ownedPetId = Number(req.body?.ownedPetId);
+    const pack = String(req.body?.pack || "energy").toLowerCase();
+    const cost = pack === "full" ? 3 : 1;
+    await client.query("BEGIN");
+    const pet = await loadOwnedPet(req.member.id, ownedPetId, client);
+    if (!pet) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+    const bal = await getBalance(req.member.id, client);
+    if (bal < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Not enough AMT." });
+    }
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_PACK',$3)`,
+      [req.member.id, -cost, makeReference("AMT-PET-PACK")]
+    );
+    const energy = pack === "full" ? 100 : Math.min(100, Number(pet.energy) + 50);
+    const happiness = pack === "full" ? 100 : Number(pet.happiness);
+    const hunger = pack === "full" ? 100 : Number(pet.hunger);
+    const upd = await client.query(
+      `UPDATE owned_pets SET energy=$1, happiness=$2, hunger=$3, last_fed_at=CASE WHEN $4 THEN NOW() ELSE last_fed_at END WHERE id=$5 RETURNING *`,
+      [energy, happiness, hunger, pack === "full", ownedPetId]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, message: pack === "full" ? "Full pack applied" : "Energy restored", pet: serializePet(upd.rows[0]) });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    res.status(500).json({ ok: false, error: e.message || "Pack failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* Battle */
+app.post("/api/pets/battle", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const ownedPetId = Number(req.body?.ownedPetId);
+    await client.query("BEGIN");
+    const pet = await loadOwnedPet(req.member.id, ownedPetId, client);
+    if (!pet) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+    const p = applyHungerDecay(pet);
+    if (p.hunger < 20) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Pet is too hungry to battle. Feed first." });
+    }
+    if (Number(pet.energy) < 15) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Not enough energy." });
+    }
+
+    const enemyPool = PET_SHOP_DEFAULTS;
+    const enemy = enemyPool[Math.floor(Math.random() * enemyPool.length)];
+    const enSkill = skillForElement(enemy.element);
+
+    let myHp = Number(pet.hp);
+    let enHp = enemy.hp;
+    const myMax = myHp;
+    const enMax = enHp;
+    const rounds = [];
+    const myPower = petPower(pet);
+    const enPower = enemy.hp + enemy.atk * 2 + enemy.def + enemy.spd + enSkill.power;
+
+    for (let i = 0; i < 6 && myHp > 0 && enHp > 0; i++) {
+      const myDmg = Math.max(1, Math.floor(Number(pet.atk) + Number(pet.skill_power) * 0.3 - enemy.def * 0.2 + Math.random() * 8));
+      const enDmg = Math.max(1, Math.floor(enemy.atk + enSkill.power * 0.25 - Number(pet.def) * 0.2 + Math.random() * 8));
+      enHp = Math.max(0, enHp - myDmg);
+      if (enHp > 0) myHp = Math.max(0, myHp - enDmg);
+      rounds.push({ myHp, enHp, myDmg, enDmg });
+    }
+
+    const win = enHp <= 0 || (myHp > 0 && myPower >= enPower);
+    if (!win && myHp <= 0) {
+      // already lost
+    }
+    const finalWin = myHp > 0 && (enHp <= 0 || myPower > enPower * 0.9);
+    const reward = finalWin ? Number((0.5 + Math.random() * 1.5).toFixed(2)) : Number((0.05 + Math.random() * 0.15).toFixed(2));
+
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_BATTLE',$3)`,
+      [req.member.id, reward, makeReference("AMT-PET-BATTLE")]
+    );
+
+    let level = Number(pet.level);
+    let xp = Number(pet.xp) + (finalWin ? 25 : 8);
+    const milestones = [];
+    while (xp >= level * 50) {
+      xp -= level * 50;
+      level += 1;
+      if ([10, 20, 50].includes(level)) {
+        const bonus = level === 10 ? 2 : level === 20 ? 5 : 15;
+        milestones.push({ level, amount: bonus });
+        await client.query(
+          `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_MILESTONE',$3)`,
+          [req.member.id, bonus, makeReference("AMT-PET-MS")]
+        );
+      }
+    }
+
+    await client.query(
+      `UPDATE owned_pets SET energy = GREATEST(0, energy - 15), hunger = GREATEST(0, hunger - 8), level=$1, xp=$2, skill_level=GREATEST(skill_level, $3) WHERE id=$4`,
+      [level, xp, Math.max(1, Math.floor(level / 5) + 1), ownedPetId]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      ok: true,
+      result: finalWin ? "WIN" : "LOSE",
+      reward,
+      opponent: "Wild " + enemy.name,
+      opponentElement: enemy.element,
+      opponentImage: "",
+      petName: pet.name,
+      petElement: pet.element,
+      petImage: pet.image || "",
+      myMaxHp: myMax,
+      enMaxHp: enMax,
+      rounds,
+      milestones,
+      skillUsed: pet.skill_name
+    });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("PET BATTLE ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "Battle failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* Starter pet */
+app.get("/api/pets/starter-status", requireAuth, async (req, res) => {
+  try {
+    const r = await pool.query(`SELECT COUNT(*)::INT AS c FROM owned_pets WHERE member_id = $1`, [req.member.id]);
+    res.json({ ok: true, claimed: Number(r.rows[0].c) > 0, canClaim: Number(r.rows[0].c) === 0 });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/pets/claim-starter", requireAuth, async (req, res) => {
+  try {
+    const r = await pool.query(`SELECT COUNT(*)::INT AS c FROM owned_pets WHERE member_id = $1`, [req.member.id]);
+    if (Number(r.rows[0].c) > 0) {
+      return res.status(409).json({ ok: false, error: "Starter already claimed." });
+    }
+    const sk = skillForElement("Earth");
+    const ins = await pool.query(
+      `
+      INSERT INTO owned_pets
+        (member_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, hunger, energy, happiness)
+      VALUES ($1,'Starter Pup','Earth','Common',100,20,15,15,$2,$3,100,100,100)
+      RETURNING *
+      `,
+      [req.member.id, sk.name, sk.power]
+    );
+    res.json({ ok: true, message: "Starter pet claimed!", pet: serializePet(ins.rows[0]) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message || "Claim failed." });
+  }
+});
+
+/* Food shop — buy food/water */
+app.get("/api/pets/food-shop", requireAuth, async (req, res) => {
+  try {
+    const inv = await ensurePetInventory(req.member.id);
+    res.json({
+      ok: true,
+      inventory: {
+        food: Number(inv.food),
+        water: Number(inv.water),
+        premium_meal: Number(inv.premium_meal)
+      },
+      items: Object.values(FOOD_SHOP).map((i) => ({
+        id: i.key,
+        name: i.name,
+        price: i.price,
+        hunger: i.hunger,
+        happiness: i.happiness
+      }))
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/pets/buy-food", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const itemKey = String(req.body?.item || req.body?.id || "food").toLowerCase();
+    const qty = Math.max(1, Math.min(50, Number(req.body?.qty || 1) || 1));
+    const item = FOOD_SHOP[itemKey];
+    if (!item) {
+      return res.status(400).json({ ok: false, error: "Unknown food item." });
+    }
+    const cost = Number((item.price * qty).toFixed(8));
+    await client.query("BEGIN");
+    await ensurePetInventory(req.member.id, client);
+    const bal = await getBalance(req.member.id, client);
+    if (bal < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Not enough AMT." });
+    }
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_FOOD',$3)`,
+      [req.member.id, -cost, makeReference("AMT-PET-FOOD")]
+    );
+    await client.query(
+      `
+      UPDATE pet_inventory SET
+        ${item.key} = ${item.key} + $1,
+        updated_at = NOW()
+      WHERE member_id = $2
+      `,
+      [qty, req.member.id]
+    );
+    await client.query("COMMIT");
+    const inv = await ensurePetInventory(req.member.id);
+    res.json({
+      ok: true,
+      message: `Bought ${qty}x ${item.name}`,
+      inventory: { food: Number(inv.food), water: Number(inv.water), premium_meal: Number(inv.premium_meal) },
+      balance: await getBalance(req.member.id)
+    });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    res.status(500).json({ ok: false, error: e.message || "Buy food failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* Feed one pet from inventory */
+app.post("/api/pets/feed-item", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const ownedPetId = Number(req.body?.ownedPetId);
+    const itemKey = String(req.body?.item || "food").toLowerCase();
+    const item = FOOD_SHOP[itemKey];
+    if (!item || !Number.isInteger(ownedPetId)) {
+      return res.status(400).json({ ok: false, error: "ownedPetId and item required." });
+    }
+    await client.query("BEGIN");
+    const pet = await loadOwnedPet(req.member.id, ownedPetId, client);
+    if (!pet) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+    await ensurePetInventory(req.member.id, client);
+    const inv = await client.query(`SELECT * FROM pet_inventory WHERE member_id = $1 FOR UPDATE`, [req.member.id]);
+    const row = inv.rows[0];
+    if (Number(row[item.key]) < 1) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: `No ${item.name} left. Buy some first.` });
+    }
+    await client.query(`UPDATE pet_inventory SET ${item.key} = ${item.key} - 1, updated_at = NOW() WHERE member_id = $1`, [req.member.id]);
+    const hunger = Math.min(100, Number(applyHungerDecay(pet).hunger) + item.hunger);
+    const happiness = Math.min(100, Number(pet.happiness) + item.happiness);
+    const upd = await client.query(
+      `UPDATE owned_pets SET hunger=$1, happiness=$2, last_fed_at=NOW() WHERE id=$3 RETURNING *`,
+      [hunger, happiness, ownedPetId]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, pet: serializePet(upd.rows[0]), message: `Fed ${item.name}` });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    res.status(500).json({ ok: false, error: e.message || "Feed failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* ONE-CLICK feed all hungry pets */
+app.post("/api/pets/feed-all", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await ensurePetInventory(req.member.id, client);
+    const petsR = await client.query(
+      `SELECT * FROM owned_pets WHERE member_id = $1 AND is_listed = FALSE ORDER BY id ASC`,
+      [req.member.id]
+    );
+    const invR = await client.query(`SELECT * FROM pet_inventory WHERE member_id = $1 FOR UPDATE`, [req.member.id]);
+    let food = Number(invR.rows[0].food);
+    let water = Number(invR.rows[0].water);
+    let premium = Number(invR.rows[0].premium_meal);
+    let fed = 0;
+    const updated = [];
+
+    for (const row of petsR.rows) {
+      const p = applyHungerDecay(row);
+      if (p.hunger >= 85) continue;
+
+      let used = null;
+      if (p.hunger < 40 && premium > 0) {
+        premium--; used = FOOD_SHOP.premium_meal;
+      } else if (food > 0) {
+        food--; used = FOOD_SHOP.food;
+      } else if (water > 0) {
+        water--; used = FOOD_SHOP.water;
+      } else {
+        // pay AMT for basic food
+        const cost = FOOD_SHOP.food.price;
+        const bal = await getBalance(req.member.id, client);
+        if (bal < cost) continue;
+        await client.query(
+          `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_FOOD',$3)`,
+          [req.member.id, -cost, makeReference("AMT-PET-FEEDALL")]
+        );
+        used = FOOD_SHOP.food;
+      }
+
+      if (!used) continue;
+      const hunger = Math.min(100, p.hunger + used.hunger);
+      const happiness = Math.min(100, Number(row.happiness) + used.happiness);
+      const upd = await client.query(
+        `UPDATE owned_pets SET hunger=$1, happiness=$2, last_fed_at=NOW() WHERE id=$3 RETURNING *`,
+        [hunger, happiness, row.id]
+      );
+      updated.push(serializePet(upd.rows[0]));
+      fed++;
+    }
+
+    await client.query(
+      `UPDATE pet_inventory SET food=$1, water=$2, premium_meal=$3, updated_at=NOW() WHERE member_id=$4`,
+      [food, water, premium, req.member.id]
+    );
+    await client.query("COMMIT");
+
+    res.json({
+      ok: true,
+      fed,
+      pets: updated,
+      inventory: { food, water, premium_meal: premium },
+      message: fed > 0 ? `Fed ${fed} pet(s)` : "No pets needed food (or not enough supplies/AMT)",
+      balance: await getBalance(req.member.id)
+    });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("FEED ALL ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "Feed all failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* Outpost war */
+app.get("/api/pets/outpost", requireAuth, async (req, res) => {
+  try {
+    await pool.query(
+      `INSERT INTO outpost_state (member_id) VALUES ($1) ON CONFLICT (member_id) DO NOTHING`,
+      [req.member.id]
+    );
+    const r = await pool.query(`SELECT * FROM outpost_state WHERE member_id = $1`, [req.member.id]);
+    const pets = await pool.query(
+      `SELECT id, name, level, element, skill_name, skill_level, energy, hunger FROM owned_pets WHERE member_id=$1 AND is_listed=FALSE`,
+      [req.member.id]
+    );
+    res.json({
+      ok: true,
+      outpost: {
+        level: r.rows[0].outpost_level,
+        wins: r.rows[0].wins,
+        losses: r.rows[0].losses,
+        lastWarAt: r.rows[0].last_war_at
+      },
+      defenders: pets.rows
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/pets/outpost-war", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const ownedPetId = Number(req.body?.ownedPetId);
+    await client.query("BEGIN");
+    await client.query(
+      `INSERT INTO outpost_state (member_id) VALUES ($1) ON CONFLICT (member_id) DO NOTHING`,
+      [req.member.id]
+    );
+
+    const pet = await loadOwnedPet(req.member.id, ownedPetId, client);
+    if (!pet) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Select a pet for war." });
+    }
+    const p = applyHungerDecay(pet);
+    if (p.hunger < 25) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Pet too hungry for war." });
+    }
+    if (Number(pet.energy) < 20) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Pet needs at least 20 energy." });
+    }
+
+    const power = petPower(pet);
+    const enemyPower = 80 + Math.floor(Math.random() * 120) + Number(pet.level) * 5;
+    const skillBonus = Number(pet.skill_power) * Number(pet.skill_level || 1);
+    const win = power + skillBonus + Math.random() * 40 > enemyPower;
+
+    const reward = win
+      ? Number((1 + Math.random() * 3 + Number(pet.level) * 0.1).toFixed(2))
+      : Number((0.1 + Math.random() * 0.3).toFixed(2));
+
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'OUTPOST_WAR',$3)`,
+      [req.member.id, reward, makeReference("AMT-OUTPOST")]
+    );
+
+    await client.query(
+      `UPDATE owned_pets SET energy = GREATEST(0, energy - 20), hunger = GREATEST(0, hunger - 12) WHERE id = $1`,
+      [ownedPetId]
+    );
+
+    await client.query(
+      `
+      UPDATE outpost_state SET
+        wins = wins + $1,
+        losses = losses + $2,
+        outpost_level = GREATEST(outpost_level, 1 + FLOOR((wins + $1) / 5)),
+        last_war_at = NOW(),
+        updated_at = NOW()
+      WHERE member_id = $3
+      `,
+      [win ? 1 : 0, win ? 0 : 1, req.member.id]
+    );
+
+    await client.query("COMMIT");
+    const st = await pool.query(`SELECT * FROM outpost_state WHERE member_id = $1`, [req.member.id]);
+
+    res.json({
+      ok: true,
+      result: win ? "WIN" : "LOSE",
+      reward,
+      skillUsed: pet.skill_name,
+      skillLevel: pet.skill_level,
+      enemyPower,
+      yourPower: power + skillBonus,
+      outpost: {
+        level: st.rows[0].outpost_level,
+        wins: st.rows[0].wins,
+        losses: st.rows[0].losses
+      },
+      message: win
+        ? `Outpost war won! +${reward} AMT (${pet.skill_name})`
+        : `Outpost war lost. +${reward} AMT consolation`
+    });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("OUTPOST WAR ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "Outpost war failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/* Minimal eggs/listings stubs so frontend does not hard-crash */
+app.get("/api/pets/eggs", requireAuth, async (req, res) => {
+  try {
+    const r = await pool.query(`SELECT * FROM pet_eggs WHERE member_id=$1 ORDER BY id DESC`, [req.member.id]);
+    res.json({ ok: true, eggs: r.rows });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/pets/breed", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const p1 = Number(req.body?.pet1Id);
+    const p2 = Number(req.body?.pet2Id);
+    if (!p1 || !p2 || p1 === p2) {
+      return res.status(400).json({ ok: false, error: "Select two different pets." });
+    }
+    const cost = 1;
+    await client.query("BEGIN");
+    const a = await loadOwnedPet(req.member.id, p1, client);
+    const b = await loadOwnedPet(req.member.id, p2, client);
+    if (!a || !b) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found." });
+    }
+    const bal = await getBalance(req.member.id, client);
+    if (bal < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Need 1 AMT to breed." });
+    }
+    await client.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'PET_BREED',$3)`,
+      [req.member.id, -cost, makeReference("AMT-BREED")]
+    );
+    const element = Math.random() < 0.5 ? a.element : b.element;
+    const hatch = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const egg = await client.query(
+      `
+      INSERT INTO pet_eggs (member_id, element, gen, status, hatch_at, parent1_id, parent2_id)
+      VALUES ($1,$2,$3,'INCUBATING',$4,$5,$6) RETURNING *
+      `,
+      [req.member.id, element, 1 + Math.max(0, 0), hatch.toISOString(), p1, p2]
+    );
+    await client.query("COMMIT");
+    res.json({ ok: true, message: "Egg incubating — hatch in 24 hours", egg: egg.rows[0] });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    res.status(500).json({ ok: false, error: e.message || "Breed failed." });
+  } finally {
+    client.release();
+  }
+});
+
+app.post("/api/pets/hatch", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const eggId = Number(req.body?.eggId);
+    await client.query("BEGIN");
+    const er = await client.query(
+      `SELECT * FROM pet_eggs WHERE id=$1 AND member_id=$2 FOR UPDATE`,
+      [eggId, req.member.id]
+    );
+    if (!er.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Egg not found." });
+    }
+    const egg = er.rows[0];
+    if (egg.status === "HATCHED") {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ ok: false, error: "Already hatched." });
+    }
+    if (new Date(egg.hatch_at).getTime() > Date.now()) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Egg still incubating." });
+    }
+    const sk = skillForElement(egg.element);
+    const name = egg.element + " Hatchling";
+    const pet = await client.query(
+      `
+      INSERT INTO owned_pets
+        (member_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, hunger, energy, happiness)
+      VALUES ($1,$2,$3,'Rare',100,24,16,18,$4,$5,100,100,100)
+      RETURNING *
+      `,
+      [req.member.id, name, egg.element, sk.name, sk.power]
+    );
+    await client.query(`UPDATE pet_eggs SET status='HATCHED' WHERE id=$1`, [eggId]);
+    await client.query("COMMIT");
+    res.json({ ok: true, message: "Delivered " + name, pet: serializePet(pet.rows[0]) });
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch {}
+    res.status(500).json({ ok: false, error: e.message || "Hatch failed." });
+  } finally {
+    client.release();
+  }
+});
+
+app.get("/api/pets/listings", requireAuth, async (req, res) => {
+  try {
+    res.json({ ok: true, listings: [] });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/pets/list", requireAuth, async (req, res) => {
+  res.status(501).json({ ok: false, error: "Public pet listing coming next update." });
+});
+app.post("/api/pets/list-egg", requireAuth, async (req, res) => {
+  res.status(501).json({ ok: false, error: "Egg listing coming next update." });
+});
+app.post("/api/pets/cancel-egg-listing", requireAuth, async (req, res) => {
+  res.json({ ok: true });
+});
+app.post("/api/pets/buy-listing", requireAuth, async (req, res) => {
+  res.status(501).json({ ok: false, error: "P2P buy coming next update." });
+});
+app.post("/api/pets/buy-egg-listing", requireAuth, async (req, res) => {
+  res.status(501).json({ ok: false, error: "P2P egg buy coming next update." });
+});
+
+/* =========================================================
 ERROR HANDLER
 ========================================================= */
 
@@ -5870,6 +6936,7 @@ START SERVER
 async function startServer() {
   try {
     await initializeDatabase();
+    await seedPetsIfNeeded();
 
     app.listen(
       PORT,
@@ -5896,7 +6963,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.2.2"
+          "Version: 2.3.0"
         );
 
         console.log(
