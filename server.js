@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.0
+FULL SERVER VERSION 2.3.1
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.0:
+VERSION 2.3.1:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1144,7 +1144,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.0",
+      "2.3.1",
 
     features: [
       "Pi Login",
@@ -5938,15 +5938,16 @@ const PET_SKILLS = {
   Thunder: { name: "Thunder Shock", power: 19 }
 };
 
+/* image = exact filename on GitHub (bonene28.github.io) */
 const PET_SHOP_DEFAULTS = [
-  { slug: "ember-pup", name: "Ember Pup", element: "Fire", rarity: "Common", price: 2, hp: 90, atk: 28, def: 12, spd: 18 },
-  { slug: "tide-cub", name: "Tide Cub", element: "Water", rarity: "Common", price: 2, hp: 100, atk: 22, def: 16, spd: 16 },
-  { slug: "moss-kit", name: "Moss Kit", element: "Nature", rarity: "Common", price: 2, hp: 95, atk: 20, def: 18, spd: 14 },
-  { slug: "pebble-pup", name: "Pebble Pup", element: "Earth", rarity: "Common", price: 2, hp: 110, atk: 18, def: 22, spd: 12 },
-  { slug: "frost-kit", name: "Frost Kit", element: "Ice", rarity: "Rare", price: 5, hp: 100, atk: 26, def: 14, spd: 20 },
-  { slug: "gale-fox", name: "Gale Fox", element: "Wind", rarity: "Rare", price: 5, hp: 85, atk: 24, def: 12, spd: 28 },
-  { slug: "spark-lynx", name: "Spark Lynx", element: "Thunder", rarity: "Rare", price: 5, hp: 90, atk: 30, def: 12, spd: 22 },
-  { slug: "inferno-wolf", name: "Inferno Wolf", element: "Fire", rarity: "Epic", price: 15, hp: 120, atk: 38, def: 18, spd: 24 }
+  { slug: "ember-pup", name: "Ember Pup", element: "Fire", rarity: "Common", price: 2, hp: 90, atk: 28, def: 12, spd: 18, image: "03_ember_fire_common_lv1.png" },
+  { slug: "tide-cub", name: "Tide Cub", element: "Water", rarity: "Common", price: 2, hp: 100, atk: 22, def: 16, spd: 16, image: "05_tide_water_common_lv1.png" },
+  { slug: "moss-kit", name: "Moss Kit", element: "Nature", rarity: "Common", price: 2, hp: 95, atk: 20, def: 18, spd: 14, image: "06_moss_nature_common_lv1.png" },
+  { slug: "pebble-pup", name: "Pebble Pup", element: "Earth", rarity: "Common", price: 2, hp: 110, atk: 18, def: 22, spd: 12, image: "01_terra_earth_common_lv1.png" },
+  { slug: "frost-kit", name: "Frost Kit", element: "Ice", rarity: "Rare", price: 5, hp: 100, atk: 26, def: 14, spd: 20, image: "01_frosty_ice_common_lv1.png" },
+  { slug: "gale-fox", name: "Gale Fox", element: "Wind", rarity: "Rare", price: 5, hp: 85, atk: 24, def: 12, spd: 28, image: "04_gale_wind_common_lv1.png" },
+  { slug: "spark-lynx", name: "Spark Lynx", element: "Thunder", rarity: "Rare", price: 5, hp: 90, atk: 30, def: 12, spd: 22, image: "01_bolt_thunder_common_lv1.png" },
+  { slug: "inferno-wolf", name: "Inferno Wolf", element: "Fire", rarity: "Epic", price: 15, hp: 120, atk: 38, def: 18, spd: 24, image: "04_inferno_fire_common_lv1.png" }
 ];
 
 const FOOD_SHOP = {
@@ -5999,19 +6000,27 @@ function serializePet(row) {
 }
 
 async function ensurePetCatalog() {
-  const count = await pool.query(`SELECT COUNT(*)::INT AS c FROM pet_catalog`);
-  if (Number(count.rows[0].c) > 0) return;
-
   for (const p of PET_SHOP_DEFAULTS) {
     const sk = skillForElement(p.element);
     await pool.query(
       `
       INSERT INTO pet_catalog
-        (slug, name, element, rarity, base_hp, base_atk, base_def, base_spd, price_amt, skill_name, skill_power)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-      ON CONFLICT (slug) DO NOTHING
+        (slug, name, element, rarity, base_hp, base_atk, base_def, base_spd, price_amt, skill_name, skill_power, image)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      ON CONFLICT (slug) DO UPDATE SET
+        name = EXCLUDED.name,
+        element = EXCLUDED.element,
+        rarity = EXCLUDED.rarity,
+        base_hp = EXCLUDED.base_hp,
+        base_atk = EXCLUDED.base_atk,
+        base_def = EXCLUDED.base_def,
+        base_spd = EXCLUDED.base_spd,
+        price_amt = EXCLUDED.price_amt,
+        skill_name = EXCLUDED.skill_name,
+        skill_power = EXCLUDED.skill_power,
+        image = EXCLUDED.image
       `,
-      [p.slug, p.name, p.element, p.rarity, p.hp, p.atk, p.def, p.spd, p.price, sk.name, sk.power]
+      [p.slug, p.name, p.element, p.rarity, p.hp, p.atk, p.def, p.spd, p.price, sk.name, sk.power, p.image || ""]
     );
   }
 }
@@ -6071,6 +6080,7 @@ app.get("/api/pets", requireAuth, async (req, res) => {
         spd: c.base_spd,
         price: Number(c.price_amt),
         price_amt: Number(c.price_amt),
+        priceAmt: Number(c.price_amt),
         image: c.image || "",
         skill: { name: c.skill_name, power: c.skill_power }
       }))
@@ -6963,7 +6973,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.0"
+          "Version: 2.3.1"
         );
 
         console.log(
