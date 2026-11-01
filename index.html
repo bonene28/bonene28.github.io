@@ -4757,7 +4757,7 @@ function renderPetGrid(pets) {
       </div>
       <div class="pet-card-body">
         <div class="pet-card-name">${esc(pet.name)}</div>
-        <div class="pet-card-price">${pet.priceAmt} AMT</div>
+        <div class="pet-card-price">${pet.priceAmt ?? pet.price ?? pet.price_amt ?? "—"} AMT</div>
         ${petStatsRow(pet)}
         <div class="pet-card-footer">
           <button class="small-btn" onclick="event.stopPropagation();openPetById('${esc(pet.id)}')">VIEW / BUY</button>
@@ -4797,8 +4797,10 @@ function openPetModal(pet) {
   $("modalAtk").textContent = pet.atk;
   $("modalDef").textContent = pet.def;
   $("modalSpd").textContent = pet.spd;
-  $("modalAbility").textContent = pet.ability;
-  $("modalPrice").textContent = pet.priceAmt + " AMT";
+  $("modalAbility").textContent =
+    (pet.skill && pet.skill.name) || pet.skill_name || pet.ability || "—";
+  $("modalPrice").textContent =
+    (pet.priceAmt ?? pet.price ?? pet.price_amt ?? "—") + " AMT";
   const modal = $("petModal");
   modal.classList.remove("hidden");
   modal.style.display = "flex";
