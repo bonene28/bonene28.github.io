@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.1
+FULL SERVER VERSION 2.3.2
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.1:
+VERSION 2.3.2:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1144,7 +1144,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.1",
+      "2.3.2",
 
     features: [
       "Pi Login",
@@ -6081,6 +6081,7 @@ app.get("/api/pets", requireAuth, async (req, res) => {
         price: Number(c.price_amt),
         price_amt: Number(c.price_amt),
         priceAmt: Number(c.price_amt),
+        pricePi: petPriceInTestPi(c.rarity),
         image: c.image || "",
         skill: { name: c.skill_name, power: c.skill_power }
       }))
@@ -6135,7 +6136,12 @@ app.post("/api/pets/buy", requireAuth, async (req, res) => {
     const bal = await getBalance(req.member.id, client);
     if (bal < price) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ ok: false, error: "Not enough AMT." });
+      return res.status(400).json({
+        ok: false,
+        error: `Not enough AMT. Need ${price} AMT, you have ${bal} AMT.`,
+        required: price,
+        balance: bal
+      });
     }
 
     const ref = makeReference("AMT-PET-BUY");
@@ -6156,11 +6162,234 @@ app.post("/api/pets/buy", requireAuth, async (req, res) => {
     );
 
     await client.query("COMMIT");
-    res.json({ ok: true, pet: serializePet(ins.rows[0]), balance: await getBalance(req.member.id) });
+    const newBal = await getBalance(req.member.id);
+    res.json({
+      ok: true,
+      purchased: true,
+      paid: price,
+      pet: serializePet(ins.rows[0]),
+      balance: newBal,
+      message: `Purchased ${c.name} for ${price} AMT`
+    });
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
     console.error("PET BUY ERROR:", e);
     res.status(500).json({ ok: false, error: e.message || "Buy failed." });
+  } finally {
+    client.release();
+  }
+});
+
+/** Test-Pi price by rarity */
+function petPriceInTestPi(rarity) {
+  const r = String(rarity || "Common").toLowerCase();
+  if (r.includes("epic") || r.includes("legend")) return 0.5;
+  if (r.includes("rare")) return 0.25;
+  return 0.1;
+}
+
+/* Buy pet with Test-Pi — approve */
+app.post("/api/pets/payment/approve", requireAuth, async (req, res) => {
+  try {
+    const paymentId = String(req.body?.paymentId || "").trim();
+    const catalogId = Number(req.body?.catalogId ?? req.body?.petId);
+    const amount = Number(req.body?.amount);
+    const productId = String(req.body?.productId || `pet-${catalogId}`).trim();
+
+    if (!paymentId) {
+      return res.status(400).json({ ok: false, error: "Payment ID is required." });
+    }
+    if (!Number.isInteger(catalogId)) {
+      return res.status(400).json({ ok: false, error: "Valid catalogId is required." });
+    }
+
+    await ensurePetCatalog();
+    const cat = await pool.query(
+      `SELECT * FROM pet_catalog WHERE id = $1 AND active = TRUE`,
+      [catalogId]
+    );
+    if (!cat.rows.length) {
+      return res.status(404).json({ ok: false, error: "Pet not found in shop." });
+    }
+
+    const expected = petPriceInTestPi(cat.rows[0].rarity);
+    if (!Number.isFinite(amount) || Math.abs(amount - expected) > 0.0001) {
+      return res.status(400).json({
+        ok: false,
+        error: `Invalid Test-π price. Expected ${expected} π`
+      });
+    }
+
+    const payment = await piPaymentRequest(
+      `/v2/payments/${encodeURIComponent(paymentId)}`,
+      "GET"
+    );
+
+    if (Math.abs(Number(payment.amount) - expected) > 0.0001) {
+      return res.status(400).json({
+        ok: false,
+        error: "Payment amount does not match pet Test-π price."
+      });
+    }
+
+    await piPaymentRequest(
+      `/v2/payments/${encodeURIComponent(paymentId)}/approve`,
+      "POST"
+    );
+
+    await pool.query(
+      `
+      INSERT INTO marketplace_payments
+        (pi_payment_id, member_id, product_id, amount, status)
+      VALUES ($1, $2, $3, $4, 'APPROVED')
+      ON CONFLICT (pi_payment_id)
+      DO UPDATE SET status = 'APPROVED'
+      `,
+      [paymentId, req.member.id, productId, expected]
+    );
+
+    res.json({ ok: true, approved: true, paymentId, catalogId, amount: expected });
+  } catch (error) {
+    console.error("PET PI APPROVE ERROR:", error);
+    res.status(error.status || 500).json({
+      ok: false,
+      error: error.message || "Unable to approve pet payment."
+    });
+  }
+});
+
+/* Buy pet with Test-Pi — complete + deliver pet */
+app.post("/api/pets/payment/complete", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const paymentId = String(req.body?.paymentId || "").trim();
+    const catalogId = Number(req.body?.catalogId ?? req.body?.petId);
+
+    if (!paymentId) {
+      return res.status(400).json({ ok: false, error: "Payment ID is required." });
+    }
+
+    await client.query("BEGIN");
+
+    const paymentResult = await client.query(
+      `
+      SELECT * FROM marketplace_payments
+      WHERE pi_payment_id = $1
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [paymentId]
+    );
+
+    if (!paymentResult.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet payment not found. Approve first." });
+    }
+
+    const payment = paymentResult.rows[0];
+
+    if (Number(payment.member_id) !== Number(req.member.id)) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({ ok: false, error: "Payment does not belong to this Pioneer." });
+    }
+
+    // Resolve catalog id from body or product_id "pet-123"
+    let resolvedCatalogId = catalogId;
+    if (!Number.isInteger(resolvedCatalogId)) {
+      const m = String(payment.product_id || "").match(/^pet-(\d+)$/);
+      if (m) resolvedCatalogId = Number(m[1]);
+    }
+
+    if (payment.status === "COMPLETED") {
+      await client.query("COMMIT");
+      return res.json({
+        ok: true,
+        completed: true,
+        alreadyCompleted: true,
+        paymentId
+      });
+    }
+
+    await piPaymentRequest(
+      `/v2/payments/${encodeURIComponent(paymentId)}/complete`,
+      "POST",
+      req.body?.txid ? { txid: req.body.txid } : null
+    );
+
+    await client.query(
+      `
+      UPDATE marketplace_payments
+      SET status = 'COMPLETED', completed_at = NOW()
+      WHERE id = $1
+      `,
+      [payment.id]
+    );
+
+    if (!Number.isInteger(resolvedCatalogId)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ ok: false, error: "Cannot resolve pet catalog id." });
+    }
+
+    const cat = await client.query(
+      `SELECT * FROM pet_catalog WHERE id = $1 AND active = TRUE`,
+      [resolvedCatalogId]
+    );
+    if (!cat.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ ok: false, error: "Pet not found in shop." });
+    }
+
+    const c = cat.rows[0];
+    const sk = skillForElement(c.element);
+    const ins = await client.query(
+      `
+      INSERT INTO owned_pets
+        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
+      RETURNING *
+      `,
+      [
+        req.member.id,
+        c.id,
+        c.name,
+        c.element,
+        c.rarity,
+        c.base_hp,
+        c.base_atk,
+        c.base_def,
+        c.base_spd,
+        c.skill_name || sk.name,
+        c.skill_power || sk.power,
+        c.image || ""
+      ]
+    );
+
+    await client.query(
+      `
+      INSERT INTO marketplace_purchases (payment_id, member_id, product_id)
+      VALUES ($1, $2, $3)
+      ON CONFLICT DO NOTHING
+      `,
+      [payment.id, req.member.id, payment.product_id]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      ok: true,
+      completed: true,
+      purchased: true,
+      paymentId,
+      pet: serializePet(ins.rows[0]),
+      message: `Purchased ${c.name} with Test-π!`
+    });
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("PET PI COMPLETE ERROR:", error);
+    res.status(error.status || 500).json({
+      ok: false,
+      error: error.message || "Unable to complete pet payment."
+    });
   } finally {
     client.release();
   }
@@ -6973,7 +7202,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.1"
+          "Version: 2.3.2"
         );
 
         console.log(
