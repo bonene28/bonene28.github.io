@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.2
+FULL SERVER VERSION 2.3.3
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.2:
+VERSION 2.3.3:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1144,7 +1144,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.2",
+      "2.3.3",
 
     features: [
       "Pi Login",
@@ -6095,6 +6095,48 @@ app.get("/api/pets", requireAuth, async (req, res) => {
 /* Owned pets */
 app.get("/api/pets/owned", requireAuth, async (req, res) => {
   try {
+    // Auto-recover missing pets from completed Test-π payments
+    try {
+      const missing = await pool.query(
+        `
+        SELECT mp.*
+        FROM marketplace_payments mp
+        WHERE mp.member_id = $1
+          AND mp.product_id LIKE 'pet-%'
+          AND mp.status IN ('COMPLETED', 'APPROVED')
+          AND NOT EXISTS (
+            SELECT 1 FROM marketplace_purchases pr
+            WHERE pr.payment_id = mp.id AND pr.member_id = $1
+          )
+        ORDER BY mp.id ASC
+        LIMIT 10
+        `,
+        [req.member.id]
+      );
+
+      for (const payment of missing.rows) {
+        const client = await pool.connect();
+        try {
+          await client.query("BEGIN");
+          if (payment.status !== "COMPLETED") {
+            await client.query(
+              `UPDATE marketplace_payments SET status = 'COMPLETED', completed_at = COALESCE(completed_at, NOW()) WHERE id = $1`,
+              [payment.id]
+            );
+          }
+          await deliverPetFromPayment(client, req.member.id, payment, null);
+          await client.query("COMMIT");
+        } catch (err) {
+          try { await client.query("ROLLBACK"); } catch {}
+          console.error("AUTO-RECOVER PET:", err.message || err);
+        } finally {
+          client.release();
+        }
+      }
+    } catch (recErr) {
+      console.error("AUTO-RECOVER SCAN:", recErr.message || recErr);
+    }
+
     const r = await pool.query(
       `SELECT * FROM owned_pets WHERE member_id = $1 AND is_listed = FALSE ORDER BY id DESC`,
       [req.member.id]
@@ -6258,6 +6300,91 @@ app.post("/api/pets/payment/approve", requireAuth, async (req, res) => {
   }
 });
 
+/** Deliver owned pet from a marketplace payment row (idempotent via purchases table) */
+async function deliverPetFromPayment(client, memberId, payment, catalogIdHint) {
+  // Already delivered?
+  const existing = await client.query(
+    `
+    SELECT id FROM marketplace_purchases
+    WHERE payment_id = $1 AND member_id = $2
+    LIMIT 1
+    `,
+    [payment.id, memberId]
+  );
+
+  let resolvedCatalogId = Number(catalogIdHint);
+  if (!Number.isInteger(resolvedCatalogId) || resolvedCatalogId <= 0) {
+    const m = String(payment.product_id || "").match(/^pet-(\d+)$/i);
+    if (m) resolvedCatalogId = Number(m[1]);
+  }
+
+  if (!Number.isInteger(resolvedCatalogId) || resolvedCatalogId <= 0) {
+    throw new HttpError(400, "Cannot resolve pet catalog id from payment.");
+  }
+
+  const cat = await client.query(
+    `SELECT * FROM pet_catalog WHERE id = $1 AND active = TRUE`,
+    [resolvedCatalogId]
+  );
+  if (!cat.rows.length) {
+    throw new HttpError(404, "Pet not found in shop (catalog #" + resolvedCatalogId + ").");
+  }
+
+  const c = cat.rows[0];
+
+  // If purchase already recorded, try to return an owned pet with same catalog
+  if (existing.rows.length) {
+    const owned = await client.query(
+      `
+      SELECT * FROM owned_pets
+      WHERE member_id = $1 AND catalog_id = $2
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [memberId, c.id]
+    );
+    if (owned.rows.length) {
+      return { pet: owned.rows[0], alreadyDelivered: true, catalog: c };
+    }
+    // Purchase row exists but pet missing — fall through and create pet
+  }
+
+  const sk = skillForElement(c.element);
+  const ins = await client.query(
+    `
+    INSERT INTO owned_pets
+      (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
+    RETURNING *
+    `,
+    [
+      memberId,
+      c.id,
+      c.name,
+      c.element,
+      c.rarity,
+      c.base_hp,
+      c.base_atk,
+      c.base_def,
+      c.base_spd,
+      c.skill_name || sk.name,
+      c.skill_power || sk.power,
+      c.image || ""
+    ]
+  );
+
+  await client.query(
+    `
+    INSERT INTO marketplace_purchases (payment_id, member_id, product_id)
+    VALUES ($1, $2, $3)
+    ON CONFLICT DO NOTHING
+    `,
+    [payment.id, memberId, payment.product_id]
+  );
+
+  return { pet: ins.rows[0], alreadyDelivered: false, catalog: c };
+}
+
 /* Buy pet with Test-Pi — complete + deliver pet */
 app.post("/api/pets/payment/complete", requireAuth, async (req, res) => {
   const client = await pool.connect();
@@ -6293,84 +6420,35 @@ app.post("/api/pets/payment/complete", requireAuth, async (req, res) => {
       return res.status(403).json({ ok: false, error: "Payment does not belong to this Pioneer." });
     }
 
-    // Resolve catalog id from body or product_id "pet-123"
-    let resolvedCatalogId = catalogId;
-    if (!Number.isInteger(resolvedCatalogId)) {
-      const m = String(payment.product_id || "").match(/^pet-(\d+)$/);
-      if (m) resolvedCatalogId = Number(m[1]);
+    // Mark completed with Pi (ignore if already completed on Pi side)
+    if (payment.status !== "COMPLETED") {
+      try {
+        await piPaymentRequest(
+          `/v2/payments/${encodeURIComponent(paymentId)}/complete`,
+          "POST",
+          req.body?.txid ? { txid: req.body.txid } : null
+        );
+      } catch (piErr) {
+        console.error("PET PI complete API:", piErr.message || piErr);
+        // continue — still deliver pet if payment is ours
+      }
+
+      await client.query(
+        `
+        UPDATE marketplace_payments
+        SET status = 'COMPLETED', completed_at = NOW()
+        WHERE id = $1
+        `,
+        [payment.id]
+      );
     }
 
-    if (payment.status === "COMPLETED") {
-      await client.query("COMMIT");
-      return res.json({
-        ok: true,
-        completed: true,
-        alreadyCompleted: true,
-        paymentId
-      });
-    }
-
-    await piPaymentRequest(
-      `/v2/payments/${encodeURIComponent(paymentId)}/complete`,
-      "POST",
-      req.body?.txid ? { txid: req.body.txid } : null
-    );
-
-    await client.query(
-      `
-      UPDATE marketplace_payments
-      SET status = 'COMPLETED', completed_at = NOW()
-      WHERE id = $1
-      `,
-      [payment.id]
-    );
-
-    if (!Number.isInteger(resolvedCatalogId)) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ ok: false, error: "Cannot resolve pet catalog id." });
-    }
-
-    const cat = await client.query(
-      `SELECT * FROM pet_catalog WHERE id = $1 AND active = TRUE`,
-      [resolvedCatalogId]
-    );
-    if (!cat.rows.length) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ ok: false, error: "Pet not found in shop." });
-    }
-
-    const c = cat.rows[0];
-    const sk = skillForElement(c.element);
-    const ins = await client.query(
-      `
-      INSERT INTO owned_pets
-        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
-      RETURNING *
-      `,
-      [
-        req.member.id,
-        c.id,
-        c.name,
-        c.element,
-        c.rarity,
-        c.base_hp,
-        c.base_atk,
-        c.base_def,
-        c.base_spd,
-        c.skill_name || sk.name,
-        c.skill_power || sk.power,
-        c.image || ""
-      ]
-    );
-
-    await client.query(
-      `
-      INSERT INTO marketplace_purchases (payment_id, member_id, product_id)
-      VALUES ($1, $2, $3)
-      ON CONFLICT DO NOTHING
-      `,
-      [payment.id, req.member.id, payment.product_id]
+    // ALWAYS deliver pet (even if payment was already COMPLETED without pet)
+    const delivered = await deliverPetFromPayment(
+      client,
+      req.member.id,
+      payment,
+      catalogId
     );
 
     await client.query("COMMIT");
@@ -6379,9 +6457,12 @@ app.post("/api/pets/payment/complete", requireAuth, async (req, res) => {
       ok: true,
       completed: true,
       purchased: true,
+      alreadyDelivered: !!delivered.alreadyDelivered,
       paymentId,
-      pet: serializePet(ins.rows[0]),
-      message: `Purchased ${c.name} with Test-π!`
+      pet: serializePet(delivered.pet),
+      message: delivered.alreadyDelivered
+        ? `${delivered.catalog.name} already in My Pets`
+        : `Purchased ${delivered.catalog.name} with Test-π!`
     });
   } catch (error) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -6390,6 +6471,76 @@ app.post("/api/pets/payment/complete", requireAuth, async (req, res) => {
       ok: false,
       error: error.message || "Unable to complete pet payment."
     });
+  } finally {
+    client.release();
+  }
+});
+
+/* Recover pets for completed Test-π payments that never delivered */
+app.post("/api/pets/payment/recover", requireAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const payments = await client.query(
+      `
+      SELECT mp.*
+      FROM marketplace_payments mp
+      WHERE mp.member_id = $1
+        AND mp.product_id LIKE 'pet-%'
+        AND mp.status IN ('COMPLETED', 'APPROVED')
+        AND NOT EXISTS (
+          SELECT 1 FROM marketplace_purchases pr
+          WHERE pr.payment_id = mp.id AND pr.member_id = $1
+        )
+      ORDER BY mp.id ASC
+      `,
+      [req.member.id]
+    );
+
+    const deliveredPets = [];
+
+    for (const payment of payments.rows) {
+      // If only APPROVED, try to complete on Pi first
+      if (payment.status !== "COMPLETED") {
+        try {
+          await piPaymentRequest(
+            `/v2/payments/${encodeURIComponent(payment.pi_payment_id)}/complete`,
+            "POST"
+          );
+        } catch (e) {
+          console.error("Recover Pi complete:", e.message || e);
+        }
+        await client.query(
+          `UPDATE marketplace_payments SET status = 'COMPLETED', completed_at = COALESCE(completed_at, NOW()) WHERE id = $1`,
+          [payment.id]
+        );
+        payment.status = "COMPLETED";
+      }
+
+      try {
+        const d = await deliverPetFromPayment(client, req.member.id, payment, null);
+        if (d && d.pet) deliveredPets.push(serializePet(d.pet));
+      } catch (e) {
+        console.error("Recover deliver:", e.message || e);
+      }
+    }
+
+    await client.query("COMMIT");
+
+    res.json({
+      ok: true,
+      recovered: deliveredPets.length,
+      pets: deliveredPets,
+      message:
+        deliveredPets.length > 0
+          ? `Recovered ${deliveredPets.length} pet(s) into My Pets`
+          : "No missing pets to recover"
+    });
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("PET RECOVER ERROR:", error);
+    res.status(500).json({ ok: false, error: error.message || "Recover failed." });
   } finally {
     client.release();
   }
@@ -7202,7 +7353,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.2"
+          "Version: 2.3.3"
         );
 
         console.log(
