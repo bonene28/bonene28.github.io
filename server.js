@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.3
+FULL SERVER VERSION 2.3.4
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.3:
+VERSION 2.3.4:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1071,6 +1071,32 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_owned_pets_member ON owned_pets(member_id);
     CREATE INDEX IF NOT EXISTS idx_pet_eggs_member ON pet_eggs(member_id);
     CREATE INDEX IF NOT EXISTS idx_pet_listings_status ON pet_listings(status);
+
+    -- Migrate older owned_pets tables missing newer columns
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS catalog_id BIGINT REFERENCES pet_catalog(id) ON DELETE SET NULL;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS level INT NOT NULL DEFAULT 1;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS xp INT NOT NULL DEFAULT 0;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS hp INT NOT NULL DEFAULT 100;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS atk INT NOT NULL DEFAULT 20;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS def INT NOT NULL DEFAULT 15;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS spd INT NOT NULL DEFAULT 15;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS energy INT NOT NULL DEFAULT 100;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS happiness INT NOT NULL DEFAULT 100;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS hunger INT NOT NULL DEFAULT 100;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_name TEXT NOT NULL DEFAULT 'Basic Strike';
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_power INT NOT NULL DEFAULT 10;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_level INT NOT NULL DEFAULT 1;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS image TEXT DEFAULT '';
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS is_listed BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS last_fed_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS last_care_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS element TEXT NOT NULL DEFAULT 'Earth';
+    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS rarity TEXT NOT NULL DEFAULT 'Common';
+
+    ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_name TEXT NOT NULL DEFAULT 'Basic Strike';
+    ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_power INT NOT NULL DEFAULT 10;
+    ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS image TEXT DEFAULT '';
+    ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
   `);
 
   await pool.query(`
@@ -1144,7 +1170,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.3",
+      "2.3.4",
 
     features: [
       "Pi Login",
@@ -7353,7 +7379,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.3"
+          "Version: 2.3.4"
         );
 
         console.log(
