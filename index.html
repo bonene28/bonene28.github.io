@@ -2028,8 +2028,10 @@ SELECT 180D
 <div class="stat"><div class="stat-label">SPD</div><div class="stat-value" id="modalSpd">—</div></div>
 </div>
 <div class="notice" style="margin-bottom:12px"><b>Ability:</b> <span id="modalAbility">—</span></div>
-<div style="font-size:18px;font-weight:900;color:#ffd54f;margin-bottom:12px" id="modalPrice">0 AMT</div>
+<div style="font-size:18px;font-weight:900;color:#ffd54f;margin-bottom:8px" id="modalPrice">0 AMT</div>
+<div style="font-size:13px;font-weight:800;color:#8cffb3;margin-bottom:12px" id="modalPricePi">0.10 Test-π</div>
 <button class="primary" id="buyPetBtn" onclick="buySelectedPet()">BUY WITH AMT</button>
+<button class="secondary" id="buyPetPiBtn" style="margin-top:8px" onclick="buySelectedPetWithPi()">π BUY WITH TEST PI</button>
 </div>
 </div>
 
@@ -4801,9 +4803,119 @@ function openPetModal(pet) {
     (pet.skill && pet.skill.name) || pet.skill_name || pet.ability || "—";
   $("modalPrice").textContent =
     (pet.priceAmt ?? pet.price ?? pet.price_amt ?? "—") + " AMT";
+  if ($("modalPricePi")) {
+    $("modalPricePi").textContent = petPiPrice(pet).toFixed(2) + " Test-π";
+  }
   const modal = $("petModal");
   modal.classList.remove("hidden");
   modal.style.display = "flex";
+}
+
+/** Test-Pi price by rarity (Testnet) */
+function petPiPrice(pet) {
+  const r = String(pet?.rarity || "Common").toLowerCase();
+  if (r.indexOf("epic") >= 0 || r.indexOf("legend") >= 0) return 0.5;
+  if (r.indexOf("rare") >= 0) return 0.25;
+  return 0.1;
+}
+
+async function buySelectedPetWithPi() {
+  if (!selectedPet) return;
+  if (!accessToken) {
+    showToast("Login with Pi first before buying.", true);
+    return;
+  }
+  if (typeof Pi === "undefined" || !Pi.createPayment) {
+    showToast("Pi SDK not available. Open inside Pi Browser.", true);
+    return;
+  }
+
+  const pet = selectedPet;
+  const amount = petPiPrice(pet);
+  const catalogId = pet.id;
+  const btn = $("buyPetPiBtn");
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "OPENING PI PAYMENT…";
+    }
+
+    await new Promise((resolve, reject) => {
+      const paymentData = {
+        amount: amount,
+        memo: "AMT Pet: " + String(pet.name || "Pet").slice(0, 28),
+        metadata: {
+          type: "AMT_PET",
+          catalogId: catalogId,
+          productId: "pet-" + catalogId,
+          petName: pet.name || ""
+        }
+      };
+
+      const callbacks = {
+        onReadyForServerApproval: function (paymentId) {
+          api("/api/pets/payment/approve", {
+            method: "POST",
+            body: JSON.stringify({
+              paymentId: paymentId,
+              catalogId: catalogId,
+              productId: "pet-" + catalogId,
+              amount: amount
+            })
+          })
+            .then(function () {})
+            .catch(function (err) {
+              showToast(err.message || "Approve failed", true);
+            });
+        },
+        onReadyForServerCompletion: function (paymentId, txid) {
+          api("/api/pets/payment/complete", {
+            method: "POST",
+            body: JSON.stringify({
+              paymentId: paymentId,
+              txid: txid || "",
+              catalogId: catalogId,
+              productId: "pet-" + catalogId
+            })
+          })
+            .then(function (data) {
+              showToast(data.message || ("Got " + (pet.name || "pet") + " with Test-π!"));
+              closePetModal();
+              refreshWallet().catch(function () {});
+              petTab("owned");
+              setTimeout(function () {
+                loadOwnedPets().catch(function () {});
+              }, 400);
+              resolve(data);
+            })
+            .catch(function (err) {
+              showToast(err.message || "Complete failed", true);
+              reject(err);
+            });
+        },
+        onCancel: function () {
+          showToast("Payment cancelled", true);
+          reject(new Error("cancelled"));
+        },
+        onError: function (err) {
+          showToast((err && err.message) || "Pi payment error", true);
+          reject(err || new Error("Pi payment error"));
+        }
+      };
+
+      Pi.createPayment(paymentData, callbacks);
+    });
+  } catch (e) {
+    if (e && e.message !== "cancelled") {
+      showToast(e.message || "Test-π buy failed", true);
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "π BUY WITH TEST PI";
+    }
+  }
 }
 
 function closePetModal() {
@@ -4825,13 +4937,18 @@ async function buySelectedPet() {
     btn.textContent = "BUYING...";
     const data = await api("/api/pets/buy", {
       method: "POST",
-      body: JSON.stringify({ petId: selectedPet.id })
+      body: JSON.stringify({
+        petId: selectedPet.id,
+        catalogId: selectedPet.id,
+        id: selectedPet.id
+      })
     });
-    if (!data || !data.purchased) {
+    // Accept ok / purchased / pet as success (backend compatibility)
+    if (!data || !(data.ok || data.purchased || data.pet)) {
       throw new Error(data?.error || "Buy did not complete.");
     }
     showToast(
-      "Got " + selectedPet.name + "! -" + (data.paid || "") + " AMT · Saved to My Pets"
+      "Got " + selectedPet.name + "! -" + (data.paid ?? "") + " AMT · Saved to My Pets"
     );
     closePetModal();
     await refreshWallet();
