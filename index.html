@@ -1918,7 +1918,8 @@ SELECT 180D
 <div class="notice" style="margin-bottom:10px;font-size:11px">
   Level milestones: <b>Lv10 → +2 AMT</b> · <b>Lv20 → +5</b> · <b>Lv50 Mythic → +15</b> (once per pet)
 </div>
-<button class="primary" style="margin-bottom:12px" onclick="feedAllPets()">🍖 FEED ALL PETS (1 click)</button>
+<button class="primary" style="margin-bottom:8px" onclick="feedAllPets()">🍖 FEED ALL PETS (1 click)</button>
+<button class="secondary" style="margin-bottom:12px" onclick="recoverMissingPets()">🔄 RECOVER MISSING PETS (Test-π buys)</button>
 <div id="ownedPetGrid" class="market-grid"><div class="empty">No pets yet. Claim starter or buy from Shop.</div></div>
 </div>
 
@@ -5012,6 +5013,21 @@ async function buySelectedPet() {
 window.buySelectedPet = buySelectedPet;
 
 /* ---- Owned pets ---- */
+async function recoverMissingPets() {
+  try {
+    showToast("Checking Test-π purchases…");
+    const data = await api("/api/pets/payment/recover", {
+      method: "POST",
+      body: "{}"
+    });
+    showToast(data.message || ("Recovered " + (data.recovered || 0)));
+    await loadOwnedPets();
+  } catch (e) {
+    showToast(e.message || "Recover failed", true);
+  }
+}
+window.recoverMissingPets = recoverMissingPets;
+
 async function loadOwnedPets() {
   const grid = $("ownedPetGrid");
   if (!grid) return;
@@ -5021,6 +5037,7 @@ async function loadOwnedPets() {
       return;
     }
     grid.innerHTML = '<div class="empty">Loading your pets...</div>';
+    // Backend also auto-recovers on this call
     const data = await api("/api/pets/owned");
     const pets = data.pets || [];
     window._ownedMap = {};
