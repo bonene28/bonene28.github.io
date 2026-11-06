@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.4
+FULL SERVER VERSION 2.3.5
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.4:
+VERSION 2.3.5:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -711,6 +711,50 @@ async function requireAuth(
 DATABASE INITIALIZATION
 ========================================================= */
 
+async function migratePetsSchema() {
+  const statements = [
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS catalog_id BIGINT`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS level INT DEFAULT 1`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS xp INT DEFAULT 0`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS hp INT DEFAULT 100`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS atk INT DEFAULT 20`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS def INT DEFAULT 15`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS spd INT DEFAULT 15`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS energy INT DEFAULT 100`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS happiness INT DEFAULT 100`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS hunger INT DEFAULT 100`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_name TEXT DEFAULT 'Basic Strike'`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_power INT DEFAULT 10`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_level INT DEFAULT 1`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS image TEXT DEFAULT ''`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS is_listed BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS last_fed_at TIMESTAMPTZ DEFAULT NOW()`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS last_care_at TIMESTAMPTZ DEFAULT NOW()`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS element TEXT DEFAULT 'Earth'`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS rarity TEXT DEFAULT 'Common'`,
+    `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_name TEXT DEFAULT 'Basic Strike'`,
+    `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_power INT DEFAULT 10`,
+    `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS image TEXT DEFAULT ''`,
+    `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE`,
+    // fill nulls so later reads are safe
+    `UPDATE owned_pets SET hunger = 100 WHERE hunger IS NULL`,
+    `UPDATE owned_pets SET energy = 100 WHERE energy IS NULL`,
+    `UPDATE owned_pets SET happiness = 100 WHERE happiness IS NULL`,
+    `UPDATE owned_pets SET skill_name = 'Basic Strike' WHERE skill_name IS NULL`,
+    `UPDATE owned_pets SET skill_power = 10 WHERE skill_power IS NULL`,
+    `UPDATE owned_pets SET skill_level = 1 WHERE skill_level IS NULL`
+  ];
+
+  for (const sql of statements) {
+    try {
+      await pool.query(sql);
+    } catch (e) {
+      console.error("PET MIGRATE skip:", sql.slice(0, 60), "→", e.message);
+    }
+  }
+  console.log("Pet schema migration checked.");
+}
+
 async function initializeDatabase() {
   if (!DATABASE_URL) {
     throw new Error(
@@ -1071,33 +1115,10 @@ async function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_owned_pets_member ON owned_pets(member_id);
     CREATE INDEX IF NOT EXISTS idx_pet_eggs_member ON pet_eggs(member_id);
     CREATE INDEX IF NOT EXISTS idx_pet_listings_status ON pet_listings(status);
-
-    -- Migrate older owned_pets tables missing newer columns
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS catalog_id BIGINT REFERENCES pet_catalog(id) ON DELETE SET NULL;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS level INT NOT NULL DEFAULT 1;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS xp INT NOT NULL DEFAULT 0;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS hp INT NOT NULL DEFAULT 100;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS atk INT NOT NULL DEFAULT 20;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS def INT NOT NULL DEFAULT 15;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS spd INT NOT NULL DEFAULT 15;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS energy INT NOT NULL DEFAULT 100;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS happiness INT NOT NULL DEFAULT 100;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS hunger INT NOT NULL DEFAULT 100;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_name TEXT NOT NULL DEFAULT 'Basic Strike';
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_power INT NOT NULL DEFAULT 10;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS skill_level INT NOT NULL DEFAULT 1;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS image TEXT DEFAULT '';
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS is_listed BOOLEAN NOT NULL DEFAULT FALSE;
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS last_fed_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS last_care_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS element TEXT NOT NULL DEFAULT 'Earth';
-    ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS rarity TEXT NOT NULL DEFAULT 'Common';
-
-    ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_name TEXT NOT NULL DEFAULT 'Basic Strike';
-    ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_power INT NOT NULL DEFAULT 10;
-    ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS image TEXT DEFAULT '';
-    ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
   `);
+
+  // Safe per-column migrations (never abort the whole init if one fails)
+  await migratePetsSchema();
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS
@@ -1170,7 +1191,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.4",
+      "2.3.5",
 
     features: [
       "Pi Login",
@@ -5986,42 +6007,48 @@ function skillForElement(element) {
   return PET_SKILLS[element] || { name: "Basic Strike", power: 10 };
 }
 
+function numOr(v, fallback) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function applyHungerDecay(pet) {
+  const base = numOr(pet.hunger, 100);
   const last = new Date(pet.last_fed_at || pet.created_at || Date.now()).getTime();
   const hours = Math.max(0, (Date.now() - last) / (1000 * 60 * 60));
   const decay = Math.floor(hours * 3); // ~3 hunger per hour
-  const hunger = Math.max(0, Math.min(100, Number(pet.hunger) - decay));
+  const hunger = Math.max(0, Math.min(100, base - decay));
   return { ...pet, hunger };
 }
 
 function serializePet(row) {
-  const p = applyHungerDecay(row);
+  const p = applyHungerDecay(row || {});
   return {
     id: Number(p.id),
-    name: p.name,
-    element: p.element,
-    rarity: p.rarity,
-    level: Number(p.level),
-    xp: Number(p.xp),
-    hp: Number(p.hp),
-    atk: Number(p.atk),
-    def: Number(p.def),
-    spd: Number(p.spd),
-    energy: Number(p.energy),
-    happiness: Number(p.happiness),
-    hunger: Number(p.hunger),
+    name: p.name || "Pet",
+    element: p.element || "Earth",
+    rarity: p.rarity || "Common",
+    level: numOr(p.level, 1),
+    xp: numOr(p.xp, 0),
+    hp: numOr(p.hp, 100),
+    atk: numOr(p.atk, 20),
+    def: numOr(p.def, 15),
+    spd: numOr(p.spd, 15),
+    energy: numOr(p.energy, 100),
+    happiness: numOr(p.happiness, 100),
+    hunger: numOr(p.hunger, 100),
     skill: {
-      name: p.skill_name,
-      power: Number(p.skill_power),
-      level: Number(p.skill_level || 1)
+      name: p.skill_name || "Basic Strike",
+      power: numOr(p.skill_power, 10),
+      level: numOr(p.skill_level, 1)
     },
-    skill_name: p.skill_name,
-    skill_power: Number(p.skill_power),
-    skill_level: Number(p.skill_level || 1),
+    skill_name: p.skill_name || "Basic Strike",
+    skill_power: numOr(p.skill_power, 10),
+    skill_level: numOr(p.skill_level, 1),
     image: p.image || "",
     is_listed: !!p.is_listed,
-    last_fed_at: p.last_fed_at,
-    created_at: p.created_at
+    last_fed_at: p.last_fed_at || null,
+    created_at: p.created_at || null
   };
 }
 
@@ -6121,7 +6148,14 @@ app.get("/api/pets", requireAuth, async (req, res) => {
 /* Owned pets */
 app.get("/api/pets/owned", requireAuth, async (req, res) => {
   try {
-    // Auto-recover missing pets from completed Test-π payments
+    // Ensure columns exist (safe if already migrated)
+    try {
+      await migratePetsSchema();
+    } catch (mErr) {
+      console.error("OWNED migrate:", mErr.message || mErr);
+    }
+
+    // Auto-recover missing pets from completed Test-π payments (never fails the list)
     try {
       const missing = await pool.query(
         `
@@ -6163,17 +6197,30 @@ app.get("/api/pets/owned", requireAuth, async (req, res) => {
       console.error("AUTO-RECOVER SCAN:", recErr.message || recErr);
     }
 
-    const r = await pool.query(
-      `SELECT * FROM owned_pets WHERE member_id = $1 AND is_listed = FALSE ORDER BY id DESC`,
-      [req.member.id]
-    );
-    // persist decayed hunger lightly
+    // is_listed may not exist on very old tables — fallback query
+    let r;
+    try {
+      r = await pool.query(
+        `SELECT * FROM owned_pets WHERE member_id = $1 AND COALESCE(is_listed, FALSE) = FALSE ORDER BY id DESC`,
+        [req.member.id]
+      );
+    } catch (qErr) {
+      console.error("OWNED query fallback:", qErr.message || qErr);
+      r = await pool.query(
+        `SELECT * FROM owned_pets WHERE member_id = $1 ORDER BY id DESC`,
+        [req.member.id]
+      );
+    }
+
     const pets = [];
     for (const row of r.rows) {
       const s = serializePet(row);
-      if (s.hunger !== Number(row.hunger)) {
-        await pool.query(`UPDATE owned_pets SET hunger = $1 WHERE id = $2`, [s.hunger, row.id]);
-      }
+      // Best-effort hunger persist — ignore if column still missing
+      try {
+        if (row.hunger != null && s.hunger !== Number(row.hunger)) {
+          await pool.query(`UPDATE owned_pets SET hunger = $1 WHERE id = $2`, [s.hunger, row.id]);
+        }
+      } catch (_) {}
       pets.push(s);
     }
     res.json({ ok: true, pets });
@@ -7379,7 +7426,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.4"
+          "Version: 2.3.5"
         );
 
         console.log(
