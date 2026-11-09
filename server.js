@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.7
+FULL SERVER VERSION 2.3.8
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.7:
+VERSION 2.3.8:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -732,6 +732,8 @@ async function migratePetsSchema() {
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS last_care_at TIMESTAMPTZ DEFAULT NOW()`,
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS element TEXT DEFAULT 'Earth'`,
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS rarity TEXT DEFAULT 'Common'`,
+    // legacy column from older schema — keep compatible
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS pet_id BIGINT`,
     `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_name TEXT DEFAULT 'Basic Strike'`,
     `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_power INT DEFAULT 10`,
     `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS image TEXT DEFAULT ''`,
@@ -742,7 +744,9 @@ async function migratePetsSchema() {
     `UPDATE owned_pets SET happiness = 100 WHERE happiness IS NULL`,
     `UPDATE owned_pets SET skill_name = 'Basic Strike' WHERE skill_name IS NULL`,
     `UPDATE owned_pets SET skill_power = 10 WHERE skill_power IS NULL`,
-    `UPDATE owned_pets SET skill_level = 1 WHERE skill_level IS NULL`
+    `UPDATE owned_pets SET skill_level = 1 WHERE skill_level IS NULL`,
+    // backfill pet_id from catalog_id when missing
+    `UPDATE owned_pets SET pet_id = catalog_id WHERE pet_id IS NULL AND catalog_id IS NOT NULL`
   ];
 
   for (const sql of statements) {
@@ -751,6 +755,13 @@ async function migratePetsSchema() {
     } catch (e) {
       console.error("PET MIGRATE skip:", sql.slice(0, 60), "→", e.message);
     }
+  }
+
+  // Relax legacy NOT NULL on pet_id if present (old schema)
+  try {
+    await pool.query(`ALTER TABLE owned_pets ALTER COLUMN pet_id DROP NOT NULL`);
+  } catch (e) {
+    /* ignore if already nullable or column missing */
   }
   console.log("Pet schema migration checked.");
 }
@@ -1191,7 +1202,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.7",
+      "2.3.8",
 
     features: [
       "Pi Login",
@@ -6378,8 +6389,11 @@ app.post("/api/pets/payment/approve", requireAuth, async (req, res) => {
 /** Deliver owned pet from a marketplace payment row (idempotent via purchases table) */
 async function insertOwnedPetRow(client, memberId, c) {
   const sk = skillForElement(c.element);
+  const petId = Number(c.id) || 0;
+  // Include pet_id for legacy NOT NULL schemas (pet_id ≈ catalog id)
   const fullParams = [
     memberId,
+    petId,
     c.id,
     c.name,
     c.element,
@@ -6394,6 +6408,7 @@ async function insertOwnedPetRow(client, memberId, c) {
   ];
   const minParams = [
     memberId,
+    petId,
     c.id,
     c.name,
     c.element || "Earth",
@@ -6410,8 +6425,8 @@ async function insertOwnedPetRow(client, memberId, c) {
     const ins = await client.query(
       `
       INSERT INTO owned_pets
-        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
+        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,100,100,100)
       RETURNING *
       `,
       fullParams
@@ -6430,8 +6445,8 @@ async function insertOwnedPetRow(client, memberId, c) {
     const ins = await client.query(
       `
       INSERT INTO owned_pets
-        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
       RETURNING *
       `,
       fullParams
@@ -6450,8 +6465,8 @@ async function insertOwnedPetRow(client, memberId, c) {
     const ins = await client.query(
       `
       INSERT INTO owned_pets
-        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       RETURNING *
       `,
       minParams
@@ -6465,7 +6480,26 @@ async function insertOwnedPetRow(client, memberId, c) {
     } catch (_) {}
   }
 
-  // Last resort: name only style (very old schema)
+  // Last resort with pet_id only
+  try {
+    await client.query("SAVEPOINT insert_pet_legacy");
+    const ins = await client.query(
+      `
+      INSERT INTO owned_pets (member_id, pet_id, name, element, rarity)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+      `,
+      [memberId, petId || 1, c.name, c.element || "Earth", c.rarity || "Common"]
+    );
+    await client.query("RELEASE SAVEPOINT insert_pet_legacy");
+    return ins.rows[0];
+  } catch (e4) {
+    console.error("insertOwnedPet legacy failed:", e4.message);
+    try {
+      await client.query("ROLLBACK TO SAVEPOINT insert_pet_legacy");
+    } catch (_) {}
+  }
+
   const ins = await client.query(
     `
     INSERT INTO owned_pets (member_id, name, element, rarity)
@@ -7524,7 +7558,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.7"
+          "Version: 2.3.8"
         );
 
         console.log(
