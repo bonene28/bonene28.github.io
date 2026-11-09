@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.5
+FULL SERVER VERSION 2.3.6
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.5:
+VERSION 2.3.6:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1191,7 +1191,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.5",
+      "2.3.6",
 
     features: [
       "Pi Login",
@@ -6187,7 +6187,9 @@ app.get("/api/pets/owned", requireAuth, async (req, res) => {
           await deliverPetFromPayment(client, req.member.id, payment, null);
           await client.query("COMMIT");
         } catch (err) {
-          try { await client.query("ROLLBACK"); } catch {}
+          try {
+            await client.query("ROLLBACK");
+          } catch (_) {}
           console.error("AUTO-RECOVER PET:", err.message || err);
         } finally {
           client.release();
@@ -6374,6 +6376,58 @@ app.post("/api/pets/payment/approve", requireAuth, async (req, res) => {
 });
 
 /** Deliver owned pet from a marketplace payment row (idempotent via purchases table) */
+async function insertOwnedPetRow(client, memberId, c) {
+  const sk = skillForElement(c.element);
+  // Try full insert first; fall back to minimal columns if schema is old
+  try {
+    const ins = await client.query(
+      `
+      INSERT INTO owned_pets
+        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
+      RETURNING *
+      `,
+      [
+        memberId,
+        c.id,
+        c.name,
+        c.element,
+        c.rarity,
+        c.base_hp,
+        c.base_atk,
+        c.base_def,
+        c.base_spd,
+        c.skill_name || sk.name,
+        c.skill_power || sk.power,
+        c.image || ""
+      ]
+    );
+    return ins.rows[0];
+  } catch (e1) {
+    console.error("insertOwnedPet full failed, trying minimal:", e1.message);
+    const ins = await client.query(
+      `
+      INSERT INTO owned_pets
+        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      RETURNING *
+      `,
+      [
+        memberId,
+        c.id,
+        c.name,
+        c.element || "Earth",
+        c.rarity || "Common",
+        c.base_hp || 100,
+        c.base_atk || 20,
+        c.base_def || 15,
+        c.base_spd || 15
+      ]
+    );
+    return ins.rows[0];
+  }
+}
+
 async function deliverPetFromPayment(client, memberId, payment, catalogIdHint) {
   // Already delivered?
   const existing = await client.query(
@@ -6396,7 +6450,7 @@ async function deliverPetFromPayment(client, memberId, payment, catalogIdHint) {
   }
 
   const cat = await client.query(
-    `SELECT * FROM pet_catalog WHERE id = $1 AND active = TRUE`,
+    `SELECT * FROM pet_catalog WHERE id = $1`,
     [resolvedCatalogId]
   );
   if (!cat.rows.length) {
@@ -6422,29 +6476,7 @@ async function deliverPetFromPayment(client, memberId, payment, catalogIdHint) {
     // Purchase row exists but pet missing — fall through and create pet
   }
 
-  const sk = skillForElement(c.element);
-  const ins = await client.query(
-    `
-    INSERT INTO owned_pets
-      (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
-    RETURNING *
-    `,
-    [
-      memberId,
-      c.id,
-      c.name,
-      c.element,
-      c.rarity,
-      c.base_hp,
-      c.base_atk,
-      c.base_def,
-      c.base_spd,
-      c.skill_name || sk.name,
-      c.skill_power || sk.power,
-      c.image || ""
-    ]
-  );
+  const petRow = await insertOwnedPetRow(client, memberId, c);
 
   await client.query(
     `
@@ -6455,7 +6487,7 @@ async function deliverPetFromPayment(client, memberId, payment, catalogIdHint) {
     [payment.id, memberId, payment.product_id]
   );
 
-  return { pet: ins.rows[0], alreadyDelivered: false, catalog: c };
+  return { pet: petRow, alreadyDelivered: false, catalog: c };
 }
 
 /* Buy pet with Test-Pi — complete + deliver pet */
@@ -6551,71 +6583,88 @@ app.post("/api/pets/payment/complete", requireAuth, async (req, res) => {
 
 /* Recover pets for completed Test-π payments that never delivered */
 app.post("/api/pets/payment/recover", requireAuth, async (req, res) => {
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
+    try {
+      await migratePetsSchema();
+    } catch (mErr) {
+      console.error("Recover migrate:", mErr.message || mErr);
+    }
 
-    const payments = await client.query(
+    // Find missing pet payments (no outer transaction — each pet is its own TX)
+    const payments = await pool.query(
       `
       SELECT mp.*
       FROM marketplace_payments mp
       WHERE mp.member_id = $1
-        AND mp.product_id LIKE 'pet-%'
+        AND (
+          mp.product_id LIKE 'pet-%'
+          OR mp.product_id ILIKE '%pet%'
+        )
         AND mp.status IN ('COMPLETED', 'APPROVED')
         AND NOT EXISTS (
           SELECT 1 FROM marketplace_purchases pr
           WHERE pr.payment_id = mp.id AND pr.member_id = $1
         )
       ORDER BY mp.id ASC
+      LIMIT 20
       `,
       [req.member.id]
     );
 
     const deliveredPets = [];
+    const errors = [];
 
     for (const payment of payments.rows) {
-      // If only APPROVED, try to complete on Pi first
-      if (payment.status !== "COMPLETED") {
-        try {
-          await piPaymentRequest(
-            `/v2/payments/${encodeURIComponent(payment.pi_payment_id)}/complete`,
-            "POST"
-          );
-        } catch (e) {
-          console.error("Recover Pi complete:", e.message || e);
-        }
-        await client.query(
-          `UPDATE marketplace_payments SET status = 'COMPLETED', completed_at = COALESCE(completed_at, NOW()) WHERE id = $1`,
-          [payment.id]
-        );
-        payment.status = "COMPLETED";
-      }
-
+      const client = await pool.connect();
       try {
+        await client.query("BEGIN");
+
+        if (payment.status !== "COMPLETED") {
+          try {
+            await piPaymentRequest(
+              `/v2/payments/${encodeURIComponent(payment.pi_payment_id)}/complete`,
+              "POST"
+            );
+          } catch (e) {
+            console.error("Recover Pi complete:", e.message || e);
+          }
+          await client.query(
+            `UPDATE marketplace_payments SET status = 'COMPLETED', completed_at = COALESCE(completed_at, NOW()) WHERE id = $1`,
+            [payment.id]
+          );
+          payment.status = "COMPLETED";
+        }
+
         const d = await deliverPetFromPayment(client, req.member.id, payment, null);
+        await client.query("COMMIT");
         if (d && d.pet) deliveredPets.push(serializePet(d.pet));
       } catch (e) {
+        try {
+          await client.query("ROLLBACK");
+        } catch (_) {}
         console.error("Recover deliver:", e.message || e);
+        errors.push(e.message || String(e));
+      } finally {
+        client.release();
       }
     }
-
-    await client.query("COMMIT");
 
     res.json({
       ok: true,
       recovered: deliveredPets.length,
       pets: deliveredPets,
+      scanned: payments.rows.length,
+      errors: errors.slice(0, 3),
       message:
         deliveredPets.length > 0
           ? `Recovered ${deliveredPets.length} pet(s) into My Pets`
-          : "No missing pets to recover"
+          : payments.rows.length === 0
+            ? "No unpaid pet deliveries found for your account"
+            : "Found payments but could not deliver: " + (errors[0] || "unknown")
     });
   } catch (error) {
-    try { await client.query("ROLLBACK"); } catch {}
     console.error("PET RECOVER ERROR:", error);
     res.status(500).json({ ok: false, error: error.message || "Recover failed." });
-  } finally {
-    client.release();
   }
 });
 
@@ -7426,7 +7475,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.5"
+          "Version: 2.3.6"
         );
 
         console.log(
