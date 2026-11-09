@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.6
+FULL SERVER VERSION 2.3.7
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.6:
+VERSION 2.3.7:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1191,7 +1191,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.6",
+      "2.3.7",
 
     features: [
       "Pi Login",
@@ -6378,8 +6378,35 @@ app.post("/api/pets/payment/approve", requireAuth, async (req, res) => {
 /** Deliver owned pet from a marketplace payment row (idempotent via purchases table) */
 async function insertOwnedPetRow(client, memberId, c) {
   const sk = skillForElement(c.element);
-  // Try full insert first; fall back to minimal columns if schema is old
+  const fullParams = [
+    memberId,
+    c.id,
+    c.name,
+    c.element,
+    c.rarity,
+    c.base_hp,
+    c.base_atk,
+    c.base_def,
+    c.base_spd,
+    c.skill_name || sk.name,
+    c.skill_power || sk.power,
+    c.image || ""
+  ];
+  const minParams = [
+    memberId,
+    c.id,
+    c.name,
+    c.element || "Earth",
+    c.rarity || "Common",
+    c.base_hp || 100,
+    c.base_atk || 20,
+    c.base_def || 15,
+    c.base_spd || 15
+  ];
+
+  // SAVEPOINT: failed INSERT must not abort the outer transaction
   try {
+    await client.query("SAVEPOINT insert_pet_full");
     const ins = await client.query(
       `
       INSERT INTO owned_pets
@@ -6387,24 +6414,39 @@ async function insertOwnedPetRow(client, memberId, c) {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
       RETURNING *
       `,
-      [
-        memberId,
-        c.id,
-        c.name,
-        c.element,
-        c.rarity,
-        c.base_hp,
-        c.base_atk,
-        c.base_def,
-        c.base_spd,
-        c.skill_name || sk.name,
-        c.skill_power || sk.power,
-        c.image || ""
-      ]
+      fullParams
     );
+    await client.query("RELEASE SAVEPOINT insert_pet_full");
     return ins.rows[0];
   } catch (e1) {
-    console.error("insertOwnedPet full failed, trying minimal:", e1.message);
+    console.error("insertOwnedPet full failed:", e1.message);
+    try {
+      await client.query("ROLLBACK TO SAVEPOINT insert_pet_full");
+    } catch (_) {}
+  }
+
+  try {
+    await client.query("SAVEPOINT insert_pet_mid");
+    const ins = await client.query(
+      `
+      INSERT INTO owned_pets
+        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      RETURNING *
+      `,
+      fullParams
+    );
+    await client.query("RELEASE SAVEPOINT insert_pet_mid");
+    return ins.rows[0];
+  } catch (e2) {
+    console.error("insertOwnedPet mid failed:", e2.message);
+    try {
+      await client.query("ROLLBACK TO SAVEPOINT insert_pet_mid");
+    } catch (_) {}
+  }
+
+  try {
+    await client.query("SAVEPOINT insert_pet_min");
     const ins = await client.query(
       `
       INSERT INTO owned_pets
@@ -6412,20 +6454,27 @@ async function insertOwnedPetRow(client, memberId, c) {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       RETURNING *
       `,
-      [
-        memberId,
-        c.id,
-        c.name,
-        c.element || "Earth",
-        c.rarity || "Common",
-        c.base_hp || 100,
-        c.base_atk || 20,
-        c.base_def || 15,
-        c.base_spd || 15
-      ]
+      minParams
     );
+    await client.query("RELEASE SAVEPOINT insert_pet_min");
     return ins.rows[0];
+  } catch (e3) {
+    console.error("insertOwnedPet min failed:", e3.message);
+    try {
+      await client.query("ROLLBACK TO SAVEPOINT insert_pet_min");
+    } catch (_) {}
   }
+
+  // Last resort: name only style (very old schema)
+  const ins = await client.query(
+    `
+    INSERT INTO owned_pets (member_id, name, element, rarity)
+    VALUES ($1, $2, $3, $4)
+    RETURNING *
+    `,
+    [memberId, c.name, c.element || "Earth", c.rarity || "Common"]
+  );
+  return ins.rows[0];
 }
 
 async function deliverPetFromPayment(client, memberId, payment, catalogIdHint) {
@@ -7475,7 +7524,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.6"
+          "Version: 2.3.7"
         );
 
         console.log(
