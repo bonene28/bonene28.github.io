@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.9
+FULL SERVER VERSION 2.4.0
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.9:
+VERSION 2.4.0:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -732,8 +732,11 @@ async function migratePetsSchema() {
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS last_care_at TIMESTAMPTZ DEFAULT NOW()`,
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS element TEXT DEFAULT 'Earth'`,
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS rarity TEXT DEFAULT 'Common'`,
-    // legacy column from older schema — keep compatible
+    // legacy columns from older schema — keep compatible
     `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS pet_id BIGINT`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS ability TEXT DEFAULT 'Basic Strike'`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS power INT DEFAULT 10`,
+    `ALTER TABLE owned_pets ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'Earth'`,
     `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_name TEXT DEFAULT 'Basic Strike'`,
     `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS skill_power INT DEFAULT 10`,
     `ALTER TABLE pet_catalog ADD COLUMN IF NOT EXISTS image TEXT DEFAULT ''`,
@@ -745,6 +748,8 @@ async function migratePetsSchema() {
     `UPDATE owned_pets SET skill_name = 'Basic Strike' WHERE skill_name IS NULL`,
     `UPDATE owned_pets SET skill_power = 10 WHERE skill_power IS NULL`,
     `UPDATE owned_pets SET skill_level = 1 WHERE skill_level IS NULL`,
+    `UPDATE owned_pets SET ability = COALESCE(ability, skill_name, 'Basic Strike') WHERE ability IS NULL`,
+    `UPDATE owned_pets SET power = COALESCE(power, skill_power, 10) WHERE power IS NULL`,
     // backfill pet_id from catalog_id when missing
     `UPDATE owned_pets SET pet_id = catalog_id WHERE pet_id IS NULL AND catalog_id IS NOT NULL`
   ];
@@ -757,11 +762,13 @@ async function migratePetsSchema() {
     }
   }
 
-  // Relax legacy NOT NULL on pet_id if present (old schema)
-  try {
-    await pool.query(`ALTER TABLE owned_pets ALTER COLUMN pet_id DROP NOT NULL`);
-  } catch (e) {
-    /* ignore if already nullable or column missing */
+  // Relax legacy NOT NULL columns if present (old schema)
+  for (const col of ["pet_id", "ability", "power", "type", "hp", "atk", "def", "spd"]) {
+    try {
+      await pool.query(`ALTER TABLE owned_pets ALTER COLUMN ${col} DROP NOT NULL`);
+    } catch (e) {
+      /* ignore if already nullable or column missing */
+    }
   }
   console.log("Pet schema migration checked.");
 }
@@ -1202,7 +1209,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.9",
+      "2.4.0",
 
     features: [
       "Pi Login",
@@ -6396,52 +6403,60 @@ async function insertOwnedPetRow(client, memberId, c) {
 
   const attempts = [
     {
+      label: "full+legacy",
+      sql: `INSERT INTO owned_pets
+        (member_id, pet_id, catalog_id, name, element, rarity, type, hp, atk, def, spd, skill_name, skill_power, ability, power, image, hunger, energy, happiness, level, xp, skill_level)
+        VALUES ($1,$2,$3,$4,$5,$6,$5,$7,$8,$9,$10,$11,$12,$11,$12,$13,100,100,100,1,0,1)
+        RETURNING *`,
+      params: [memberId, petId, catalogId, name, element, rarity, hp, atk, def, spd, skillName, skillPower, image]
+    },
+    {
       label: "full+pet_id",
       sql: `INSERT INTO owned_pets
-        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness, level, xp, skill_level)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,100,100,100,1,0,1)
+        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, ability, image, hunger, energy, happiness, level, xp, skill_level)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$11,$13,100,100,100,1,0,1)
         RETURNING *`,
       params: [memberId, petId, catalogId, name, element, rarity, hp, atk, def, spd, skillName, skillPower, image]
     },
     {
       label: "full",
       sql: `INSERT INTO owned_pets
-        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness, level, xp)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100,1,0)
+        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, ability, image, hunger, energy, happiness, level, xp)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$10,$12,100,100,100,1,0)
         RETURNING *`,
       params: [memberId, catalogId, name, element, rarity, hp, atk, def, spd, skillName, skillPower, image]
     },
     {
-      label: "stats+pet_id",
+      label: "stats+ability+pet_id",
       sql: `INSERT INTO owned_pets
-        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, hunger, energy, happiness)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,100,100,100)
+        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, ability, power, hunger, energy, happiness)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
         RETURNING *`,
-      params: [memberId, petId, catalogId, name, element, rarity, hp, atk, def, spd]
+      params: [memberId, petId, catalogId, name, element, rarity, hp, atk, def, spd, skillName, skillPower]
     },
     {
-      label: "stats",
+      label: "stats+ability",
       sql: `INSERT INTO owned_pets
-        (member_id, name, element, rarity, hp, atk, def, spd, hunger, energy, happiness)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,100,100,100)
+        (member_id, name, element, rarity, hp, atk, def, spd, ability, hunger, energy, happiness)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,100,100,100)
         RETURNING *`,
-      params: [memberId, name, element, rarity, hp, atk, def, spd]
+      params: [memberId, name, element, rarity, hp, atk, def, spd, skillName]
     },
     {
       label: "minimal+pet_id",
       sql: `INSERT INTO owned_pets
-        (member_id, pet_id, name, element, rarity, hp, atk, def, spd)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        (member_id, pet_id, name, element, rarity, hp, atk, def, spd, ability)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
         RETURNING *`,
-      params: [memberId, petId, name, element, rarity, hp, atk, def, spd]
+      params: [memberId, petId, name, element, rarity, hp, atk, def, spd, skillName]
     },
     {
       label: "minimal",
       sql: `INSERT INTO owned_pets
-        (member_id, name, element, rarity, hp, atk, def, spd)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        (member_id, name, element, rarity, hp, atk, def, spd, ability)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
         RETURNING *`,
-      params: [memberId, name, element, rarity, hp, atk, def, spd]
+      params: [memberId, name, element, rarity, hp, atk, def, spd, skillName]
     }
   ];
 
@@ -7513,7 +7528,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.9"
+          "Version: 2.4.0"
         );
 
         console.log(
