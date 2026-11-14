@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.3.8
+FULL SERVER VERSION 2.3.9
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.3.8:
+VERSION 2.3.9:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1202,7 +1202,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.3.8",
+      "2.3.9",
 
     features: [
       "Pi Login",
@@ -6278,16 +6278,7 @@ app.post("/api/pets/buy", requireAuth, async (req, res) => {
       [req.member.id, -price, ref]
     );
 
-    const sk = skillForElement(c.element);
-    const ins = await client.query(
-      `
-      INSERT INTO owned_pets
-        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100)
-      RETURNING *
-      `,
-      [req.member.id, c.id, c.name, c.element, c.rarity, c.base_hp, c.base_atk, c.base_def, c.base_spd, c.skill_name || sk.name, c.skill_power || sk.power, c.image || ""]
-    );
+    const petRow = await insertOwnedPetRow(client, req.member.id, c);
 
     await client.query("COMMIT");
     const newBal = await getBalance(req.member.id);
@@ -6295,7 +6286,7 @@ app.post("/api/pets/buy", requireAuth, async (req, res) => {
       ok: true,
       purchased: true,
       paid: price,
-      pet: serializePet(ins.rows[0]),
+      pet: serializePet(petRow),
       balance: newBal,
       message: `Purchased ${c.name} for ${price} AMT`
     });
@@ -6388,127 +6379,91 @@ app.post("/api/pets/payment/approve", requireAuth, async (req, res) => {
 
 /** Deliver owned pet from a marketplace payment row (idempotent via purchases table) */
 async function insertOwnedPetRow(client, memberId, c) {
-  const sk = skillForElement(c.element);
-  const petId = Number(c.id) || 0;
-  // Include pet_id for legacy NOT NULL schemas (pet_id ≈ catalog id)
-  const fullParams = [
-    memberId,
-    petId,
-    c.id,
-    c.name,
-    c.element,
-    c.rarity,
-    c.base_hp,
-    c.base_atk,
-    c.base_def,
-    c.base_spd,
-    c.skill_name || sk.name,
-    c.skill_power || sk.power,
-    c.image || ""
+  const sk = skillForElement(c && c.element);
+  const petId = Number(c && c.id) || 1;
+  const catalogId = Number(c && c.id) || null;
+  const name = (c && c.name) || "Mystery Pet";
+  const element = (c && c.element) || "Earth";
+  const rarity = (c && c.rarity) || "Common";
+  // NEVER null — catalog rows sometimes lack base_* columns
+  const hp = Number(c && c.base_hp) || 100;
+  const atk = Number(c && c.base_atk) || 20;
+  const def = Number(c && c.base_def) || 15;
+  const spd = Number(c && c.base_spd) || 15;
+  const skillName = (c && c.skill_name) || sk.name || "Basic Strike";
+  const skillPower = Number(c && c.skill_power) || sk.power || 10;
+  const image = (c && c.image) || "";
+
+  const attempts = [
+    {
+      label: "full+pet_id",
+      sql: `INSERT INTO owned_pets
+        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness, level, xp, skill_level)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,100,100,100,1,0,1)
+        RETURNING *`,
+      params: [memberId, petId, catalogId, name, element, rarity, hp, atk, def, spd, skillName, skillPower, image]
+    },
+    {
+      label: "full",
+      sql: `INSERT INTO owned_pets
+        (member_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness, level, xp)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,100,100,100,1,0)
+        RETURNING *`,
+      params: [memberId, catalogId, name, element, rarity, hp, atk, def, spd, skillName, skillPower, image]
+    },
+    {
+      label: "stats+pet_id",
+      sql: `INSERT INTO owned_pets
+        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, hunger, energy, happiness)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,100,100,100)
+        RETURNING *`,
+      params: [memberId, petId, catalogId, name, element, rarity, hp, atk, def, spd]
+    },
+    {
+      label: "stats",
+      sql: `INSERT INTO owned_pets
+        (member_id, name, element, rarity, hp, atk, def, spd, hunger, energy, happiness)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,100,100,100)
+        RETURNING *`,
+      params: [memberId, name, element, rarity, hp, atk, def, spd]
+    },
+    {
+      label: "minimal+pet_id",
+      sql: `INSERT INTO owned_pets
+        (member_id, pet_id, name, element, rarity, hp, atk, def, spd)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        RETURNING *`,
+      params: [memberId, petId, name, element, rarity, hp, atk, def, spd]
+    },
+    {
+      label: "minimal",
+      sql: `INSERT INTO owned_pets
+        (member_id, name, element, rarity, hp, atk, def, spd)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        RETURNING *`,
+      params: [memberId, name, element, rarity, hp, atk, def, spd]
+    }
   ];
-  const minParams = [
-    memberId,
-    petId,
-    c.id,
-    c.name,
-    c.element || "Earth",
-    c.rarity || "Common",
-    c.base_hp || 100,
-    c.base_atk || 20,
-    c.base_def || 15,
-    c.base_spd || 15
-  ];
 
-  // SAVEPOINT: failed INSERT must not abort the outer transaction
-  try {
-    await client.query("SAVEPOINT insert_pet_full");
-    const ins = await client.query(
-      `
-      INSERT INTO owned_pets
-        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image, hunger, energy, happiness)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,100,100,100)
-      RETURNING *
-      `,
-      fullParams
-    );
-    await client.query("RELEASE SAVEPOINT insert_pet_full");
-    return ins.rows[0];
-  } catch (e1) {
-    console.error("insertOwnedPet full failed:", e1.message);
+  let lastErr = null;
+  for (let i = 0; i < attempts.length; i++) {
+    const a = attempts[i];
+    const sp = "sp_ins_" + i;
     try {
-      await client.query("ROLLBACK TO SAVEPOINT insert_pet_full");
-    } catch (_) {}
+      await client.query("SAVEPOINT " + sp);
+      const ins = await client.query(a.sql, a.params);
+      await client.query("RELEASE SAVEPOINT " + sp);
+      return ins.rows[0];
+    } catch (e) {
+      lastErr = e;
+      console.error("insertOwnedPet", a.label, "failed:", e.message);
+      try {
+        await client.query("ROLLBACK TO SAVEPOINT " + sp);
+      } catch (_) {}
+    }
   }
 
-  try {
-    await client.query("SAVEPOINT insert_pet_mid");
-    const ins = await client.query(
-      `
-      INSERT INTO owned_pets
-        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd, skill_name, skill_power, image)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-      RETURNING *
-      `,
-      fullParams
-    );
-    await client.query("RELEASE SAVEPOINT insert_pet_mid");
-    return ins.rows[0];
-  } catch (e2) {
-    console.error("insertOwnedPet mid failed:", e2.message);
-    try {
-      await client.query("ROLLBACK TO SAVEPOINT insert_pet_mid");
-    } catch (_) {}
-  }
-
-  try {
-    await client.query("SAVEPOINT insert_pet_min");
-    const ins = await client.query(
-      `
-      INSERT INTO owned_pets
-        (member_id, pet_id, catalog_id, name, element, rarity, hp, atk, def, spd)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-      RETURNING *
-      `,
-      minParams
-    );
-    await client.query("RELEASE SAVEPOINT insert_pet_min");
-    return ins.rows[0];
-  } catch (e3) {
-    console.error("insertOwnedPet min failed:", e3.message);
-    try {
-      await client.query("ROLLBACK TO SAVEPOINT insert_pet_min");
-    } catch (_) {}
-  }
-
-  // Last resort with pet_id only
-  try {
-    await client.query("SAVEPOINT insert_pet_legacy");
-    const ins = await client.query(
-      `
-      INSERT INTO owned_pets (member_id, pet_id, name, element, rarity)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-      `,
-      [memberId, petId || 1, c.name, c.element || "Earth", c.rarity || "Common"]
-    );
-    await client.query("RELEASE SAVEPOINT insert_pet_legacy");
-    return ins.rows[0];
-  } catch (e4) {
-    console.error("insertOwnedPet legacy failed:", e4.message);
-    try {
-      await client.query("ROLLBACK TO SAVEPOINT insert_pet_legacy");
-    } catch (_) {}
-  }
-
-  const ins = await client.query(
-    `
-    INSERT INTO owned_pets (member_id, name, element, rarity)
-    VALUES ($1, $2, $3, $4)
-    RETURNING *
-    `,
-    [memberId, c.name, c.element || "Earth", c.rarity || "Common"]
-  );
-  return ins.rows[0];
+  throw lastErr || new Error("Could not insert owned pet");
 }
 
 async function deliverPetFromPayment(client, memberId, payment, catalogIdHint) {
@@ -7558,7 +7513,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.3.8"
+          "Version: 2.3.9"
         );
 
         console.log(
