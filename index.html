@@ -2474,7 +2474,12 @@ async function restoreSession(){
 const savedToken=
 localStorage.getItem("amt_pi_access_token");
 
-if(!savedToken)return;
+if(!savedToken){
+  // Stay on Login with Pi screen
+  try{ $("loginSection").classList.add("active"); }catch(_){}
+  try{ $("bottomNav").classList.add("hidden"); }catch(_){}
+  return;
+}
 
 accessToken=savedToken;
 
@@ -2490,7 +2495,12 @@ localStorage.getItem("amt_pi_uid")||
 
 try{
 
-await api("/api/balance");
+// Prefer auth verify so invalid tokens force re-login
+try {
+  await api("/api/auth/verify");
+} catch (e1) {
+  await api("/api/balance");
+}
 
 enterApp();
 
@@ -2500,10 +2510,12 @@ await tryApplyPendingReferral();
 }catch(error){
 
 console.log(
-"Saved AMT session expired."
+"Saved AMT session expired — show Login with Pi."
 );
 
 logoutPi(false);
+try{ $("loginSection").classList.add("active"); }catch(_){}
+try{ $("bottomNav").classList.add("hidden"); }catch(_){}
 }
 }
 
