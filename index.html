@@ -1762,6 +1762,23 @@ Pi UID: —
 </div>
 </div>
 
+<div class="card" id="premiumCard" style="border:1px solid rgba(255,212,82,.35)">
+<div class="card-title">⭐ AMT PREMIUM</div>
+<p class="muted" style="font-size:12px;margin-bottom:10px">
+3 Test-π / month · Service ID <b>348</b><br>
++10% mining · daily premium meal · profile badge
+</p>
+<div class="row" style="margin-bottom:8px">
+<span class="muted">Status</span>
+<b id="premiumStatus">Checking…</b>
+</div>
+<label>Your Pi Testnet wallet address (G…)</label>
+<input id="premiumWalletInput" class="input" type="text" placeholder="GXXXXXXXX…" autocomplete="off" style="margin-bottom:8px">
+<p class="muted" style="font-size:11px;margin-bottom:10px">Copy from Pi Wallet → Testnet. Needed so the subscription contract knows who is paying.</p>
+<button class="primary" id="premiumSubscribeBtn" onclick="subscribeAmtPremium()">⭐ SUBSCRIBE · 3 Test-π / mo</button>
+<button class="secondary" style="margin-top:8px" onclick="checkAmtPremiumStatus()">🔄 CHECK STATUS</button>
+</div>
+
 <div class="card">
 <div class="card-title">TESTNET A2U (APP → USER)</div>
 <p class="muted" style="font-size:12px;margin-bottom:10px">
@@ -2012,29 +2029,31 @@ SELECT 180D
 <div id="listingsGrid" class="market-grid"><div class="empty">Loading listings...</div></div>
 </div>
 
-<!-- Pet Detail Modal (Shop buy) -->
-<div id="petModal" class="hidden" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px;padding-bottom:90px">
-<div class="card" style="max-width:400px;width:100%;max-height:85vh;overflow:auto;margin:0;pointer-events:auto">
-<div class="row">
-<div class="card-title" style="margin:0" id="modalPetName">Pet</div>
-<button class="small-btn" style="width:auto;padding:6px 12px" onclick="closePetModal()">✕</button>
-</div>
-<div id="modalPetArt" style="text-align:center;margin:12px 0"></div>
-<div class="grid" style="margin-bottom:12px">
-<div class="stat"><div class="stat-label">Element</div><div class="stat-value" id="modalElement">—</div></div>
-<div class="stat"><div class="stat-label">Rarity</div><div class="stat-value" id="modalRarity">—</div></div>
-<div class="stat"><div class="stat-label">HP</div><div class="stat-value" id="modalHp">—</div></div>
-<div class="stat"><div class="stat-label">ATK</div><div class="stat-value" id="modalAtk">—</div></div>
-<div class="stat"><div class="stat-label">DEF</div><div class="stat-value" id="modalDef">—</div></div>
-<div class="stat"><div class="stat-label">SPD</div><div class="stat-value" id="modalSpd">—</div></div>
-</div>
-<div class="notice" style="margin-bottom:12px"><b>Ability:</b> <span id="modalAbility">—</span></div>
-<div style="font-size:18px;font-weight:900;color:#ffd54f;margin-bottom:8px" id="modalPrice">0 AMT</div>
-<div style="font-size:13px;font-weight:800;color:#8cffb3;margin-bottom:12px" id="modalPricePi">0.10 Test-π</div>
-<div style="position:sticky;bottom:0;padding-top:8px;padding-bottom:8px;background:linear-gradient(180deg,transparent,rgba(10,8,17,.98) 20%);z-index:5">
-<button type="button" class="primary" id="buyPetBtn" style="pointer-events:auto;position:relative;z-index:6" onclick="event.stopPropagation();buySelectedPet()">BUY WITH AMT</button>
-<button type="button" class="primary" id="buyPetPiBtn" style="margin-top:10px;pointer-events:auto;position:relative;z-index:6;background:linear-gradient(110deg,#2d8f5a,#1a5c3a);color:#fff" onclick="event.stopPropagation();buySelectedPetWithPi()">π BUY WITH TEST PI</button>
-</div>
+<!-- Pet Detail Modal (Shop buy) — fixed footer so Buy buttons always receive taps -->
+<div id="petModal" class="hidden" style="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.8);display:flex;align-items:flex-end;justify-content:center;padding:0;touch-action:manipulation">
+<div class="card" id="petModalCard" style="max-width:520px;width:100%;max-height:92vh;margin:0;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto">
+  <div style="flex:1;overflow:auto;padding:16px 16px 8px;-webkit-overflow-scrolling:touch">
+    <div class="row">
+      <div class="card-title" style="margin:0" id="modalPetName">Pet</div>
+      <button type="button" class="small-btn" style="width:auto;padding:6px 12px" id="petModalCloseBtn">✕</button>
+    </div>
+    <div id="modalPetArt" style="text-align:center;margin:12px 0"></div>
+    <div class="grid" style="margin-bottom:12px">
+      <div class="stat"><div class="stat-label">Element</div><div class="stat-value" id="modalElement">—</div></div>
+      <div class="stat"><div class="stat-label">Rarity</div><div class="stat-value" id="modalRarity">—</div></div>
+      <div class="stat"><div class="stat-label">HP</div><div class="stat-value" id="modalHp">—</div></div>
+      <div class="stat"><div class="stat-label">ATK</div><div class="stat-value" id="modalAtk">—</div></div>
+      <div class="stat"><div class="stat-label">DEF</div><div class="stat-value" id="modalDef">—</div></div>
+      <div class="stat"><div class="stat-label">SPD</div><div class="stat-value" id="modalSpd">—</div></div>
+    </div>
+    <div class="notice" style="margin-bottom:12px"><b>Ability:</b> <span id="modalAbility">—</span></div>
+    <div style="font-size:18px;font-weight:900;color:#ffd54f;margin-bottom:6px" id="modalPrice">0 AMT</div>
+    <div style="font-size:13px;font-weight:800;color:#8cffb3;margin-bottom:8px" id="modalPricePi">0.10 Test-π</div>
+  </div>
+  <div id="petModalFooter" style="flex-shrink:0;padding:12px 16px 22px;border-top:1px solid rgba(255,255,255,.08);background:#120b1a;display:flex;flex-direction:column;gap:10px">
+    <button type="button" class="primary" id="buyPetBtn" style="width:100%;min-height:48px;font-size:15px;touch-action:manipulation">BUY WITH AMT</button>
+    <button type="button" id="buyPetPiBtn" style="width:100%;min-height:52px;font-size:15px;font-weight:900;border:0;border-radius:16px;color:#fff;background:linear-gradient(110deg,#2d8f5a,#1a5c3a);box-shadow:0 6px 20px rgba(45,143,90,.35);touch-action:manipulation;cursor:pointer">π BUY WITH TEST PI</button>
+  </div>
 </div>
 </div>
 
@@ -4809,9 +4828,59 @@ function openPetModal(pet) {
   if ($("modalPricePi")) {
     $("modalPricePi").textContent = petPiPrice(pet).toFixed(2) + " Test-π";
   }
+  bindPetModalButtons();
   const modal = $("petModal");
   modal.classList.remove("hidden");
   modal.style.display = "flex";
+}
+
+function bindPetModalButtons() {
+  const amtBtn = $("buyPetBtn");
+  const piBtn = $("buyPetPiBtn");
+  const closeBtn = $("petModalCloseBtn");
+  const modal = $("petModal");
+
+  if (amtBtn) {
+    amtBtn.disabled = false;
+    amtBtn.onclick = function (e) {
+      if (e) e.preventDefault();
+      if (typeof window.buySelectedPet === "function") window.buySelectedPet();
+      else if (typeof buySelectedPet === "function") buySelectedPet();
+    };
+  }
+  if (piBtn) {
+    piBtn.disabled = false;
+    piBtn.style.pointerEvents = "auto";
+    piBtn.style.opacity = "1";
+    // click + touchend for stubborn mobile WebViews
+    piBtn.onclick = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (typeof window.buySelectedPetWithPi === "function") window.buySelectedPetWithPi();
+      else if (typeof buySelectedPetWithPi === "function") buySelectedPetWithPi();
+      else showToast("Buy function missing — hard refresh the page", true);
+    };
+    piBtn.ontouchend = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (typeof window.buySelectedPetWithPi === "function") window.buySelectedPetWithPi();
+    };
+  }
+  if (closeBtn) {
+    closeBtn.onclick = function () {
+      closePetModal();
+    };
+  }
+  if (modal) {
+    modal.onclick = function (e) {
+      // tap backdrop to close
+      if (e.target === modal) closePetModal();
+    };
+  }
 }
 
 /** Test-Pi price by rarity (Testnet) */
@@ -5957,6 +6026,171 @@ restoreSession();
 
 }
 );
+
+/* ============================================================
+   AMT PREMIUM SUBSCRIPTION (Service ID 348)
+============================================================ */
+const AMT_PREMIUM_SERVICE_ID = "348";
+const AMT_PREMIUM_PERIODS = "5"; // monthly plan — renewals that fit in ~180 day approval
+
+function getPremiumWalletAddress() {
+  const el = $("premiumWalletInput");
+  let addr = (el && el.value ? el.value : "").trim();
+  if (!addr) {
+    try { addr = localStorage.getItem("amt_premium_wallet") || ""; } catch (_) {}
+  }
+  if (el && addr && !el.value) el.value = addr;
+  return addr;
+}
+
+function savePremiumWalletAddress(addr) {
+  try { localStorage.setItem("amt_premium_wallet", addr || ""); } catch (_) {}
+}
+
+async function waitForSubTx(submitted) {
+  if (!submitted || !submitted.hash) return submitted;
+  if (!Pi.SmartContract || !Pi.SmartContract.pollTransaction) return submitted;
+  const result = await Pi.SmartContract.pollTransaction(submitted.hash);
+  if (result && result.status === "FAILED") {
+    throw new Error("Subscription transaction failed");
+  }
+  return result || submitted;
+}
+
+async function checkAmtPremiumStatus() {
+  const statusEl = $("premiumStatus");
+  const addr = getPremiumWalletAddress();
+  if (!addr || addr.length < 10 || addr[0] !== "G") {
+    if (statusEl) statusEl.textContent = "Enter wallet (G…)";
+    return false;
+  }
+  savePremiumWalletAddress(addr);
+  if (typeof Pi === "undefined" || !Pi.SmartContract || !Pi.SmartContract.Subscription) {
+    if (statusEl) statusEl.textContent = "Open in Pi Browser";
+    return false;
+  }
+  try {
+    if (statusEl) statusEl.textContent = "Checking…";
+    const active = await Pi.SmartContract.Subscription.isSubscriptionActive(addr, AMT_PREMIUM_SERVICE_ID);
+    if (statusEl) {
+      statusEl.textContent = active ? "✅ ACTIVE" : "Not subscribed";
+      statusEl.style.color = active ? "#5dff9a" : "";
+    }
+    const btn = $("premiumSubscribeBtn");
+    if (btn) {
+      btn.disabled = !!active;
+      btn.textContent = active ? "✅ PREMIUM ACTIVE" : "⭐ SUBSCRIBE · 3 Test-π / mo";
+    }
+    return !!active;
+  } catch (e) {
+    if (statusEl) statusEl.textContent = "Check failed";
+    console.error("premium status", e);
+    return false;
+  }
+}
+
+async function subscribeAmtPremium() {
+  try {
+    if (!accessToken) {
+      showToast("Login with Pi first.", true);
+      return;
+    }
+    if (typeof Pi === "undefined" || !Pi.SmartContract || !Pi.SmartContract.Subscription) {
+      showToast("Pi Subscription SDK not available. Open inside Pi Browser.", true);
+      return;
+    }
+    const addr = getPremiumWalletAddress();
+    if (!addr || addr.length < 10 || addr[0] !== "G") {
+      showToast("Paste your Pi Testnet wallet address (starts with G).", true);
+      return;
+    }
+    savePremiumWalletAddress(addr);
+
+    const btn = $("premiumSubscribeBtn");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "OPENING WALLET…";
+    }
+    showToast("Confirm subscription in Pi Wallet…");
+
+    // Dry-run first
+    try {
+      await Pi.SmartContract.Subscription.subscribe(
+        addr,
+        AMT_PREMIUM_SERVICE_ID,
+        true,
+        AMT_PREMIUM_PERIODS,
+        { mode: "simulate" }
+      );
+    } catch (simErr) {
+      const msg = (simErr && simErr.message) || String(simErr);
+      if (/AlreadySubscribed/i.test(msg)) {
+        showToast("Already subscribed to AMT Premium.");
+        await checkAmtPremiumStatus();
+        return;
+      }
+      // Continue to submit — some environments skip simulate
+      console.warn("subscribe simulate:", msg);
+    }
+
+    const submitted = await Pi.SmartContract.Subscription.subscribe(
+      addr,
+      AMT_PREMIUM_SERVICE_ID,
+      true,
+      AMT_PREMIUM_PERIODS
+    );
+    try {
+      await waitForSubTx(submitted);
+    } catch (pollErr) {
+      console.warn("poll", pollErr);
+    }
+
+    // Notify backend (optional — store hash + uid for entitlement)
+    try {
+      await api("/api/premium/subscribe-hook", {
+        method: "POST",
+        body: JSON.stringify({
+          serviceId: AMT_PREMIUM_SERVICE_ID,
+          wallet: addr,
+          txHash: (submitted && submitted.hash) || "",
+          periods: AMT_PREMIUM_PERIODS
+        })
+      });
+    } catch (_) {
+      /* backend hook optional for now */
+    }
+
+    showToast("AMT Premium subscription submitted!");
+    setTimeout(function () { checkAmtPremiumStatus(); }, 1500);
+  } catch (e) {
+    const msg = (e && e.message) || String(e) || "Subscribe failed";
+    showToast(msg, true);
+    console.error("subscribeAmtPremium", e);
+  } finally {
+    const btn2 = $("premiumSubscribeBtn");
+    if (btn2) {
+      btn2.disabled = false;
+      btn2.textContent = "⭐ SUBSCRIBE · 3 Test-π / mo";
+    }
+  }
+}
+
+window.subscribeAmtPremium = subscribeAmtPremium;
+window.checkAmtPremiumStatus = checkAmtPremiumStatus;
+
+// Auto-check when profile opens
+const _origLoadProfile = typeof loadProfile === "function" ? loadProfile : null;
+if (_origLoadProfile) {
+  window.loadProfile = async function () {
+    await _origLoadProfile.apply(this, arguments);
+    try {
+      const saved = localStorage.getItem("amt_premium_wallet");
+      const inp = $("premiumWalletInput");
+      if (inp && saved && !inp.value) inp.value = saved;
+    } catch (_) {}
+    checkAmtPremiumStatus().catch(function () {});
+  };
+}
 
 /* ============================================================
    CLEANUP
