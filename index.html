@@ -1559,6 +1559,23 @@ Unlink Pi Wallet
 
 <button class="primary" onclick="sendAMT()">SEND AMT</button>
 </div>
+
+<div class="card">
+<div class="card-title">📜 ACTIVITY HISTORY</div>
+<p class="muted" style="font-size:12px;margin-bottom:10px">
+Pet buys · Sends · Spin rewards · Airdrops · more
+</p>
+<div class="action-grid" style="margin-bottom:10px">
+<button class="secondary" style="padding:8px" onclick="loadAmtHistory('')">All</button>
+<button class="secondary" style="padding:8px" onclick="loadAmtHistory('PET_PURCHASE')">Pets</button>
+<button class="secondary" style="padding:8px" onclick="loadAmtHistory('SEND')">Sends</button>
+<button class="secondary" style="padding:8px" onclick="loadAmtHistory('SPIN_REWARD')">Spin</button>
+</div>
+<button class="secondary" style="margin-bottom:10px" onclick="loadAmtHistory(window._histFilter||'')">🔄 Refresh history</button>
+<div id="amtHistoryList">
+<div class="empty">Open Wallet to load history.</div>
+</div>
+</div>
 </section>
 
 <section id="airdropSection" class="section">
@@ -2349,7 +2366,7 @@ top:0,
 behavior:"smooth"
 });
 
-if(id==="walletSection")refreshWallet();
+if(id==="walletSection"){refreshWallet();loadAmtHistory(window._histFilter||""); }
 if(id==="airdropSection")loadAirdrop();
 if(id==="referralSection")loadReferral();
 if(id==="circleSection")loadSecurityCircle();
@@ -2626,6 +2643,44 @@ loadStaking()
 /* ============================================================
    WALLET
 ============================================================ */
+
+async function loadAmtHistory(typeFilter){
+  window._histFilter = typeFilter || "";
+  const box = $("amtHistoryList");
+  if(!box) return;
+  if(!accessToken){
+    box.innerHTML = '<div class="empty">Login with Pi to see history.</div>';
+    return;
+  }
+  try{
+    box.innerHTML = '<div class="empty">Loading…</div>';
+    const q = typeFilter ? ("?type="+encodeURIComponent(typeFilter)+"&limit=50") : "?limit=50";
+    const data = await api("/api/history"+q);
+    const list = data.history || data.items || [];
+    if(!list.length){
+      box.innerHTML = '<div class="empty">No activity yet.</div>';
+      return;
+    }
+    box.innerHTML = list.map(function(item){
+      const amt = Number(item.amount||0);
+      const sign = amt >= 0 ? "+" : "";
+      const color = amt >= 0 ? "#5dff9a" : "#ff6b7a";
+      const when = item.createdAt ? new Date(item.createdAt).toLocaleString() : "";
+      const label = item.label || item.type || "TX";
+      const ref = item.reference ? String(item.reference).slice(0,28) : "";
+      return '<div class="row" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);align-items:flex-start">'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-weight:800;font-size:13px">'+esc(label)+'</div>'
+        + '<div class="muted" style="font-size:10px;margin-top:3px">'+esc(when)+(ref?" · "+esc(ref):"")+'</div>'
+        + '</div>'
+        + '<div style="font-weight:900;color:'+color+';white-space:nowrap">'+sign+fmt(amt)+' AMT</div>'
+        + '</div>';
+    }).join("");
+  }catch(e){
+    box.innerHTML = '<div class="empty">'+(e.message||"Failed to load history")+'</div>';
+  }
+}
+window.loadAmtHistory = loadAmtHistory;
 
 async function refreshWallet(){
 
