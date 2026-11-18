@@ -2369,34 +2369,32 @@ try{
 
 if(!window.Pi){
 throw new Error(
-"Pi SDK is not available. Please open this app inside Pi Browser."
+"Pi SDK is not available. Open AMT inside the official Pi Browser (not Chrome)."
 );
 }
 
 showToast("Connecting to Pi...");
 
+// Prefer sandbox for Testnet app; fall back if already initialized
 try{
-
-Pi.init({
-version:"2.0",
-sandbox:true
-});
-
-}catch(e){
-
-console.warn(
-"Pi sandbox initialization failed:",
-e
-);
-
-Pi.init({
-version:"2.0"
-});
-
+  await Promise.resolve(Pi.init({ version: "2.0", sandbox: true }));
+}catch(e1){
+  try{
+    await Promise.resolve(Pi.init({ version: "2.0" }));
+  }catch(e2){
+    console.warn("Pi.init:", e1, e2);
+  }
 }
 
+// wallet_address scope helps link G... wallet when Pi provides it
+const scopes = ["username", "payments"];
+try {
+  // Some Pi Browser builds support wallet_address
+  scopes.push("wallet_address");
+} catch (_) {}
+
 const authResult=await Pi.authenticate(
-["username","payments","wallet_address"],
+scopes,
 payment=>console.log(
 "Incomplete payment:",
 payment
@@ -6065,8 +6063,12 @@ async function checkAmtPremiumStatus() {
     return false;
   }
   savePremiumWalletAddress(addr);
-  if (typeof Pi === "undefined" || !Pi.SmartContract || !Pi.SmartContract.Subscription) {
+  if (typeof Pi === "undefined") {
     if (statusEl) statusEl.textContent = "Open in Pi Browser";
+    return false;
+  }
+  if (!Pi.SmartContract || !Pi.SmartContract.Subscription) {
+    if (statusEl) statusEl.textContent = "SDK: need latest Pi Browser";
     return false;
   }
   try {
