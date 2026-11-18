@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.1
+FULL SERVER VERSION 2.4.2
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.4.1:
+VERSION 2.4.2:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -804,6 +804,10 @@ async function initializeDatabase() {
     ALTER TABLE members
       ADD COLUMN IF NOT EXISTS
       profile_image TEXT;
+
+    ALTER TABLE members
+      ADD COLUMN IF NOT EXISTS
+      pi_wallet_address TEXT;
   `);
 
   await pool.query(`
@@ -1209,7 +1213,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.1",
+      "2.4.2",
 
     features: [
       "Pi Login",
@@ -7495,6 +7499,145 @@ app.use(
 );
 
 /* =========================================================
+PI WALLET LINK (G... address for subscriptions / on-chain)
+========================================================= */
+
+app.post("/api/wallet/link-pi", requireAuth, async (req, res) => {
+  try {
+    const address = String(
+      req.body?.piWalletAddress || req.body?.wallet || req.body?.address || ""
+    )
+      .trim()
+      .toUpperCase();
+
+    if (!/^G[A-Z2-7]{55}$/.test(address)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid Pi Testnet wallet. Must be G… address (56 chars)."
+      });
+    }
+
+    // Optional: prevent two members sharing same Pi wallet
+    const taken = await pool.query(
+      `SELECT id FROM members WHERE pi_wallet_address = $1 AND id <> $2 LIMIT 1`,
+      [address, req.member.id]
+    );
+    if (taken.rows.length) {
+      return res.status(409).json({
+        ok: false,
+        error: "This Pi wallet is already linked to another AMT account."
+      });
+    }
+
+    await pool.query(
+      `UPDATE members SET pi_wallet_address = $1, updated_at = NOW() WHERE id = $2`,
+      [address, req.member.id]
+    );
+
+    res.json({
+      ok: true,
+      piWalletAddress: address,
+      message: "Pi wallet linked."
+    });
+  } catch (e) {
+    console.error("link-pi:", e);
+    res.status(500).json({ ok: false, error: e.message || "Link failed." });
+  }
+});
+
+app.delete("/api/wallet/link-pi", requireAuth, async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE members SET pi_wallet_address = NULL, updated_at = NOW() WHERE id = $1`,
+      [req.member.id]
+    );
+    res.json({ ok: true, message: "Pi wallet unlinked." });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message || "Unlink failed." });
+  }
+});
+
+app.get("/api/wallet/link-pi", requireAuth, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT pi_wallet_address FROM members WHERE id = $1 LIMIT 1`,
+      [req.member.id]
+    );
+    res.json({
+      ok: true,
+      piWalletAddress: r.rows[0]?.pi_wallet_address || null
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message || "Failed." });
+  }
+});
+
+/* =========================================================
+DEVELOPER ADMIN — credit AMT (set ADMIN_SECRET in Render env)
+========================================================= */
+
+app.post("/api/admin/credit", requireAuth, async (req, res) => {
+  try {
+    const secret = process.env.ADMIN_SECRET || "";
+    const provided = String(req.headers["x-admin-secret"] || req.body?.adminSecret || "");
+    if (!secret || provided !== secret) {
+      return res.status(403).json({ ok: false, error: "Forbidden." });
+    }
+
+    const amount = Number(req.body?.amount);
+    if (!Number.isFinite(amount) || amount === 0) {
+      return res.status(400).json({ ok: false, error: "Invalid amount." });
+    }
+
+    let memberId = req.member.id;
+    const username = String(req.body?.username || "").trim();
+    const piUid = String(req.body?.piUid || "").trim();
+    if (username) {
+      const m = await pool.query(
+        `SELECT id FROM members WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+        [username]
+      );
+      if (!m.rows.length) {
+        return res.status(404).json({ ok: false, error: "Username not found." });
+      }
+      memberId = m.rows[0].id;
+    } else if (piUid) {
+      const m = await pool.query(
+        `SELECT id FROM members WHERE pi_uid = $1 LIMIT 1`,
+        [piUid]
+      );
+      if (!m.rows.length) {
+        return res.status(404).json({ ok: false, error: "piUid not found." });
+      }
+      memberId = m.rows[0].id;
+    }
+
+    const ref =
+      "ADMIN-CREDIT-" +
+      Date.now() +
+      "-" +
+      Math.random().toString(36).slice(2, 8);
+
+    await pool.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'ADMIN_CREDIT',$3)`,
+      [memberId, amount, ref]
+    );
+
+    const bal = await getBalance(memberId);
+    res.json({
+      ok: true,
+      memberId,
+      credited: amount,
+      balance: bal,
+      reference: ref
+    });
+  } catch (e) {
+    console.error("admin credit:", e);
+    res.status(500).json({ ok: false, error: e.message || "Credit failed." });
+  }
+});
+
+/* =========================================================
 AMT PREMIUM SUBSCRIPTION HOOK (Service ID 348)
 ========================================================= */
 
@@ -7587,7 +7730,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.1"
+          "Version: 2.4.2"
         );
 
         console.log(
