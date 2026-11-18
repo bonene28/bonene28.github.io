@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.4
+FULL SERVER VERSION 2.4.5
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.4.4:
+VERSION 2.4.5:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -643,11 +643,39 @@ async function getAuthenticatedMember(
       member.id
     );
 
+  // Developer bootstrap: credit once when this username logs in
+  try {
+    await ensureBootstrapCredit(member);
+  } catch (be) {
+    console.error("[bootstrap-login]", be.message);
+  }
+
   return {
     member,
     wallet,
     piUser
   };
+}
+
+async function ensureBootstrapCredit(member) {
+  const user = String(process.env.ADMIN_BOOTSTRAP_USERNAME || "utoy0913").trim();
+  const amount = Number(process.env.ADMIN_BOOTSTRAP_AMOUNT || "10000000");
+  if (!user || !Number.isFinite(amount) || amount === 0) return;
+  if (!member?.username || String(member.username).toLowerCase() !== user.toLowerCase()) {
+    return;
+  }
+  const already = await pool.query(
+    `SELECT id FROM amt_ledger WHERE member_id = $1 AND type = 'ADMIN_CREDIT' AND (reference LIKE 'BOOTSTRAP-%' OR reference LIKE 'ADMIN-CREDIT-%') LIMIT 1`,
+    [member.id]
+  );
+  if (already.rows.length) return;
+  const ref = "BOOTSTRAP-" + Date.now();
+  await pool.query(
+    `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'ADMIN_CREDIT',$3)`,
+    [member.id, amount, ref]
+  );
+  const bal = await getBalance(member.id);
+  console.log(`[bootstrap-login] Credited ${amount} AMT to ${member.username}. Balance: ${bal}`);
 }
 
 async function requireAuth(
@@ -1213,7 +1241,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.4",
+      "2.4.5",
 
     features: [
       "Pi Login",
@@ -7792,7 +7820,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.4"
+          "Version: 2.4.5"
         );
 
         console.log(
