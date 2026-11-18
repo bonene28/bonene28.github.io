@@ -6095,8 +6095,12 @@ async function subscribeAmtPremium() {
       showToast("Login with Pi first.", true);
       return;
     }
-    if (typeof Pi === "undefined" || !Pi.SmartContract || !Pi.SmartContract.Subscription) {
-      showToast("Pi Subscription SDK not available. Open inside Pi Browser.", true);
+    if (typeof Pi === "undefined") {
+      showToast("Pi SDK missing. Open this app inside the official Pi Browser (not Chrome).", true);
+      return;
+    }
+    if (!Pi.SmartContract || !Pi.SmartContract.Subscription) {
+      showToast("Subscription SDK not ready. Update Pi Browser, stay on Testnet, then retry.", true);
       return;
     }
     const addr = getPremiumWalletAddress();
