@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.5
+FULL SERVER VERSION 2.4.6
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.4.5:
+VERSION 2.4.6:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1241,7 +1241,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.5",
+      "2.4.6",
 
     features: [
       "Pi Login",
@@ -1871,6 +1871,69 @@ app.get(
     });
   }
 );
+
+/* =========================================================
+TRANSACTION HISTORY (ledger)
+========================================================= */
+
+app.get("/api/history", requireAuth, async (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const typeFilter = String(req.query.type || "").trim().toUpperCase();
+
+    let q = `
+      SELECT id, amount, type, reference, created_at
+      FROM amt_ledger
+      WHERE member_id = $1
+    `;
+    const params = [req.member.id];
+    if (typeFilter) {
+      q += ` AND UPPER(type) = $2`;
+      params.push(typeFilter);
+    }
+    q += ` ORDER BY created_at DESC, id DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+
+    const r = await pool.query(q, params);
+
+    const items = r.rows.map((row) => {
+      const amt = Number(row.amount);
+      const t = String(row.type || "").toUpperCase();
+      let label = t;
+      if (t === "SPIN_REWARD") label = "🎰 Spin reward";
+      else if (t === "PET_PURCHASE") label = "🐾 Pet purchase";
+      else if (t === "PET_FOOD") label = "🍖 Pet food";
+      else if (t === "PET_CARE") label = "💚 Pet care";
+      else if (t === "PET_TRAIN") label = "🏋️ Pet train";
+      else if (t === "PET_BREED") label = "🥚 Pet breed";
+      else if (t === "PET_BATTLE" || t === "OUTPOST_WAR") label = "⚔️ Battle / Outpost";
+      else if (t === "PET_PACK") label = "📦 Pet pack";
+      else if (t === "PET_MILESTONE") label = "🏅 Pet milestone";
+      else if (t === "SEND") label = "📤 Send AMT";
+      else if (t === "RECEIVE") label = "📥 Receive AMT";
+      else if (t === "AIRDROP_REWARD") label = "🎁 Airdrop";
+      else if (t === "ADMIN_CREDIT") label = "🛠️ Admin credit";
+      else if (t.includes("MINE") || t.includes("MINING")) label = "⛏️ Mining";
+      else if (t.includes("STAKE")) label = "📌 Staking";
+      else if (t.includes("REFERRAL")) label = "👥 Referral";
+
+      return {
+        id: row.id,
+        amount: amt,
+        type: row.type,
+        label,
+        reference: row.reference,
+        createdAt: row.created_at,
+        direction: amt >= 0 ? "in" : "out"
+      };
+    });
+
+    res.json({ ok: true, count: items.length, history: items });
+  } catch (e) {
+    console.error("HISTORY ERROR:", e);
+    res.status(500).json({ ok: false, error: e.message || "History failed." });
+  }
+});
 
 /* =========================================================
 WALLET SEND
@@ -7820,7 +7883,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.5"
+          "Version: 2.4.6"
         );
 
         console.log(
