@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.2
+FULL SERVER VERSION 2.4.3
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.4.2:
+VERSION 2.4.3:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1213,7 +1213,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.2",
+      "2.4.3",
 
     features: [
       "Pi Login",
@@ -7576,12 +7576,13 @@ app.get("/api/wallet/link-pi", requireAuth, async (req, res) => {
 DEVELOPER ADMIN — credit AMT (set ADMIN_SECRET in Render env)
 ========================================================= */
 
-app.post("/api/admin/credit", requireAuth, async (req, res) => {
+// Developer credit — ADMIN_SECRET only (no Pi token required)
+app.post("/api/admin/credit", async (req, res) => {
   try {
     const secret = process.env.ADMIN_SECRET || "";
     const provided = String(req.headers["x-admin-secret"] || req.body?.adminSecret || "");
     if (!secret || provided !== secret) {
-      return res.status(403).json({ ok: false, error: "Forbidden." });
+      return res.status(403).json({ ok: false, error: "Forbidden. Set ADMIN_SECRET and send x-admin-secret header." });
     }
 
     const amount = Number(req.body?.amount);
@@ -7589,25 +7590,35 @@ app.post("/api/admin/credit", requireAuth, async (req, res) => {
       return res.status(400).json({ ok: false, error: "Invalid amount." });
     }
 
-    let memberId = req.member.id;
     const username = String(req.body?.username || "").trim();
     const piUid = String(req.body?.piUid || "").trim();
+    if (!username && !piUid) {
+      return res.status(400).json({
+        ok: false,
+        error: "Provide username or piUid (e.g. { username: \"utoy0913\", amount: 10000000 })."
+      });
+    }
+
+    let memberId = null;
     if (username) {
       const m = await pool.query(
         `SELECT id FROM members WHERE LOWER(username) = LOWER($1) LIMIT 1`,
         [username]
       );
       if (!m.rows.length) {
-        return res.status(404).json({ ok: false, error: "Username not found." });
+        return res.status(404).json({
+          ok: false,
+          error: "Username not found. Login once as that user first, then credit."
+        });
       }
       memberId = m.rows[0].id;
-    } else if (piUid) {
+    } else {
       const m = await pool.query(
         `SELECT id FROM members WHERE pi_uid = $1 LIMIT 1`,
         [piUid]
       );
       if (!m.rows.length) {
-        return res.status(404).json({ ok: false, error: "piUid not found." });
+        return res.status(404).json({ ok: false, error: "piUid not found. Login once first." });
       }
       memberId = m.rows[0].id;
     }
@@ -7627,6 +7638,7 @@ app.post("/api/admin/credit", requireAuth, async (req, res) => {
     res.json({
       ok: true,
       memberId,
+      username: username || null,
       credited: amount,
       balance: bal,
       reference: ref
@@ -7636,6 +7648,42 @@ app.post("/api/admin/credit", requireAuth, async (req, res) => {
     res.status(500).json({ ok: false, error: e.message || "Credit failed." });
   }
 });
+
+/** One-time bootstrap credit for developer (set in Render env) */
+async function bootstrapDeveloperCredit() {
+  try {
+    const user = String(process.env.ADMIN_BOOTSTRAP_USERNAME || "").trim();
+    const amount = Number(process.env.ADMIN_BOOTSTRAP_AMOUNT || "0");
+    if (!user || !Number.isFinite(amount) || amount === 0) return;
+
+    const m = await pool.query(
+      `SELECT id FROM members WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+      [user]
+    );
+    if (!m.rows.length) {
+      console.log(`[bootstrap] username ${user} not found yet — login once, then restart`);
+      return;
+    }
+    const memberId = m.rows[0].id;
+    const already = await pool.query(
+      `SELECT id FROM amt_ledger WHERE member_id = $1 AND type = 'ADMIN_CREDIT' AND reference LIKE 'BOOTSTRAP-%' LIMIT 1`,
+      [memberId]
+    );
+    if (already.rows.length) {
+      console.log(`[bootstrap] ${user} already has BOOTSTRAP credit — skip`);
+      return;
+    }
+    const ref = "BOOTSTRAP-" + Date.now();
+    await pool.query(
+      `INSERT INTO amt_ledger (member_id, amount, type, reference) VALUES ($1,$2,'ADMIN_CREDIT',$3)`,
+      [memberId, amount, ref]
+    );
+    const bal = await getBalance(memberId);
+    console.log(`[bootstrap] Credited ${amount} AMT to ${user}. Balance: ${bal}`);
+  } catch (e) {
+    console.error("[bootstrap] failed:", e.message);
+  }
+}
 
 /* =========================================================
 AMT PREMIUM SUBSCRIPTION HOOK (Service ID 348)
@@ -7704,6 +7752,7 @@ async function startServer() {
   try {
     await initializeDatabase();
     await seedPetsIfNeeded();
+    await bootstrapDeveloperCredit();
 
     app.listen(
       PORT,
@@ -7730,7 +7779,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.2"
+          "Version: 2.4.3"
         );
 
         console.log(
