@@ -1801,6 +1801,7 @@ Pi UID: —
 <p class="muted" style="font-size:11px;margin-bottom:8px">Service 348 · ADMIN_SECRET required · app records</p>
 <input id="adminSecretInput" class="input" type="password" placeholder="ADMIN_SECRET" style="margin-bottom:8px" autocomplete="off">
 <button class="secondary" onclick="loadAdminSubscribers()">🔄 LOAD SUBSCRIBERS</button>
+<button class="secondary" style="margin-top:8px" onclick="activateSubmittedSubscribers()">✅ MARK SUBMITTED → ACTIVE</button>
 <div id="adminSubsSummary" class="notice" style="margin-top:10px;font-size:12px">Not loaded.</div>
 <div id="adminSubsList" style="margin-top:10px;max-height:280px;overflow:auto"></div>
 </div>
@@ -6270,22 +6271,24 @@ async function subscribeAmtPremium() {
       console.warn("poll", pollErr);
     }
 
-    // Notify backend (optional — store hash + uid for entitlement)
+    // Notify backend — mark active when we have a tx hash
     try {
+      const hash = (submitted && submitted.hash) || "";
       await api("/api/premium/subscribe-hook", {
         method: "POST",
         body: JSON.stringify({
           serviceId: AMT_PREMIUM_SERVICE_ID,
           wallet: addr,
-          txHash: (submitted && submitted.hash) || "",
-          periods: AMT_PREMIUM_PERIODS
+          txHash: hash,
+          periods: AMT_PREMIUM_PERIODS,
+          status: hash ? "active" : "submitted"
         })
       });
     } catch (_) {
       /* backend hook optional for now */
     }
 
-    showToast("AMT Premium subscription submitted!");
+    showToast("AMT Premium active!");
     setTimeout(function () { checkAmtPremiumStatus(); }, 1500);
   } catch (e) {
     const msg = (e && e.message) || String(e) || "Subscribe failed";
@@ -6369,6 +6372,37 @@ async function loadAdminSubscribers() {
   }
 }
 window.loadAdminSubscribers = loadAdminSubscribers;
+
+async function activateSubmittedSubscribers() {
+  const secretEl = $("adminSecretInput");
+  const secret = (secretEl && secretEl.value ? secretEl.value : "").trim();
+  if (!secret) {
+    showToast("Ilagay ang ADMIN_SECRET.", true);
+    return;
+  }
+  try {
+    showToast("Activating submitted…");
+    try { await fetch(API_BASE + "/api/health", { method: "GET" }); } catch (_) {}
+    const res = await fetch(API_BASE + "/api/admin/subscribers/activate-submitted", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "x-admin-secret": secret
+      },
+      body: JSON.stringify({ serviceId: "348" })
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || ("HTTP " + res.status));
+    }
+    showToast("Activated: " + (data.activated || 0));
+    await loadAdminSubscribers();
+  } catch (e) {
+    showToast(e.message || "Activate failed", true);
+  }
+}
+window.activateSubmittedSubscribers = activateSubmittedSubscribers;
 
 // Auto-check when profile opens
 const _origLoadProfile = typeof loadProfile === "function" ? loadProfile : null;
