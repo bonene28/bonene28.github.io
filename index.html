@@ -6315,8 +6315,15 @@ async function loadAdminSubscribers() {
   try {
     if (sum) sum.textContent = "Loading…";
     if (list) list.innerHTML = "";
+    // Wake free-tier Render if asleep
+    try { await fetch(API_BASE + "/api/health", { method: "GET" }); } catch (_) {}
     const res = await fetch(API_BASE + "/api/admin/subscribers?serviceId=348&limit=100", {
-      headers: { Accept: "application/json", "x-admin-secret": secret }
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "x-admin-secret": secret
+      }
     });
     const data = await res.json().catch(function () { return {}; });
     if (!res.ok || !data.ok) {
@@ -6353,8 +6360,12 @@ async function loadAdminSubscribers() {
     }
     showToast("Subscribers loaded: " + rows.length);
   } catch (e) {
-    if (sum) sum.textContent = e.message || "Failed";
-    showToast(e.message || "Failed to load subscribers", true);
+    var msg = (e && e.message) || "Failed";
+    if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) {
+      msg = "Cannot reach server. Deploy v2.4.8, wait 1 min if Render is waking, then retry.";
+    }
+    if (sum) sum.textContent = msg;
+    showToast(msg, true);
   }
 }
 window.loadAdminSubscribers = loadAdminSubscribers;
