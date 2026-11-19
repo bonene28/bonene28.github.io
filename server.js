@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.6
+FULL SERVER VERSION 2.4.7
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.4.6:
+VERSION 2.4.7:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1241,7 +1241,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.6",
+      "2.4.7",
 
     features: [
       "Pi Login",
@@ -7848,6 +7848,112 @@ app.get("/api/premium/status", requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * Admin subscriber monitor (Phase A)
+ * Header: x-admin-secret: <ADMIN_SECRET>
+ * Query: ?serviceId=348 (optional)
+ */
+app.get("/api/admin/subscribers", async (req, res) => {
+  try {
+    const secret = process.env.ADMIN_SECRET || "";
+    const provided = String(req.headers["x-admin-secret"] || req.query.adminSecret || "");
+    if (!secret || provided !== secret) {
+      return res.status(403).json({ ok: false, error: "Forbidden." });
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS premium_subscriptions (
+        id BIGSERIAL PRIMARY KEY,
+        member_id BIGINT REFERENCES members(id) ON DELETE CASCADE,
+        service_id TEXT NOT NULL,
+        wallet TEXT,
+        tx_hash TEXT,
+        periods TEXT,
+        status TEXT DEFAULT 'submitted',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    const serviceId = String(req.query.serviceId || "348").trim();
+    const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 100));
+
+    const stats = await pool.query(
+      `
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE status = 'submitted')::int AS submitted,
+        COUNT(*) FILTER (WHERE status = 'active')::int AS active,
+        COUNT(*) FILTER (WHERE status = 'expired')::int AS expired,
+        COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled
+      FROM premium_subscriptions
+      WHERE service_id = $1
+      `,
+      [serviceId]
+    );
+
+    const list = await pool.query(
+      `
+      SELECT
+        p.id,
+        p.member_id,
+        p.service_id,
+        p.wallet,
+        p.tx_hash,
+        p.periods,
+        p.status,
+        p.created_at,
+        m.username,
+        m.pi_uid
+      FROM premium_subscriptions p
+      LEFT JOIN members m ON m.id = p.member_id
+      WHERE p.service_id = $1
+      ORDER BY p.created_at DESC, p.id DESC
+      LIMIT $2
+      `,
+      [serviceId, limit]
+    );
+
+    // Unique wallets / members (approx unique subscribers)
+    const unique = await pool.query(
+      `
+      SELECT
+        COUNT(DISTINCT member_id)::int AS unique_members,
+        COUNT(DISTINCT NULLIF(wallet, ''))::int AS unique_wallets
+      FROM premium_subscriptions
+      WHERE service_id = $1
+      `,
+      [serviceId]
+    );
+
+    res.json({
+      ok: true,
+      serviceId,
+      summary: {
+        totalRecords: stats.rows[0]?.total || 0,
+        submitted: stats.rows[0]?.submitted || 0,
+        active: stats.rows[0]?.active || 0,
+        expired: stats.rows[0]?.expired || 0,
+        cancelled: stats.rows[0]?.cancelled || 0,
+        uniqueMembers: unique.rows[0]?.unique_members || 0,
+        uniqueWallets: unique.rows[0]?.unique_wallets || 0
+      },
+      subscribers: list.rows.map((row) => ({
+        id: row.id,
+        username: row.username || "—",
+        piUid: row.pi_uid || null,
+        wallet: row.wallet || null,
+        txHash: row.tx_hash || null,
+        periods: row.periods,
+        status: row.status,
+        createdAt: row.created_at
+      }))
+    });
+  } catch (e) {
+    console.error("admin subscribers:", e);
+    res.status(500).json({ ok: false, error: e.message || "Failed." });
+  }
+});
+
 /* =========================================================
 START SERVER
 ========================================================= */
@@ -7883,7 +7989,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.6"
+          "Version: 2.4.7"
         );
 
         console.log(
