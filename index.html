@@ -1796,6 +1796,15 @@ Pi UID: —
 <button class="secondary" style="margin-top:8px" onclick="checkAmtPremiumStatus()">🔄 CHECK STATUS</button>
 </div>
 
+<div class="card" id="adminSubsCard" style="border:1px solid rgba(255,100,120,.25)">
+<div class="card-title">📊 SUBSCRIBER MONITOR (DEV)</div>
+<p class="muted" style="font-size:11px;margin-bottom:8px">Service 348 · ADMIN_SECRET required · app records</p>
+<input id="adminSecretInput" class="input" type="password" placeholder="ADMIN_SECRET" style="margin-bottom:8px" autocomplete="off">
+<button class="secondary" onclick="loadAdminSubscribers()">🔄 LOAD SUBSCRIBERS</button>
+<div id="adminSubsSummary" class="notice" style="margin-top:10px;font-size:12px">Not loaded.</div>
+<div id="adminSubsList" style="margin-top:10px;max-height:280px;overflow:auto"></div>
+</div>
+
 <div class="card">
 <div class="card-title">TESTNET A2U (APP → USER)</div>
 <p class="muted" style="font-size:12px;margin-bottom:10px">
@@ -2370,7 +2379,9 @@ if(id==="walletSection"){refreshWallet();loadAmtHistory(window._histFilter||"");
 if(id==="airdropSection")loadAirdrop();
 if(id==="referralSection")loadReferral();
 if(id==="circleSection")loadSecurityCircle();
-if(id==="profileSection")loadProfile();
+if(id==="profileSection"){
+  ensurePiSdkReady().then(function(){ loadProfile(); }).catch(function(){ loadProfile(); });
+}
 if(id==="stakingSection")loadStaking();
 if(id==="miningSection"){loadMiningStatus();loadDailyStatus();}
 if(id==="marketSection")petTab(currentPetTab || "shop");
@@ -6087,6 +6098,13 @@ initSpinLabels();
 // Capture ?ref= from URL early (before login)
 getPendingReferralCode();
 
+// Warm Pi SDK early (Profile / Premium need SmartContract)
+if (typeof ensurePiSdkReady === "function") {
+  ensurePiSdkReady().catch(function(){});
+} else if (typeof Pi !== "undefined" && Pi.init) {
+  try { Pi.init({ version: "2.0", sandbox: true }); } catch(_) {}
+}
+
 restoreSession();
 
 }
@@ -6122,6 +6140,37 @@ async function waitForSubTx(submitted) {
   return result || submitted;
 }
 
+/** Re-init Pi SDK so SmartContract.Subscription is available without logout */
+async function ensurePiSdkReady() {
+  if (typeof Pi === "undefined") {
+    return { ok: false, reason: "no_pi" };
+  }
+  try {
+    try {
+      await Promise.resolve(Pi.init({ version: "2.0", sandbox: true }));
+    } catch (_) {
+      try {
+        await Promise.resolve(Pi.init({ version: "2.0" }));
+      } catch (e2) {
+        console.warn("ensurePiSdkReady init:", e2);
+      }
+    }
+    // Give Pi Browser a moment to attach SmartContract module
+    if (!Pi.SmartContract || !Pi.SmartContract.Subscription) {
+      await new Promise(function (r) { setTimeout(r, 400); });
+    }
+    if (!Pi.SmartContract || !Pi.SmartContract.Subscription) {
+      await new Promise(function (r) { setTimeout(r, 800); });
+    }
+    const ready = !!(Pi.SmartContract && Pi.SmartContract.Subscription);
+    return { ok: ready, reason: ready ? "ready" : "no_smartcontract" };
+  } catch (e) {
+    console.warn("ensurePiSdkReady:", e);
+    return { ok: false, reason: "error" };
+  }
+}
+window.ensurePiSdkReady = ensurePiSdkReady;
+
 async function checkAmtPremiumStatus() {
   const statusEl = $("premiumStatus");
   const addr = getPremiumWalletAddress();
@@ -6134,8 +6183,9 @@ async function checkAmtPremiumStatus() {
     if (statusEl) statusEl.textContent = "Open in Pi Browser";
     return false;
   }
-  if (!Pi.SmartContract || !Pi.SmartContract.Subscription) {
-    if (statusEl) statusEl.textContent = "SDK: need latest Pi Browser";
+  const sdk = await ensurePiSdkReady();
+  if (!sdk.ok) {
+    if (statusEl) statusEl.textContent = "SDK warming up… retry";
     return false;
   }
   try {
@@ -6168,8 +6218,10 @@ async function subscribeAmtPremium() {
       showToast("Pi SDK missing. Open this app inside the official Pi Browser (not Chrome).", true);
       return;
     }
-    if (!Pi.SmartContract || !Pi.SmartContract.Subscription) {
-      showToast("Subscription SDK not ready. Update Pi Browser, stay on Testnet, then retry.", true);
+    showToast("Preparing Pi SDK…");
+    const sdk = await ensurePiSdkReady();
+    if (!sdk.ok) {
+      showToast("Subscription SDK still loading. Wait 2s then tap Subscribe again (stay in Pi Browser).", true);
       return;
     }
     const addr = getPremiumWalletAddress();
@@ -6250,6 +6302,62 @@ async function subscribeAmtPremium() {
 
 window.subscribeAmtPremium = subscribeAmtPremium;
 window.checkAmtPremiumStatus = checkAmtPremiumStatus;
+
+async function loadAdminSubscribers() {
+  const secretEl = $("adminSecretInput");
+  const secret = (secretEl && secretEl.value ? secretEl.value : "").trim();
+  const sum = $("adminSubsSummary");
+  const list = $("adminSubsList");
+  if (!secret) {
+    showToast("Ilagay ang ADMIN_SECRET.", true);
+    return;
+  }
+  try {
+    if (sum) sum.textContent = "Loading…";
+    if (list) list.innerHTML = "";
+    const res = await fetch(API_BASE + "/api/admin/subscribers?serviceId=348&limit=100", {
+      headers: { Accept: "application/json", "x-admin-secret": secret }
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || ("HTTP " + res.status));
+    }
+    const s = data.summary || {};
+    if (sum) {
+      sum.innerHTML =
+        "<b>Total records:</b> " + (s.totalRecords || 0) +
+        " · <b>Unique members:</b> " + (s.uniqueMembers || 0) +
+        " · <b>Wallets:</b> " + (s.uniqueWallets || 0) +
+        "<br><b>Submitted:</b> " + (s.submitted || 0) +
+        " · <b>Active:</b> " + (s.active || 0) +
+        " · <b>Expired:</b> " + (s.expired || 0);
+    }
+    const rows = data.subscribers || [];
+    if (!rows.length) {
+      if (list) list.innerHTML = '<div class="empty">No subscribers recorded yet.</div>';
+      return;
+    }
+    if (list) {
+      list.innerHTML = rows.map(function (r) {
+        const when = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+        const w = r.wallet ? String(r.wallet).slice(0, 8) + "…" + String(r.wallet).slice(-4) : "—";
+        const tx = r.txHash ? String(r.txHash).slice(0, 10) + "…" : "—";
+        return (
+          '<div class="row" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);align-items:flex-start">' +
+          '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:800;font-size:13px">' + esc(r.username || "—") + ' · <span class="muted">' + esc(r.status || "") + '</span></div>' +
+          '<div class="muted" style="font-size:10px;margin-top:2px">' + esc(when) + ' · ' + esc(w) + ' · tx ' + esc(tx) + '</div>' +
+          '</div></div>'
+        );
+      }).join("");
+    }
+    showToast("Subscribers loaded: " + rows.length);
+  } catch (e) {
+    if (sum) sum.textContent = e.message || "Failed";
+    showToast(e.message || "Failed to load subscribers", true);
+  }
+}
+window.loadAdminSubscribers = loadAdminSubscribers;
 
 // Auto-check when profile opens
 const _origLoadProfile = typeof loadProfile === "function" ? loadProfile : null;
