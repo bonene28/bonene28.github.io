@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.8
+FULL SERVER VERSION 2.4.9
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.4.8:
+VERSION 2.4.9:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -1243,7 +1243,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.8",
+      "2.4.9",
 
     features: [
       "Pi Login",
@@ -7801,7 +7801,11 @@ app.post("/api/premium/subscribe-hook", requireAuth, async (req, res) => {
     const wallet = String(req.body?.wallet || "").trim();
     const txHash = String(req.body?.txHash || "").trim();
     const periods = String(req.body?.periods || "5");
-    // Lightweight log + optional table (create if missing)
+    // If client reports success + has tx → active; else submitted
+    let status = String(req.body?.status || "").toLowerCase();
+    if (status !== "active" && status !== "submitted" && status !== "expired") {
+      status = txHash ? "active" : "submitted";
+    }
     try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS premium_subscriptions (
@@ -7817,20 +7821,54 @@ app.post("/api/premium/subscribe-hook", requireAuth, async (req, res) => {
       `);
       await pool.query(
         `INSERT INTO premium_subscriptions (member_id, service_id, wallet, tx_hash, periods, status)
-         VALUES ($1,$2,$3,$4,$5,'submitted')`,
-        [req.member.id, serviceId, wallet, txHash, periods]
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [req.member.id, serviceId, wallet, txHash, periods, status]
       );
     } catch (dbErr) {
       console.error("premium hook db:", dbErr.message);
     }
     res.json({
       ok: true,
-      message: "Premium subscription recorded. Benefits apply after on-chain confirm.",
+      message: status === "active"
+        ? "Premium subscription marked active."
+        : "Premium subscription recorded.",
       serviceId,
-      wallet
+      wallet,
+      status
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message || "Hook failed" });
+  }
+});
+
+/** One-time: mark existing submitted rows as active (has tx_hash) */
+app.post("/api/admin/subscribers/activate-submitted", async (req, res) => {
+  try {
+    const secret = process.env.ADMIN_SECRET || "";
+    const provided = String(req.headers["x-admin-secret"] || req.body?.adminSecret || "");
+    if (!secret || provided !== secret) {
+      return res.status(403).json({ ok: false, error: "Forbidden." });
+    }
+    const serviceId = String(req.body?.serviceId || req.query.serviceId || "348");
+    const r = await pool.query(
+      `
+      UPDATE premium_subscriptions
+      SET status = 'active'
+      WHERE service_id = $1
+        AND status = 'submitted'
+        AND tx_hash IS NOT NULL
+        AND tx_hash <> ''
+      `,
+      [serviceId]
+    );
+    res.json({
+      ok: true,
+      activated: r.rowCount || 0,
+      serviceId,
+      message: "Submitted records with tx_hash marked active."
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message || "Failed." });
   }
 });
 
@@ -7991,7 +8029,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.8"
+          "Version: 2.4.9"
         );
 
         console.log(
