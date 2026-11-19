@@ -4,7 +4,7 @@
 ============================================================
 ALBERTO MARKETPLACE TOKEN (AMT)
 PI TESTNET BACKEND
-FULL SERVER VERSION 2.4.7
+FULL SERVER VERSION 2.4.8
 
 IMPORTANT:
 - TESTNET ONLY
@@ -18,7 +18,7 @@ IMPORTANT:
 - Marketplace payments use Pi Testnet Payments API
 - NO MAINNET VALUE IS CLAIMED
 
-VERSION 2.4.7:
+VERSION 2.4.8:
 - Preserved all existing Pioneer records
 - Preserved all existing AMT balances
 - Preserved all existing mining sessions
@@ -252,7 +252,9 @@ app.use(
     ],
     allowedHeaders: [
       "Content-Type",
-      "Authorization"
+      "Authorization",
+      "x-admin-secret",
+      "X-Admin-Secret"
     ]
   })
 );
@@ -1241,7 +1243,7 @@ app.get("/", async (req, res) => {
       "TESTNET",
 
     version:
-      "2.4.7",
+      "2.4.8",
 
     features: [
       "Pi Login",
@@ -7989,7 +7991,7 @@ async function startServer() {
         );
 
         console.log(
-          "Version: 2.4.7"
+          "Version: 2.4.8"
         );
 
         console.log(
